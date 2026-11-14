@@ -1,0 +1,19 @@
+FE SURVIVOR — ETAPA 2 / RELATÓRIO DE VALIDAÇÃO
+Base comercial: v0.65 (mantida)
+Content Registry: schema 3
+
+APROVADO
+- Sintaxe JavaScript de game.js e content/registry.js (node --check).
+- FE_SURVIVOR_CONTENT.validate(): sem erros.
+- Integridade dos vínculos de heróis, armas, dons, habilidades, demônios, chefes e árvores.
+- Validação de handlers e contratos de comportamento.
+- Nenhum callback JavaScript aninhado nos registros de conteúdo (dados serializáveis em JSON).
+- Comparação com os dados centrais da Etapa 1: sem diferenças de cadastro, exceto a conversão intencional de callbacks para dados declarativos e os novos metadados do schema 3.
+- Comparação semântica: 75 melhorias de armas, 9 Graças e 27 efeitos de Maestria mantiveram os mesmos resultados nos testes automatizados.
+
+NÃO VALIDADO NESTE AMBIENTE
+- Inicialização completa e gameplay no Chromium: a tentativa de navegador automatizado não foi concluída devido a bloqueio/timeout do ambiente.
+- Partida real em Android e geração de APK/AAB.
+
+TESTE MANUAL RECOMENDADO
+Abra o jogo localmente e verifique: menu; seleção e preparação de heróis; Loja; Perfil; Biblioteca; início de partida com cada herói; subir armas de nível; aplicar dons e Maestrias; escolher e usar habilidades ativas; aparição de demônios; encontros com chefes; exportação da telemetria.

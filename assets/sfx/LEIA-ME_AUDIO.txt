@@ -1,0 +1,32 @@
+ÁUDIO DO JOGO (v0.51) — arquivos e onde tocam
+===============================================
+Os efeitos ficam nesta pasta (assets/sfx/) e as músicas em assets/music/. Aceita .ogg, .wav ou .mp3
+(o jogo tenta nessa ordem). Se um arquivo faltar, o jogo usa um som sintetizado no lugar.
+Ao carregar, o jogo corta o silêncio do começo/fim e equilibra o volume de cada arquivo sozinho.
+Licença dos áudios: CC0 (domínio público) — ver assets/LICENSE-audio.md.
+
+ARQUIVO                      QUANDO TOCA
+sfx_impact                   golpe que acerta (mais grave p/ inimigo grande, mais forte p/ dano alto)
+sfx_enemy_death              inimigo derrotado (sobe de tom em sequência de abates)
+sfx_boss_death               chefe derrotado
+sfx_boss_alert               chefe chegando e "Hora Final" (+ camada aguda sintetizada para caixinha de celular)
+sfx_player_hurt              você levou dano (mais grave com pouca vida)
+sfx_faith_pickup             coletar Fé (sobe uma nota a cada coleta seguida; cristal grande soa mais cheio)
+sfx_heal                     cura, pão da vida, maná
+sfx_level_up                 subir de nível
+sfx_card_select              escolher uma carta
+sfx_chest                    Arca da Aliança e Evolução Suprema
+sfx_shield                   bloqueio de golpe e Escudo Divino
+sfx_victory / sfx_defeat     fim da partida
+sfx_footstep                 passos (muda por mundo: areia abafada, pedra, grama/terra)
+sfx_weapon_arrows            Funda e Pomba
+sfx_weapon_cross             corpo a corpo: Espada, Queixada, Machado, onda da Espada do Espírito
+sfx_weapon_aura              Aura, Menorá (zumbido), raios santos dos Anjos
+sfx_weapon_seal              Cajado de Moisés, Jarros, Rede, decretos e tremores
+
+assets/music/music_dawn      Amanhecer (toca uma vez e segue pela tela de vitória)
+assets/music/music_vigil     modo Vigília Eterna (repete; volta à música de chefe durante os chefes)
+
+Ajuste fino: tabela NXA_EV no bloco "v0.51" do game.js (g = volume, r = faixa de tom, v = vozes
+simultâneas, gap = intervalo mínimo em ms, max = duração máxima em s).
+Depuração (?debug no endereço): audioReport() lista o que foi carregado.

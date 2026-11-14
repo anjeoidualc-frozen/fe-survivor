@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0c0918" />
+    <title>Fé Survivor</title>
+    <!-- v0.65: Perfil do jogador (nome com regras, títulos e molduras, ícones de assets/icons/profile/ — heróis, demônios e chefes à venda na Loja —, estatísticas, boas-vindas após o tutorial); Notícias no canto inferior direito. v0.45: correção de vazamento de layout entre telas (o estilo da tela de modos era herdado pelas telas seguintes). v0.44: modos lado a lado (3 cartões em grade, sem rolagem), largura da tela de modos própria, altura pelo conteúdo. v0.43: tela de modos em cartões (Amanhecer, Vigília Eterna bloqueada, Em breve) com cenas próprias em CSS; botões com relevo e resposta ao toque. v0.41: escolha de modo (Amanhecer / Vigília Eterna) após Continuar na preparação; Vigília bloqueada com cadeado; __dbg.unlockInf() para testes com ?debug. v0.40: modo Vigília Eterna (sem amanhecer, chefes que retornam a cada 90 s, dificuldade que cresce sem teto, todos os slots liberados, Fé 35% mais lenta, melhor tempo e placar próprios; desbloqueado ao vencer o amanhecer uma vez). Placar de tempo do modo padrão deixa de ser enviado. v0.39: anúncio ocioso removido, simulador de anúncio/compra só com ?debug, intersticial a partir da 4ª partida, analytics (FeTrack) e versão sincronizada. v0.38: Loja (pacotes de moedas + remover anúncios por compra real), mundos Deserto de Sur e Vale da Sombra liberados por IAP, Loja no canto superior direito. v0.32: identidade visual das árvores, ícones evolutivos na HUD e cartas de Maestria lendária. v0.31: biblioteca de árvores de evolução para consulta pré-partida, com caminhos, maestrias e requisitos. v0.30: árvores de evolução para armas, dons e habilidades ativas; maestrias com efeitos reais. v0.29: árvore de evolução da Funda de Davi (3 caminhos + maestria) integrada ao fluxo de cartas e ao combate. v0.28: tela do estúdio (Snow Studio) + tela de carregamento com barra de progresso e login no Google Play Games; ranking com mensagem de erro detalhada. v0.27: RNG separado, ganchos ?debug. v0.26: CSS principal e fontes agora ficam no <head>, ANTES dos estilos injetados por JS (antes ficavam no <body>, depois deles, e anulavam os ajustes de celular). HUD reorganizado, margens seguras (notch/barras), tela de morte em 2 colunas, escala inteira de pixels, textos de toque, anti-toque-acidental nas cartas. -->
+    <!-- v0.17: preparação herói+mundo, ícones de UI, chefes vetoriais, assets. v0.16:  raridade das cartas; textos de como jogar removidos do menu e configurações. v0.15: cartas redesenhadas, modal Como jogar. v0.14: heróis por anúncio (Paulo 2, Débora 5) e moedas (Sansão, Ester, Elias). v0.13: arena 2x, fé espalhada -80%, morte 6,2 s. v0.12: pausa limpa, arena quadrada x5, sempre 10:00, morte com poeira. v0.11: mira manual, habilidades de chefe, arena; sem toggles de som/música. v0.10: anúncios recompensados, demônio explosivo, empurrões, chefe final, biblioteca -->
+    <!-- v0.9: trava anti-ativação ao escolher carta, Bênção do Pastor só cura, tooltip das ativas, alcance de ataque por herói (+Atalaia, Asas de Águia), Raios de coragem em coluna, números de dano, efeitos visuais on/off e limite de FPS. v0.8: Hora Final (8:00+), neblina de chefe, habilidades ativas (Espaço), colisão com cenário. v0.7: Hora Final (8:00+), neblina de chefe, habilidades ativas (Espaço), colisão com cenário. v0.6: seleção de mundo (3 mundos com desbloqueio por melhor tempo) e Desafio do Dia (semente diária, bônus e sequência). v0.5: heróis jogáveis (Sansão, Ester, Elias, Mendigo), desbloqueio, reset debug. v0.4: tela de heróis (atributos, Graça, Maestria, bloqueados), Desistir e guardar. v0.3: tooltips, popup de testemunhos, Provas/Jejum Total, sistema de assets. v0.2-parcial (loja, testemunhos, config) + fix S.shield. v0.1.1: balanceamento (Funda, Davi, Couraça, chefes), piso de dano, versículos ARC -->
+    <link rel="stylesheet" href="fonts/fonts.css" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="android-bridge.js"></script>
+  </head>
+
+  <body>
+    <div id="game">
+      <canvas id="c"></canvas>
+      <div id="hud" hidden>
+        <div id="xp"><i id="xpfill"></i><span id="xplbl">FÉ</span></div>
+        <div id="obj" class="chip">Sobreviva</div>
+        <div id="timer">0:00</div>
+        <button id="pauseBtn" class="icon-only" aria-label="Pausar">
+          <span class="uic i-pause"></span>
+        </button>
+        <div id="fps" class="chip" hidden>FPS: 0</div>
+        <div id="coins" class="chip">Moedas 0</div>
+        <div id="bossbar" hidden>
+          <span id="bossname"></span>
+          <div><i id="bossfill"></i></div>
+        </div>
+        <div id="rack"></div>
+        <div id="stats">
+          <div id="lvl">NÍVEL 1</div>
+          <div id="kills">0 DERROTADOS</div>
+          <div id="hpbar"><i id="hpfill"></i><span id="hptxt"></span></div>
+        </div>
+        <div id="toast"></div>
+        <div id="banner">
+          <h2 id="bnT"></h2>
+          <p id="bnS"></p>
+        </div>
+      </div>
+      <div id="stick" hidden><i></i></div>
+      <div id="dawnTxt" hidden>
+        <h2>AMANHECEU</h2>
+        <p>
+          <span>O choro pode durar uma noite,</span>
+          <span>mas a alegria vem pela manhã. Salmos 30:5</span>
+        </p>
+      </div>
+
+      <div id="boot">
+        <div id="bootStudio"><span>Snow Studio</span></div>
+        <div id="bootLoad">
+          <div id="bootArt"></div>
+          <div id="bootCross"></div>
+          <div id="bootTitle">Fé Survivor</div>
+          <div id="bootBox">
+            <div id="bootTxt"></div>
+            <div id="bootBar"><i id="bootFill"></i><b id="bootPct">0%</b></div>
+            <div id="bootSub"></div>
+          </div>
+        </div>
+      </div>
+      <div id="menu" class="ov">
+        <div id="topLeft" class="top-left">
+          <!-- Perfil: ícone + nome do jogador; abre a tela de perfil (game.js, v0.65) -->
+          <button
+            id="profBtn"
+            class="mb prof-btn"
+            type="button"
+            aria-haspopup="dialog"
+            aria-label="Perfil"
+          >
+            <span class="prof-frame" id="profBtnFrame"
+              ><span class="prof-av" data-icon="davi"></span
+            ></span>
+            <span class="prof-btn-txt"
+              ><b id="profBtnName">Peregrino</b
+              ><small id="profBtnTitle">PEREGRINO</small></span
+            >
+          </button>
+        </div>
+        <!-- Notícias: canto inferior direito -->
+        <div id="bottomRight" class="bottom-right">
+          <button
+            id="newsBtn"
+            class="icon-stack-btn"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="newsModal"
+          >
+            <span
+              class="icon-stack-face mb ib i-book"
+              aria-hidden="true"
+            ></span>
+            <span class="icon-stack-label">Notícias</span>
+          </button>
+        </div>
+        <div id="topRight" class="top-right"></div>
+        <div class="ov-in">
+          <canvas id="crossCv" width="7" height="10"></canvas>
+          <h1>Fé Survivor</h1>
+          <p class="verse" id="homeVerse" aria-live="polite">
+            <span id="homeVerseText"
+              >“Nossa luta não é contra carne e sangue.”</span
+            >
+            <b id="homeVerseRef">Efésios 6:12</b>
+          </p>
+          <p class="sub">Escolha seu herói da fé</p>
+          <div id="heroes"></div>
+          <div class="row"><button id="playBtn" class="btn">Jogar</button></div>
+          <div class="meta" id="meta"></div>
+        </div>
+        <!-- versão + id do jogador (canto inferior esquerdo); APP_VER é definida em game.js -->
+        <div id="buildInfo" class="build-info" aria-hidden="true">
+          <span id="buildVer"></span>
+          <span id="buildId"></span>
+        </div>
+      </div>
+
+      <div id="lvlup" class="ov" hidden>
+        <div class="ov-in">
+          <h2 id="lvTitle">Nível 2</h2>
+          <p class="sub" id="lvSub">Escolha uma habilidade</p>
+          <div id="cards"></div>
+        </div>
+      </div>
+
+      <div id="pause" class="ov" hidden>
+        <div class="ov-in">
+          <h2>Em oração</h2>
+          <p class="sub">Jogo pausado</p>
+          <div class="build" id="pauseBuild"></div>
+          <div class="pause-stats" id="pauseStats"></div>
+          <div class="row">
+            <button id="resumeBtn" class="btn">Continuar</button>
+            <button id="muteBtn" class="mb">Som: ligado</button>
+          </div>
+          <div class="row pause-sub">
+            <button id="menuBtn" class="mb">Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="end" class="ov" hidden>
+        <div class="ov-in">
+          <div class="end-l">
+            <h2 id="endT">A fé fraquejou</h2>
+            <p class="verse" id="endV"></p>
+            <div class="sumgrid" id="endSum"></div>
+            <div class="build" id="endBuild"></div>
+          </div>
+          <div class="end-r">
+            <div class="row">
+              <button id="againBtn" class="btn">Tentar de novo</button>
+              <button id="endMenuBtn" class="btn alt">Menu</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="confirm"
+        class="ov confirm-overlay"
+        hidden
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="cfT"
+        aria-describedby="cfP"
+      >
+        <div class="ov-in confirm-dialog">
+          <h2 id="cfT">Perder as moedas?</h2>
+          <p class="verse" id="cfP"></p>
+          <div class="row">
+            <button id="cfNo" class="btn" type="button">
+              Continuar jogando
+            </button>
+            <button id="cfYes" class="btn alt danger" type="button">
+              Sim, perder
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="newsModal"
+        class="ov news-overlay"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="newsT"
+      >
+        <div class="news-panel">
+          <h2 id="newsT" class="news-title">Notas da Versão</h2>
+          <div id="newsBody" class="news-body"></div>
+          <button
+            type="button"
+            id="newsBack"
+            class="mb back-btn"
+            aria-label="Voltar"
+          >
+            <span class="pxchev" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Linha de Testemunho (clonada por game.js > renderAch). Estilo em style.css, seção "Testemunhos". -->
+    <template id="achRowTpl">
+      <div class="rw ach-row">
+        <span class="ach-main">
+          <span class="ach-hex">
+            <svg class="ach-hexsvg" viewBox="0 0 48 50" aria-hidden="true">
+              <polygon
+                class="hx-bg"
+                points="24,1 45,12.5 45,37.5 24,49 3,37.5 3,12.5"
+              />
+              <polygon
+                class="hx-in"
+                points="24,6 40.5,15 40.5,35 24,44 7.5,35 7.5,15"
+              />
+              <g
+                class="ach-glyph"
+                transform="translate(12 13)"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></g>
+            </svg>
+            <img class="ach-img" alt="" draggable="false" />
+          </span>
+          <span class="ach-txt">
+            <b class="ach-name"></b>
+            <small class="ach-desc"></small>
+          </span>
+        </span>
+        <span class="ach-state"><span class="uic"></span></span>
+      </div>
+    </template>
+
+    <script src="home-verses.js"></script>
+    <script src="art_v2.js"></script>
+    <script src="content/registry.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>

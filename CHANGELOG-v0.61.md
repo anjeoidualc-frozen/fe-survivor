@@ -1,0 +1,129 @@
+# Fé Survivor — v0.61
+## Pacote inicial (primeira compra)
+
+Oferta única, com 58% de desconto sobre o valor separado.
+
+**Conteúdo:**
+- Sansão, o Juiz (herói desbloqueado)
+- Deserto de Sur (mundo desbloqueado, +25% de moedas)
+- 9.000 moedas (Tesouro Real)
+- Remover anúncios para sempre
+
+**Preço:** R$ 24,90. Valor separado: R$ 59,62 (desconto de 58%).
+
+### Comportamento
+- Aparece como modal depois da primeira partida, na primeira vez que a tela inicial é mostrada. Também abre se o jogo for reaberto com a oferta pendente.
+- Se o jogador fechar ("Agora não", ×, ou tocando fora), a oferta fica como card abaixo de "Notícias", no canto superior esquerdo.
+- Some depois da compra e não volta mais.
+- Não aparece durante o tutorial.
+
+### Compra e restauração
+- Produto `starter_pack` (não consumível) no Play Console, a cadastrar em R$ 24,90.
+- A compra entrega moedas uma única vez. A restauração libera Sansão, Deserto de Sur e remoção de anúncios, mas não entrega as 9.000 moedas de novo. Um token já processado nunca é reprocessado.
+
+### Idiomas
+- Textos novos em pt-BR, en-US e es-419 (chaves `starter.*`).
+- Termos traduzidos: "Starter pack", "Samson, the Judge", "Sur Desert", "Royal Treasure", "Remove ads forever" (en-US); "Paquete inicial", "Sansón, el Juez", "Desierto de Sur", "Tesoro Real", "Quitar anuncios para siempre" (es-419). Vale revisar com um falante nativo.
+- O preço é sempre exibido em reais, no mesmo formato nos três idiomas.
+
+### Verificações
+- `node --check`: aprovado.
+- Fluxo completo no Chromium: modal após a primeira partida, "Agora não" cria o card, o card persiste após recarregar, a compra libera os itens e some, a restauração sem token não duplica moedas, e um mesmo token repetido não entrega moedas de novo.
+- Textos conferidos nos três idiomas.
+- Partida padrão sem erros JavaScript.
+
+### Ainda não testado
+- Compra real na Play Store (apenas o simulador do navegador).
+- Preço localizado vindo da loja: no navegador aparece o valor de reserva R$ 24,90.
+
+---
+
+# Fé Survivor — v0.60
+## Economia: decisões de 1ª rodada
+
+Premissa: jogador mediano de 6 partidas por dia.
+
+- **Todos os heróis em moedas do jogo.** Paulo (antes 2 anúncios) agora custa 1.500 e Débora (antes 5 anúncios) custa 3.000. Os preços estão em `ECO.HERO_COST`, uma única fonte.
+- **Preços dos heróis:** Paulo 1.500 · Débora 3.000 · Sansão 5.000 · Gideão 7.500 · Ester 10.000 · Pedro 13.000 · Elias 16.000 · Moisés 20.000. Total: 76.000.
+- **Após a partida:** o anúncio deixou de dobrar a partida e passou a dar **+30 moedas fixas**, até 3 por dia (limite de `ECO.DBL_MAX_DAY`).
+- **Anúncio grátis da loja:** 30 moedas (era 60), até 5 por dia.
+- **Bônus diário:** 30 moedas fixas (era 100 + 20 por dia de sequência). O passo de sequência continua configurável em `ECO.DAILY_STEP`.
+- **Pacotes da loja:** sem alteração.
+- **Runas:** sem alteração (980 por ramo, 2.940 com os três ramos).
+
+### Verificações
+- `node --check`: aprovado.
+- Limite de anúncios: 3 concluídos, o 4º bloqueado com texto de limite.
+- Herói Paulo: botão mostra "Desbloquear · 1500 moedas". Com 2.000 moedas, a compra debita 1.500 e desbloqueia o herói.
+- Partida padrão sem erros JavaScript.
+
+---
+
+# Fé Survivor — v0.59
+## Economia: centralização e limite de dobros
+
+- **Novo bloco `ECO`** (início do arquivo de jogo, após o save) com todos os números de moedas que não são preços de herói ou pacote: limite de dobros, anúncio grátis da loja, bônus diário, bênção Oferta e custos das runas.
+- **Dobro por anúncio limitado a 3 por dia** (antes ilimitado). Quando o limite é atingido, o botão fica desabilitado com a mensagem "limite de hoje atingido". O contador é diário e segue o mesmo padrão do anúncio grátis da loja.
+- Valores que não mudaram: preços dos heróis (`HU`), pacotes (`PRODUCTS`), mundos, provas, custos das runas e bônus diário. Todos continuam com os mesmos números.
+- Gancho de depuração `dblSetup` exposto em `window.__dbg` (apenas com `?debug`).
+
+### Verificações
+- `node --check`: aprovado.
+- Teste do limite: 3 dobros concluídos, o 4º e o 5º bloqueados e com o texto de limite.
+- Partida padrão rodada sem erros JavaScript.
+
+### Pendente (aguarda decisão de economia)
+Ver `Economia_auditoria_v0.58.md`, seção 7.
+
+---
+
+# Fé Survivor — v0.57
+## Runas do Reino (nova tela de Tesouros)
+
+### O que muda para o jogador
+Os Tesouros do Reino deixam de ser uma lista de melhorias com +% e passam a ser uma árvore de runas, em três ramos: **Ataque**, **Defesa** e **Utilidade**.
+
+- Cada ramo tem uma **pedra-chave** (escolha uma entre três) e três **níveis**. Em cada nível escolhe-se uma runa entre duas.
+- Um nível só abre depois das escolhas anteriores do ramo: nível 1 pede a pedra-chave, nível 2 pede duas escolhas, nível 3 pede três.
+- Cada runa tem ícone, efeito descrito e custo. O painel de detalhes mostra o que ela faz, o que exige e se substitui outra.
+- Trocar uma runa custa de novo. "Refazer ramo" (200 moedas) limpa as escolhas daquele ramo.
+- São 12 escolhas no total, entre 27 opções. Não há como ter tudo, então dinheiro sozinho não compra todas as runas.
+
+### Runas
+**Ataque**
+- Pedra-chave: Lâmina Ardente (+12% de dano), Olho Sagrado (+8% de crítico; críticos com 3× de dano), Fúria do Justo (ao abater, +25% de dano por 3 s).
+- Nível 1: Julgamento (+35% de dano contra inimigos abaixo de 30% de vida), Cadência Sagrada (−12% no intervalo entre disparos).
+- Nível 2: Alcance da Luz (+12% de área e alcance), Impacto Divino (empurrão 80% maior).
+- Nível 3: Sede de Justiça (cada abate restaura 0,5 de Salvação), Juízo Súbito (10% de chance de abater na hora inimigos abaixo de 30% de vida).
+
+**Defesa**
+- Pedra-chave: Fortaleza da Fé (+3 de Salvação máxima), Coroa de Espinhos (reflete 5 de dano ao ser atingido), Misericórdia (recupera 1 de Salvação a cada 8 s).
+- Nível 1: Couraça de Fé (+10% de bloqueio), Pele de Ferro (−1 de dano recebido, mínimo 1).
+- Nível 2: Refúgio (invulnerável por 1,4 s após dano), Vigor da Fé (+2 de Salvação máxima).
+- Nível 3: Escudo Divino (a cada 25 s, 3 s de invulnerabilidade), Aura Sagrada (inimigos próximos perdem 4 de vida por segundo).
+
+**Utilidade**
+- Pedra-chave: Ascensão (+12% de velocidade), Graça Abundante (+20% de Fé e de moedas), Peregrino (+5% de velocidade e +30% de alcance de coleta).
+- Nível 1: Ímã da Graça (+25% de coleta), Sabedoria (+15% de Fé).
+- Nível 2: Dízimo (+20% de moedas ao fim da partida), Passos Leves (+10% de velocidade).
+- Nível 3: Juízo Acumulado (a cada 20 abates, o próximo golpe causa 50% a mais), Colheita (15% de chance de cada abate render 1 moeda extra na partida).
+
+### Migração
+- Melhorias antigas compradas são convertidas em moedas de volta (o valor pago em cada nível). Um aviso aparece na primeira abertura da tela.
+- As conquistas continuam funcionando: a "Primeira Oferta" é liberada pela primeira runa comprada.
+
+### Técnico
+- Os efeitos de atributo entram em `shopMods`, recalculado a cada partida.
+- Efeitos especiais usam ganchos novos no motor: execução e Juízo Súbito em `hurt`; Fúria, cura por abate, Juízo Acumulado e Colheita em `kill`; Escudo Divino e Aura por quadro; Refúgio em `hurtPlayer`.
+- Migração executada uma única vez, quando o save não tem o campo `rt`.
+
+### Verificações
+- `node --check`: aprovado.
+- Teste no Chromium: compra, bloqueio por nível, troca, refazer e migração do save.
+- Combate com três combinações de runas, cobrindo 25 das 27 opções (ficaram sem teste em combate Fortaleza da Fé e Ascensão, que são só aumentos de atributo): sem erros JavaScript, e os modificadores aparecem corretamente na partida.
+- Regressão: modos Amanhecer e Vigília Eterna executam sem erros.
+
+### Ainda não testado
+- Equilíbrio das runas: os valores foram escolhidos, mas não foram medidos com jogadores.
+- Layout em celular: a tela tem três colunas e quebra em linhas em telas estreitas; falta testar em dispositivo real.
+- Textos novos estão só em português, no código.
