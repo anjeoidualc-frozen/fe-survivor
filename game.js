@@ -17650,6 +17650,31 @@
     "Vida/aparição demoníaca": "%",
     "Velocidade demoníaca": "%",
   };
+  /* ícones dos status (reaproveitam os ícones já existentes em ICON_DRAW / safeIconSVG) */
+  const ST_ICON = {
+    Dano: "sword",
+    "Vel. de ataque": "trumpet",
+    "Vel. de movimento": "boots",
+    "Alcance de ataque": "sling",
+    "Alcance de coleta": "magnet",
+    "Salvação máx.": "heal",
+    Bloqueio: "shield",
+    Crítico: "aura",
+    "Fé ganha": "dove",
+    "Redução de dano": "breast",
+    "Área dos ataques": "firewall",
+    "Duração dos efeitos": "watch",
+    "Unidades extras": "angels",
+    Sorte: "eagle",
+    "Moedas ao fim": "coins",
+    "Vida/aparição demoníaca": "raven",
+    "Velocidade demoníaca": "whip",
+    Ressurreição: "sunstop",
+  };
+  function statIconURL(k) {
+    const id = ST_ICON[k];
+    return id ? iconURL(id) : "";
+  }
   function statRaw() {
     const m = G.mods,
       stats = {
@@ -17714,7 +17739,10 @@
           "</i>"
           : "";
         return (
-          '<div class="st-r"><span>' +
+          '<div class="st-r"><span class="st-lbl">' +
+          '<img class="st-ico" src="' +
+          statIconURL(k) +
+          '" alt="" width="16" height="16">' +
           k +
           "</span><b>" +
           v +

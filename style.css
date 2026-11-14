@@ -2000,6 +2000,22 @@ span b {
   display: flex;
   justify-content: space-between;
   gap: 6px;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.st-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.st-ico {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  image-rendering: pixelated;
+  /* mantém o pixel art nítido */
 }
 
 .st-r span {
@@ -2072,7 +2088,7 @@ span b {
 
   #stPanel {
     font-size: 10px;
-    width: 140px;
+    width: auto;
     padding: 5px 6px;
   }
 
@@ -4182,7 +4198,7 @@ button:focus-visible {
 
   #stPanel {
     font-size: 10px;
-    width: 140px;
+    width: auto;
     padding: 5px 6px;
   }
 
