@@ -5874,6 +5874,8 @@
                 d = Math.hypot(dx, dy) || 1;
               if (d < e.r + hitRadius) {
                 e.shCd = 0.42;
+                (w.swT || (w.swT = []))[i] = G.t; /* dispara o golpe de espada deste anjo */
+                (w.swA || (w.swA = []))[i] = Math.atan2(dy, dx); /* direção do inimigo */
                 if (FXQ()) fxSpark(e.x, e.y, "#fff0a3", 8);
                 hurt(
                   e,
@@ -7184,7 +7186,11 @@
       "SALVAÇÃO " + Math.max(0, Math.ceil(g.p.hp)) + "/" + mh,
     );
     setT(H$.timer, "t", fmt(g.t));
-    setT(H$.coins, "c", "Moedas " + runCoins(g));
+    const cv = String(runCoins(g));
+    if (hl.c !== cv) {
+      hl.c = cv;
+      H$.coins.innerHTML = '<span class="uic i-coin"></span> ' + cv;
+    }
     let o;
     if (g.boss) o = "Derrote " + BOSSES[g.boss.idx].name + "!";
     else if (g.inf || g.bossIdx < BOSS_T.length)
@@ -7530,6 +7536,7 @@
       save.runs;
     refreshBuildInfo();
     starterCardSync();
+    homeWalletSync();
     try {
       profBtnSync();
     } catch (e) { }
@@ -8327,7 +8334,7 @@
     const top = document.createElement("div");
     top.className = "rw";
     top.innerHTML =
-      "<span>Moedas: <b>" +
+      '<span><span class="uic i-coin tr-coin"></span> <b>' +
       save.coins +
       '</b></span><span class="adslot"></span>';
     b.appendChild(top);
@@ -9143,6 +9150,8 @@
     }
     Object.assign(spr, ASSET_MANIFEST.sprites);
     Object.assign(ico, ASSET_MANIFEST.icons);
+    /* ícones de status (assets/icons/<id>.png) */
+    Object.assign(ico, { magnet: "icons/magnet.png" });
     Object.assign(ui, ASSET_MANIFEST.ui);
     for (const k in spr) loadImg(spr[k], (im) => setSprite(k, im));
     for (const k in ico)
@@ -9786,9 +9795,9 @@
   const infUnlocked = () => !!(save.winH && Object.keys(save.winH).length);
   function wLbl() {
     $("#mWorld").textContent = "Mundo: " + curW().n;
-    $("#mDaily").textContent =
-      "Desafio do Dia" +
-      (save.daily.last === dayKey() ? " (feito)" : " (novo)");
+    const pending = save.daily.last !== dayKey();
+    $("#mDaily").textContent = "Desafio do Dia" + (pending ? "" : " (feito)");
+    $("#mDaily").classList.toggle("has-dot", pending);
   }
   wLbl();
   function renderWorlds(b) {
@@ -11677,7 +11686,7 @@
     return L;
   }
   const libTreeCard = (e) =>
-    '<span class="lc-top"><i>ÁRVORE ✦</i><em>3 caminhos</em></span><span class="lc-art evolution-art"><img alt="" src="' +
+    '<span class="lc-top"><i>ÁRVORE</i><em>3 caminhos</em></span><span class="lc-art evolution-art"><img alt="" src="' +
     iconURL(e.id) +
     '"></span><span class="lc-name">' +
     e.name +
@@ -12483,6 +12492,7 @@
             life: 1.2,
             dmg: e.dmg,
             done: false,
+            fire: true,
           });
         }
         e.atk = cd;
@@ -12557,6 +12567,88 @@
     }
     g.tel = g.tel.filter((f) => f.t < f.life);
   };
+
+  /* Chamas do chefe (padrão "fire"): marca de fogo no chão e labaredas em pixel art */
+  const FIRE_PX = 2;
+  function firePx(x, y, col) {
+    ctx.fillStyle = col;
+    ctx.fillRect(
+      Math.round(x / FIRE_PX) * FIRE_PX,
+      Math.round(y / FIRE_PX) * FIRE_PX,
+      FIRE_PX,
+      FIRE_PX,
+    );
+  }
+  function drawFireCirc(f, g) {
+    const cx = sx(f.x),
+      cy = sy(f.y),
+      R = f.r,
+      tm = g.t,
+      fx = FXQ(),
+      boom = f.t >= f.delay,
+      q = boom ? Math.min(1, (f.t - f.delay) / (f.life - f.delay)) : 0,
+      k = boom ? 1 - q : Math.min(1, f.t / f.delay); /* cresce na marcação, some na explosão */
+    const Rn = boom ? R * (1 + 0.5 * q) : R * (0.8 + 0.2 * k);
+
+    ctx.save();
+    /* chão queimado */
+    ctx.globalAlpha = boom ? 0.6 * k : 0.35 + 0.3 * k;
+    ctx.fillStyle = "#2a0a06";
+    ctx.beginPath();
+    ctx.arc(cx, cy, Rn, 0, 6.2832);
+    ctx.fill();
+    /* brasa no centro */
+    if (fx) {
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, Rn);
+      grd.addColorStop(0, "rgba(255, 200, 80, 0.7)");
+      grd.addColorStop(0.6, "rgba(255, 90, 20, 0.35)");
+      grd.addColorStop(1, "rgba(120, 20, 10, 0)");
+      ctx.fillStyle = grd;
+      ctx.fill();
+    }
+    /* borda incandescente que pulsa */
+    ctx.globalAlpha = (0.6 + 0.4 * Math.sin(tm * 12)) * (boom ? k : 1);
+    ctx.strokeStyle = "#ff8a2a";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    /* labaredas em volta da borda, em pixel art */
+    const N = fx ? 14 : 8,
+      H = boom ? 6 + 22 * k : 5 + 9 * k;
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * 6.2832 + Math.sin(tm * 2 + i) * 0.05,
+        flick = 0.6 + 0.4 * Math.sin(tm * 11 + i * 2.3),
+        h = Math.max(FIRE_PX, Math.round((H * flick) / FIRE_PX) * FIRE_PX),
+        ux = Math.cos(a),
+        uy = Math.sin(a),
+        sway = Math.sin(tm * 7 + i * 1.7) * 2;
+      for (let row = 0; row < h; row += FIRE_PX) {
+        const t = row / h,
+          w = (1 - t) * 3 + 1,
+          col =
+            t < 0.3 ? "#b3200f" : t < 0.6 ? "#ff6a1a" : t < 0.85 ? "#ffd24a" : "#fff6d6";
+        const bx = cx + ux * (Rn + row) - uy * sway * t * t,
+          by = cy + uy * (Rn + row) + ux * sway * t * t;
+        for (let j = -w; j <= w; j += FIRE_PX)
+          firePx(bx - uy * j, by + ux * j, col);
+      }
+    }
+
+    /* faíscas subindo (só com efeitos ligados) */
+    if (fx) {
+      ctx.fillStyle = "rgba(255, 215, 80, 0.9)";
+      for (let i = 0; i < 5; i++) {
+        const p = (tm * 0.8 + i / 5) % 1,
+          sxp = cx + Math.sin(i * 7.3 + tm * 2) * Rn * 0.7,
+          syp = cy - p * (Rn * 1.2);
+        ctx.globalAlpha = (1 - p) * (boom ? k : 1);
+        ctx.fillRect(Math.round(sxp), Math.round(syp), 2, 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
 
   /* Borda da arena do chefe: muralha de chamas espirituais (vermelho, laranja, amarelo e branco) com faíscas */
   function drawArenaBorder(g) {
@@ -12722,7 +12814,9 @@
     for (const f of g.tel || []) {
       ctx.save();
       if (f.k === "circ") {
-        if (f.t < f.delay) {
+        if (f.fire) {
+          drawFireCirc(f, g);
+        } else if (f.t < f.delay) {
           ctx.globalAlpha = 0.3 + 0.25 * Math.sin(f.t * 20);
           ctx.fillStyle = "#ff6a2a";
           ctx.beginPath();
@@ -14662,7 +14756,7 @@
   }
   /* ---- clima da partida: vida baixa, marcos, avisos e dicas iniciais ---- */
   const TIME_MSG = [
-    [45, "Você ainda está de pé. Continue!"],
+    [62, "Você ainda está de pé. Continue!"],
     [150, "Os demônios estão ficando mais fortes…"],
     [300, "Metade da noite! Resista!"],
     [420, "A escuridão se aprofunda…"],
@@ -15065,6 +15159,7 @@
   }
   function starterMenu() {
     starterCardSync();
+    homeWalletSync();
     try {
       if (profWelcomeMaybe()) return;
     } catch (e) {
@@ -16562,6 +16657,10 @@
     if (nm) nm.textContent = P.name;
     const tt = $("#profBtnTitle");
     if (tt) tt.textContent = profTitle().cur.toUpperCase();
+  }
+  function homeWalletSync() {
+    const v = $("#homeWalletVal");
+    if (v) v.textContent = (save.coins || 0).toLocaleString("pt-BR");
   }
   function profInit() {
     const btn = $("#profBtn");
@@ -21118,6 +21217,52 @@
       sprRot(S.shieldI, X, Y, 0.8, a + Math.PI / 2 - Math.PI);
     }
   }
+  /* ================= Anjos da Guarda: sprite em código (pixel art) =================
+       Corpo, escudo e asas (3 quadros) são templates montados uma única vez com buildSprite,
+       o mesmo sistema dos demais sprites. A espada é desenhada pixel a pixel: aço em repouso;
+       ao ferir um inimigo ela dá um golpe em arco, em chamas, na direção dele. */
+  const ANGEL_PAL = {
+    W: "#f4efe0", w: "#c9c1a6", G: "#e8bd52", g: "#b88b2e", D: "#4a3a2a",
+    K: "#2a2433", H: "#e2dac4", h: "#b9b098", X: "#4b4358",
+  };
+  const ANGEL_TPL = {
+    body: [
+      "..HHHH..",
+      ".HHhhHH.",
+      ".HKKKKH.",
+      ".HKKKKH.",
+      "..KKKK..",
+      ".WWWWWW.",
+      "WWWGGWWW",
+      "WWGggGWW",
+      ".WWGGWW.",
+      "..WggW..",
+      "..WWWW..",
+      ".WWWWWW.",
+      ".WWwwWW.",
+      ".WWwwWW.",
+      ".WwwwwW.",
+      "..X..X..",
+    ],
+    shield: [".GGGG.", "GGggGG", "GgDDgG", "GgDDgG", "GGggGG", ".GGGG."],
+    /* asa esquerda em 3 quadros: alta, aberta, baixa (a direita é o espelho) */
+    wing: [
+      ["w.......", "Ww......", "WWw.....", ".WWw....", ".WWWw...", "..WWWWw.", "..wWWWWW", "...wWWWW", "....wwWW", "......ww"],
+      ["........", "........", "....wWWW", "..wWWWWW", ".WWWWWWW", "wWWWWWWW", ".wwWWWWW", "...wwwWW", "......ww", "........"],
+      ["......ww", "....wwWW", "...wWWWW", "..wWWWWW", "..WWWWw.", ".WWWw...", ".WWw....", "WWw.....", "Ww......", "w......."],
+    ],
+  };
+  let ANGEL_SPR = null;
+  function angelSprites() {
+    if (!ANGEL_SPR)
+      ANGEL_SPR = {
+        body: buildSprite(ANGEL_TPL.body, ANGEL_PAL),
+        shield: buildSprite(ANGEL_TPL.shield, ANGEL_PAL),
+        wing: ANGEL_TPL.wing.map((r) => buildSprite(r, ANGEL_PAL)),
+      };
+    return ANGEL_SPR;
+  }
+  const ANGEL_SWING_T = 0.38; /* duração do golpe de espada (s) */
   function drawAngels(g, p, id = "angels") {
     const w = g.W[id];
     if (!w) return;
@@ -21128,7 +21273,8 @@
     const count = Math.min(6, s.count + (path === "host" ? (tier ? 2 : 1) : 0));
     const R = s.radius + (path === "guard" ? (tier ? 4 : 2) : 0),
       fq = FXQ(),
-      t = g.t;
+      t = g.t,
+      A = angelSprites();
     for (let i = 0; i < count; i++) {
       const a = w.ang + (i * TAU) / count,
         X = p.x + Math.cos(a) * R,
@@ -21136,51 +21282,89 @@
       const sx0 = sx(X),
         sy0 = sy(Y),
         bob = Math.sin(t * 5 + i) * 1.2;
+      /* golpe de espada: w.swT[i] (instante) e w.swA[i] (direção do inimigo) são gravados no update */
+      const swT = w.swT && w.swT[i],
+        k = swT === undefined ? 1 : (t - swT) / ANGEL_SWING_T,
+        swinging = k >= 0 && k < 1;
       if (fq) {
-        glow(
-          X,
-          Y + bob,
-          12,
-          "rgba(255,240,170,1)",
-          0.4 + 0.12 * Math.sin(t * 4 + i),
-        );
+        glow(X, Y + bob, 12, "rgba(255,240,170,1)", 0.4 + 0.12 * Math.sin(t * 4 + i));
+        if (swinging)
+          glow(X, Y + bob, 16, "rgba(255,140,40,1)", 0.35 * (1 - k));
         ctx.save();
-        ctx.strokeStyle =
-          "rgba(255,230,150," + (0.25 + 0.15 * Math.sin(t * 3 + i)) + ")";
+        ctx.strokeStyle = "rgba(255,230,150," + (0.25 + 0.15 * Math.sin(t * 3 + i)) + ")";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(sx(p.x), sy(p.y), R, a - 0.12, a + 0.02);
         ctx.stroke();
         ctx.restore();
       }
-      /* pixel angel: body + wings + halo */
+      const face = Math.cos(a) < 0 ? -1 : 1,
+        wf = [0, 1, 2, 1][Math.floor(t * 9 + i * 1.3) & 3]; /* batida das asas */
       ctx.save();
-      ctx.translate(sx0, sy0 + bob);
-      const face = Math.cos(a) < 0 ? -1 : 1;
+      ctx.translate(Math.round(sx0), Math.round(sy0 + bob));
       ctx.scale(face, 1);
-      /* wings */
-      ctx.fillStyle = "rgba(255,250,230,.95)";
-      ctx.fillRect(-7, -2, 3, 5);
-      ctx.fillRect(-8, 0, 2, 3);
-      ctx.fillRect(4, -2, 3, 5);
-      ctx.fillRect(6, 0, 2, 3);
-      /* robe */
-      ctx.fillStyle = "#f0e6c0";
-      ctx.fillRect(-2, -1, 4, 7);
-      /* head */
-      ctx.fillStyle = "#ffe8b0";
-      ctx.fillRect(-1, -5, 3, 3);
-      /* halo */
-      ctx.strokeStyle = "#f2c14e";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(0.5, -6.5, 2.5, 0, TAU);
-      ctx.stroke();
-      /* sparkle */
+      /* auréola (atrás da cabeça), pulsando de leve */
+      ctx.fillStyle = "#f2c14e";
+      ctx.globalAlpha = 0.85 + 0.15 * Math.sin(t * 4 + i);
+      for (const q of [[-2, -13, 4], [-3, -12, 1], [2, -12, 1], [-4, -11, 1], [3, -11, 1], [-3, -10, 1], [2, -10, 1]])
+        ctx.fillRect(q[0], q[1], q[2], 1);
+      ctx.globalAlpha = 1;
+      /* asas (atrás do corpo): a direita é a esquerda espelhada */
+      const wg = A.wing[wf];
+      ctx.drawImage(wg.c, -5 - wg.w + 3, -11);
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(wg.c, -5 - wg.w + 3, -11);
+      ctx.restore();
+      ctx.drawImage(A.body.c, -5, -10);
+      ctx.drawImage(A.shield.c, -9, -1);
+      /* espada, empunhada na mão direita (4, 1) */
+      const hx = 4,
+        hy = 1,
+        line = (ang, len, col, al, from) => {
+          ctx.fillStyle = col;
+          ctx.globalAlpha = al;
+          for (let d = from; d <= len; d++)
+            ctx.fillRect(Math.round(hx + Math.cos(ang) * d), Math.round(hy + Math.sin(ang) * d), 1, 1);
+          ctx.globalAlpha = 1;
+        };
+      if (!swinging) {
+        const ang = 0.62 + Math.sin(t * 2 + i) * 0.05;
+        line(ang, 2, "#e8bd52", 1, 0); /* guarda */
+        line(ang, 12, "#d7dbe8", 1, 3); /* lâmina de aço */
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(Math.round(hx + Math.cos(ang) * 12), Math.round(hy + Math.sin(ang) * 12), 1, 1);
+      } else {
+        /* o ângulo do inimigo está em coordenadas do mundo; o sprite é espelhado quando face = -1 */
+        const aw = w.swA[i],
+          la = face > 0 ? aw : Math.PI - aw,
+          e = 1 - Math.pow(1 - k, 3),
+          ang = la - 1.5 + 3.0 * e;
+        const FIRE = ["#ffe08a", "#ffb23a", "#ff8a2a", "#e2431f", "#e2431f"];
+        for (let j = 5; j >= 1; j--) /* rastro de fogo do arco */
+          line(ang - j * 0.2, 12, FIRE[j - 1], Math.max(0, (230 - j * 34) / 255) * (1 - k * 0.6), 6);
+        line(ang, 2, "#e8bd52", 1, 0);
+        line(ang, 12, "#ffd27a", 1, 3);
+        if (fq) {
+          ctx.fillStyle = "#ff9a2e";
+          for (let d = 4; d < 14; d++) {
+            const f = (d * 7 + Math.floor(k * 40)) % 5;
+            if (f < 2) {
+              const sgn = f === 0 ? 1 : -1;
+              ctx.fillRect(
+                Math.round(hx + Math.cos(ang) * d - Math.sin(ang) * sgn),
+                Math.round(hy + Math.sin(ang) * d + Math.cos(ang) * sgn), 1, 1);
+            }
+          }
+        }
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(Math.round(hx + Math.cos(ang) * 13), Math.round(hy + Math.sin(ang) * 13), 1, 1);
+      }
+      /* brilho */
       if (fq) {
         ctx.fillStyle = "#fff";
         ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 8 + i);
-        ctx.fillRect(3, -7, 1, 1);
+        ctx.fillRect(4, -9, 1, 1);
         ctx.globalAlpha = 1;
       }
       ctx.restore();

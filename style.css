@@ -894,10 +894,10 @@ span b {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #f2c14e;
+  background: #ff4d4d;
   box-shadow:
     0 0 0 2px #0c0918,
-    0 0 6px rgba(242, 193, 78, 0.7);
+    0 0 6px rgba(242, 78, 78, 0.7);
 }
 
 .news-overlay {
@@ -1997,11 +1997,12 @@ span b {
 }
 
 .st-r {
+  font-size: 9px;
   display: flex;
   justify-content: space-between;
   gap: 6px;
   align-items: center;
-  margin: 4px 0;
+  margin: 0;
 }
 
 .st-lbl {
@@ -4136,6 +4137,11 @@ button:focus-visible {
     min-height: 0;
     border-width: 3px;
     border-radius: 2px;
+    height: 240px;
+  }
+
+  #cards .card>.cd {
+    -webkit-line-clamp: 4;
   }
 
   .card .cb {
@@ -4168,7 +4174,7 @@ button:focus-visible {
     font-size: 12px;
     line-height: 1.25;
     padding: 0 8px;
-    margin: 3px 0;
+    margin: 4px 0;
   }
 
   .card .cr {
@@ -4204,6 +4210,7 @@ button:focus-visible {
 
   #stPanel h4 {
     font-size: 8px;
+    margin-bottom: 10px;
   }
 
   .st-grid {
@@ -4253,7 +4260,7 @@ button:focus-visible {
   .card .cd {
     font-size: 11px;
     line-height: 1.2;
-    margin: 2px 0;
+    margin: 4px 0;
   }
 
   .card .cr {
@@ -6867,7 +6874,6 @@ html.sysfont #dawnTxt h2 {
 
 /* Pacote inicial: card abaixo de Notícias e modal da primeira compra */
 .starter-card {
-  margin-top: 10px;
   width: 150px;
   padding: 7px 9px;
   border: 2px solid #f2c14e;
@@ -9145,4 +9151,93 @@ button.pf-trk:not(.lk):not(.cur):hover {
   height: 40px;
   object-fit: contain;
   image-rendering: pixelated;
+}
+
+/* ===== Cartas de tamanho fixo, texto com reticências ===== */
+#cards .card {
+  display: flex;
+  flex-direction: column;
+  height: 230px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#cards .card>* {
+  flex: none;
+}
+
+/* a descrição ocupa o espaço que sobrar e corta com "..." */
+#cards .card>.cd {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  margin: auto 0;
+}
+
+/* nome da bênção: no máximo 2 linhas */
+.card .cb .cn {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* referência bíblica: uma linha só */
+.card .cr {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* celulares estreitos */
+@media (max-width: 620px) {
+  #cards .card {
+    height: 230px;
+  }
+
+  #cards .card>.cd {
+    -webkit-line-clamp: 4;
+  }
+}
+
+/* bolinha vermelha de notificação no Desafio do Dia */
+#mDaily {
+  position: relative;
+}
+
+#mDaily.has-dot::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff4d4d;
+  box-shadow:
+    0 0 0 2px #0c0918,
+    0 0 6px rgba(255, 77, 77, 0.7);
+}
+
+/* saldo de moedas na tela inicial, abaixo do perfil */
+.top-left .home-wallet {
+  align-self: flex-start;
+  margin: 0;
+  width: fit-content;
+}
+
+/* ícone de moeda no lugar do texto "Moedas" */
+#coins .uic {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+}
+
+.uic.tr-coin {
+  width: 18px;
+  height: 18px;
+  vertical-align: -4px;
 }
