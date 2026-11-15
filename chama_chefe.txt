@@ -1,0 +1,12 @@
+function chefe(n) {
+  const G = __dbg.eco.G;
+  const nomes = ["Legião", "Belzebu", "Abadom", "Leviatã", "O Dragão"];
+  if (!G) return console.warn("Inicie uma partida antes (clique em Jogar).");
+  if (G.boss) return console.warn("Já existe um chefe vivo. Derrote-o primeiro.");
+  if (!(n >= 0 && n < nomes.length)) return console.warn("Use um número de 0 a 4.");
+  G.bossIdx = n;
+  __dbg.setT(__dbg.bossTime(n) + 0.05); // o próximo frame dispara o chefe
+  console.log("Chefe a caminho:", nomes[n]);
+}
+
+chefe(1); // Belzebu

@@ -689,6 +689,16 @@
       "..OORRO.",
       "...OOO..",
     ],
+    frozen: [
+      "...W....",
+      "W..I..W.",
+      ".W.I.W..",
+      "..WIW...",
+      "WWWIWWWW",
+      "..WIW...",
+      ".W.I.W..",
+      "W..I..W.",
+    ],
     shieldI: [
       "BBBBBBBBB",
       "BWWWWWWWB",
@@ -809,6 +819,10 @@
       O: "#ff7a1a",
       R: "#e63b1a",
       Y: "#ffe27a",
+    });
+    S.frozen = buildSprite(TPL.frozen, {
+      W: "#e8faff",
+      I: "#7fd4ff",
     });
     S.shieldI = buildSprite(TPL.shieldI, {
       B: "#2a5fb0",
@@ -3962,10 +3976,10 @@
           BALANCE_MAX_RUNS +
           " partidas. Versão do esquema: " +
           BALANCE_SCHEMA_VERSION +
-          " · Partidas antigas descartadas: " +
+          " | Partidas antigas descartadas: " +
           (this.data.historyDiscardedRuns || 0) +
           (this.storageFull
-            ? " · AVISO: a persistência local falhou; exporte os dados agora."
+            ? " | AVISO: a persistência local falhou; exporte os dados agora."
             : "") +
           ".</small></span></div>" +
           '<div class="balance-export-actions balance-export-grid"><button type="button" class="mb" id="balanceScreenLast">Última partida (JSON)</button><button type="button" class="mb" id="balanceScreenAll">Histórico completo (JSON)</button><button type="button" class="mb" id="balanceScreenCSV">Resumo para planilha (CSV)</button><button type="button" class="mb" id="balanceScreenMin">CSV por minuto</button><button type="button" class="mb" id="balanceScreenWpn">CSV por arma</button><button type="button" class="mb" id="balanceScreenEne">CSV por inimigo</button><button type="button" class="mb" id="balanceScreenBoss">CSV por chefe</button><button type="button" class="mb" id="balanceScreenZip">Pacote completo (ZIP)</button></div><p class="sub" id="balanceScreenStatus" aria-live="polite"></p>';
@@ -4131,6 +4145,7 @@
       shake: 0,
       flash: 0,
       hurtFlash: 0,
+      freezeT: 0,
       pending: [],
       over: false,
       rackKey: "",
@@ -4467,7 +4482,7 @@
     G.boss = e;
     G.arena = { x: G.p.x, y: G.p.y, r: ARENA(Math.min(i, 6)) };
     BTL.bossSpawn(e, B);
-    banner(B.name + (cyc ? " · retorno " + cyc : ""), B.sub);
+    banner(B.name + (cyc ? " | retorno " + cyc : ""), B.sub);
     SFX.play("boss");
     G.shake = 0.6;
   }
@@ -4689,7 +4704,7 @@
       drop(e.x + 6, e.y, "f2");
       for (let i = 0; i < 3; i++)
         drop(e.x + rnd(-12, 12), e.y + rnd(-12, 12), "coin");
-      drop(e.x - 8, e.y, pick(["bread", "mana", "fire", "shield"]));
+      // drop(e.x - 8, e.y, pick(["bread", "mana", "fire", "shield"])); removido o drop de itens desse inimigo - Jean
     } else if (e.dropBehavior === "brute_bonus") {
       drop(e.x, e.y, "f2");
       if (rng() < 0.25) drop(e.x + 5, e.y, "coin");
@@ -4932,11 +4947,11 @@
           wcN +
           "/" +
           SLOT_W +
-          " · Dons " +
+          " | Dons " +
           pcN +
           "/" +
           SLOT_P +
-          " · " +
+          " | " +
           activeSkillCountLabel(G) +
           " — as cartas que você ignorar demoram a voltar";
     curChoices = rollChoices();
@@ -4965,7 +4980,7 @@
           tag = "Nível " + cur.lvl + " → " + (cur.lvl + 1);
           desc = W.up[cur.lvl - 1].d + ".";
         } else {
-          tag = "Nova arma · " + (wcN + 1) + "/" + SLOT_W;
+          tag = "Nova arma | " + (wcN + 1) + "/" + SLOT_W;
           desc = W.desc;
         }
       } else if (c.kind === "p") {
@@ -4977,7 +4992,7 @@
         ref = P.ref;
         tag = cur
           ? "Nível " + cur + " → " + (cur + 1) + "/" + max
-          : "Novo dom · " + (pcN + 1) + "/" + SLOT_P;
+          : "Novo dom | " + (pcN + 1) + "/" + SLOT_P;
         desc = P.desc;
       } else if (c.kind === "a") {
         const A = ACT[c.id],
@@ -4986,11 +5001,11 @@
         icon = c.id;
         ref = A.ref;
         if (cur) {
-          tag = "Ativa · Nível " + cur + " → " + (cur + 1);
+          tag = "Ativa | Nível " + cur + " → " + (cur + 1);
           desc = A.up + ".";
         } else {
           tag =
-            "Habilidade ativa · " +
+            "Habilidade ativa | " +
             (TOUCH_UI ? "botão " : "tecla ") +
             ((G.A ? G.A.length : 0) + 1);
           desc = A.d + " Recarga de " + A.cd + " s.";
@@ -5003,7 +5018,7 @@
         treePath = c.id;
         iconSrc = evolutionIconURL(treeOwner, treePath, false);
         ref = T.ref;
-        tag = "Evolução · Caminho";
+        tag = "Evolução | Caminho";
         desc = T.desc;
       } else if (c.kind === "slingNode") {
         const T = SLING_TREE[G.slingTree.path];
@@ -5026,7 +5041,7 @@
         iconSrc = evolutionIconURL(treeOwner, treePath, isMastery);
         name = isMastery ? E.node.name : E.name;
         ref = isMastery ? E.node.ref : E.ref;
-        tag = isMastery ? "✦ Maestria Lendária ✦" : "Evolução · " + W.name;
+        tag = isMastery ? "✦ Maestria Lendária ✦" : "Evolução | " + W.name;
         desc = isMastery ? E.node.desc : E.desc;
       } else if (c.kind === "passiveBranch" || c.kind === "passiveNode") {
         const E = EVOLUTION_TREES.passive[c.ownerId].paths[c.id],
@@ -5038,7 +5053,7 @@
         iconSrc = evolutionIconURL(treeOwner, treePath, isMastery);
         name = isMastery ? E.node.name : E.name;
         ref = isMastery ? E.node.ref : E.ref;
-        tag = isMastery ? "✦ Maestria Lendária ✦" : "Evolução · " + P.name;
+        tag = isMastery ? "✦ Maestria Lendária ✦" : "Evolução | " + P.name;
         desc = isMastery ? E.node.desc : E.desc;
       } else if (c.kind === "activeBranch" || c.kind === "activeNode") {
         const E = EVOLUTION_TREES.active[c.ownerId].paths[c.id],
@@ -5050,7 +5065,7 @@
         iconSrc = evolutionIconURL(treeOwner, treePath, isMastery);
         name = isMastery ? E.node.name : E.name;
         ref = isMastery ? E.node.ref : E.ref;
-        tag = isMastery ? "✦ Maestria Lendária ✦" : "Evolução · " + A.n;
+        tag = isMastery ? "✦ Maestria Lendária ✦" : "Evolução | " + A.n;
         desc = isMastery ? E.node.desc : E.desc;
       } else if (c.kind === "heal") {
         name = "Bênção do Pão";
@@ -5066,7 +5081,7 @@
         ref = "Lucas 21:1";
       }
       if (CAT[c.id] && c.id && !/Branch|Node/.test(c.kind))
-        tag += " · " + CAT[c.id];
+        tag += " | " + CAT[c.id];
       const R = c.r != null ? RAR[c.r] : null;
       if (R) {
         if (c.kind === "p") desc = scaleDesc(desc, R.m);
@@ -5088,12 +5103,16 @@
         save.seen[cardKey(c)] = 1;
         seenDirty = true;
       }
+      /* dom recomendado: alimenta a Evolução Suprema de alguma arma da build */
+      const recTitle = recForCard(c);
+      const rec = !!recTitle;
       const b = document.createElement("button");
       b.className =
         "card k-" +
         c.kind +
         (iconSrc ? " is-evolution" : "") +
         (isMastery ? " is-mastery" : "");
+      if (rec) b.classList.add("is-rec");
       b.type = "button";
       b.style.animationDelay = i * 90 + "ms";
       if (iconSrc) {
@@ -5105,6 +5124,7 @@
         b.dataset.evoOwner = treeOwner;
       }
       b.innerHTML =
+        (rec ? recFlagHTML(recTitle) : "") +
         "<kbd>" +
         (i + 1) +
         '</kbd><div class="cb"><span class="cn">' +
@@ -5335,6 +5355,9 @@
       case "fire":
         holyFire();
         break;
+      case "frozen":
+        freezeAll();
+        break;
       case "shield":
         G.p.sh = 6;
         SFX.play("shield");
@@ -5361,6 +5384,20 @@
     }
     G.eshots.length = 0;
   }
+  const FREEZE_T = 8; // duração do gelo em segundos
+  function freezeAll() {
+    G.freezeT = Math.max(G.freezeT || 0, FREEZE_T);
+    SFX.play("shield");
+    toast("Gelo do Céu! Inimigos congelados por " + FREEZE_T + "s");
+    G.fx.push({
+      wid: BTL.src || null,
+      k: "pulse",
+      x: G.p.x,
+      y: G.p.y,
+      t: 0,
+      life: 0.6,
+    });
+  }
   const ITEM_CHANCE = 0.1; // chance de surgir um item no mapa a cada sorteio (9–15 s)
   function spawnItem() {
     const itemChance =
@@ -5370,8 +5407,9 @@
       low = p.hp < G.mods.maxhp * 0.7;
     const t = wpick([
       { k: "bread", w: low ? 24 : 8 },
-      { k: "fire", w: 6 },
+      { k: "fire", w: 7 },
       { k: "shield", w: 7 },
+      { k: "frozen", w: 7 },
     ]).k;
     const a = rng() * 6.2832,
       d = rnd(60, 150);
@@ -6302,6 +6340,11 @@
     // inimigos
     for (const e of g.enemies) {
       if (e.dead) continue;
+      if (g.freezeT > 0) {
+        e.flash -= dt;
+        e.hurtT = Math.max(0, (e.hurtT || 0) - dt);
+        continue; /* congelado: não anda, não ataca e não dispara */
+      }
       if (e.burnT > 0) {
         e.burnT -= dt;
         e.burnTick = (e.burnTick == null ? 0.35 : e.burnTick) - dt;
@@ -6784,6 +6827,7 @@
     g.shake = Math.max(0, g.shake - dt);
     g.flash = Math.max(0, g.flash - dt);
     g.hurtFlash = Math.max(0, g.hurtFlash - dt);
+    g.freezeT = Math.max(0, (g.freezeT || 0) - dt);
 
     if (p.hp <= 0) return endRun(false);
     if (!g.inf && g.t >= WIN_T) return endRun(true);
@@ -6955,8 +6999,17 @@
         k.type === "mana" ||
         k.type === "fire" ||
         k.type === "shield" ||
+        k.type === "frozen" ||
         k.type === "ark"
-      ) {
+      )
+        if (k.type === "frozen") {
+          ctx.fillStyle =
+            "rgba(140,220,255," + (0.18 + 0.1 * Math.sin(g.t * 5 + k.ph)) + ")";
+          ctx.beginPath();
+          ctx.arc(sx(k.x), sy(k.y + bob), 9, 0, 6.3);
+          ctx.fill();
+        }
+      {
         ctx.fillStyle =
           "rgba(255,230,150," + (0.15 + 0.1 * Math.sin(g.t * 5 + k.ph)) + ")";
         ctx.beginPath();
@@ -6982,9 +7035,9 @@
           air.push(e);
           continue;
         }
-        drawEnemy(e, g, false);
+        frzDraw(e, g, false);
       }
-      for (const e of air) drawEnemy(e, g, true);
+      for (const e of air) frzDraw(e, g, true);
     }
     // jogador
     flushDecor(p.y + 8);
@@ -7113,19 +7166,26 @@
       ctx.fillStyle = "rgba(255,245,200," + Math.min(0.8, g.flash) + ")";
       ctx.fillRect(0, 0, VW, VH);
     }
-    if (g.hurtFlash > 0 && save.set.fx) {
-      /* dano: pisca em vermelho nas bordas (o centro fica limpo) */
-      const k = Math.min(1, g.hurtFlash / 0.45),
-        gr = ctx.createRadialGradient(
-          VW / 2,
-          VH / 2,
-          Math.min(VW, VH) * 0.38,
-          VW / 2,
-          VH / 2,
-          Math.hypot(VW, VH) / 2,
-        );
-      gr.addColorStop(0, "rgba(224,40,60,0)");
-      gr.addColorStop(1, "rgba(224,40,60," + 0.5 * k * (0.65 + 0.35 * Math.cos((1 - k) * 14)) + ")");
+    if (save.set.fx && (g.freezeT > 0 || g.hurtFlash > 0)) {
+      /* dano: borda vermelha; gelo: borda azul. O centro fica limpo. */
+      const ice = g.freezeT > 0,
+        c = ice ? "120,210,255" : "224,40,60",
+        k = ice
+          ? Math.min(1, g.freezeT / 0.8)
+          : Math.min(1, g.hurtFlash / 0.45),
+        a = ice
+          ? 0.6 * k
+          : 0.5 * k * (0.65 + 0.35 * Math.cos((1 - k) * 14));
+      const gr = ctx.createRadialGradient(
+        VW / 2,
+        VH / 2,
+        Math.min(VW, VH) * 0.38,
+        VW / 2,
+        VH / 2,
+        Math.hypot(VW, VH) / 2,
+      );
+      gr.addColorStop(0, "rgba(" + c + ",0)");
+      gr.addColorStop(1, "rgba(" + c + "," + a + ")");
       ctx.fillStyle = gr;
       ctx.fillRect(0, 0, VW, VH);
     }
@@ -7173,11 +7233,17 @@
       el.textContent = v;
     }
   }
+  function setHtml(el, key, html) {
+    if (hl[key] !== html) {
+      hl[key] = html;
+      el.innerHTML = html;
+    }
+  }
   function updHud() {
     const g = G;
     H$.xpfill.style.width = ((g.xp / g.need) * 100).toFixed(1) + "%";
     setT(H$.lvl, "lvl", "NÍVEL " + g.lvl);
-    setT(H$.kills, "k", g.kills + " DERROTADOS");
+    setHtml(H$.kills, "k", '<span class="uic i-kills"></span> ' + g.kills);
     const mh = g.mods.maxhp;
     H$.hpfill.style.width = clamp((g.p.hp / mh) * 100, 0, 100).toFixed(1) + "%";
     setT(
@@ -7185,7 +7251,7 @@
       "hp",
       "SALVAÇÃO " + Math.max(0, Math.ceil(g.p.hp)) + "/" + mh,
     );
-    setT(H$.timer, "t", fmt(g.t));
+    setHtml(H$.timer, "t", '<span class="uic i-hourglass"></span> ' + fmt(g.t));
     const cv = String(runCoins(g));
     if (hl.c !== cv) {
       hl.c = cv;
@@ -7195,14 +7261,14 @@
     if (g.boss) o = "Derrote " + BOSSES[g.boss.idx].name + "!";
     else if (g.inf || g.bossIdx < BOSS_T.length)
       o =
-        "Sobreviva · " +
+        "Sobreviva | " +
         (g.bossIdx === 0 ? "primeiro chefe" : "próximo chefe") +
         " em " +
         Math.max(0, Math.ceil(bossTime(g.bossIdx) - g.t)) +
         "s";
     else
       o =
-        "Resista até o amanhecer · faltam " +
+        "Resista até o amanhecer | faltam " +
         Math.max(0, Math.ceil(WIN_T - g.t)) +
         "s";
     setT(H$.obj, "o", o);
@@ -7243,13 +7309,13 @@
         (rdy ? " evo-ready" : "");
     const title =
       (isW ? WEAPONS[id].name : PASSIVES[id].name) +
-      " · Nv " +
+      " | Nv " +
       lvl +
       (isW ? "" : "&#10;" + (PASSIVES[id].desc || "")) +
       (path
         ? "&#10;" +
         path.name +
-        (mastered ? " · MAESTRIA: " + path.node.name : " · caminho evolutivo")
+        (mastered ? " | MAESTRIA: " + path.node.name : " | caminho evolutivo")
         : "") +
       (sup
         ? "&#10;✦ Evolução Suprema: " + NX_EVO[id].n
@@ -7477,7 +7543,7 @@
       runCoins() +
       "</b>Moedas</div>";
     $("#endBuild").innerHTML = buildHTML();
-    $("#againBtn").textContent = won ? "Jogar de novo" : "Tentar de novo";
+    $("#againBtn").textContent = won ? "Reiniciar" : "Reiniciar";
     endNote(won, ret);
     reviveSetup(won, ret);
     $("#end").hidden = false;
@@ -7530,9 +7596,9 @@
     $("#meta").textContent =
       "Moedas guardadas: " +
       save.coins +
-      " · Melhor tempo: " +
+      " | Melhor tempo: " +
       (save.best ? fmt(save.best) : "—") +
-      " · Partidas: " +
+      " | Partidas: " +
       save.runs;
     refreshBuildInfo();
     starterCardSync();
@@ -7650,7 +7716,7 @@
       "<b>" +
       "CONTROLE DAS BÊNÇÃOS" +
       "</b><small>" +
-      "Aprimoramentos permanentes do ramo Utilidade · cada nível concede +1 uso por partida." +
+      "Aprimoramentos permanentes do ramo Utilidade | cada nível concede +1 uso por partida." +
       "</small>";
     for (const [id, label, description] of [
       [
@@ -7674,7 +7740,7 @@
       button.innerHTML =
         "<span><b>" +
         label +
-        " · " +
+        " | " +
         uses +
         "/" +
         CHOICE_TOOL_MAX_USES +
@@ -7927,7 +7993,7 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     (RT_ICONS[n] || RT_ICONS.star) +
     "</svg>";
-  /* n = nome do glifo (fallback) · id = id da runa/categoria (nome do PNG) */
+  /* n = nome do glifo (fallback) | id = id da runa/categoria (nome do PNG) */
   const rtIcon = (n, id) => {
     if (id) rtImgLoad(id);
     return (
@@ -8408,7 +8474,7 @@
       row.className = "rt-row" + (unl ? "" : " lk");
       const lbl = document.createElement("div");
       lbl.className = "rt-lbl";
-      lbl.textContent = RT_LBL[slot] + (unl ? "" : " · bloqueado");
+      lbl.textContent = RT_LBL[slot] + (unl ? "" : " | bloqueado");
       row.appendChild(lbl);
       const nodes = document.createElement("div");
       nodes.className = "rt-nodes";
@@ -8435,7 +8501,7 @@
     const rs = document.createElement("button");
     rs.type = "button";
     rs.className = "rt-respec";
-    rs.textContent = "Refazer ramo · " + RT_RESPEC;
+    rs.textContent = "Refazer ramo | " + RT_RESPEC;
     rs.onclick = () => rtRespec(cat, b);
     if (!rtPicks(cat)) rs.disabled = true;
     col.appendChild(rs);
@@ -8478,7 +8544,7 @@
       o[1] +
       "</b><small>" +
       C.title +
-      " · " +
+      " | " +
       RT_LBL[runeSel.slot] +
       "</small><p>" +
       o[2] +
@@ -8495,7 +8561,7 @@
       bt.textContent = "Bloqueada";
       bt.disabled = true;
     } else {
-      bt.textContent = (cur ? "Trocar" : "Escolher") + " · " + cost;
+      bt.textContent = (cur ? "Trocar" : "Escolher") + " | " + cost;
       bt.onclick = () => rtPick(runeSel.cat, runeSel.slot, o[0], b);
     }
     box.appendChild(bt);
@@ -9152,7 +9218,14 @@
     Object.assign(ico, ASSET_MANIFEST.icons);
     /* ícones de status (assets/icons/<id>.png) */
     Object.assign(ico, { magnet: "icons/magnet.png" });
+    /* ícone do selo "Recomendado" (assets/icons/like.png) */
+    Object.assign(ico, { like: "icons/like.png" });
     Object.assign(ui, ASSET_MANIFEST.ui);
+    /* ícones do HUD: assets/ui/<nome>.png viram a classe .i-<nome> automaticamente */
+    Object.assign(ui, {
+      hourglass: "ui/hourglass.png",
+      kills: "ui/kills.png",
+    });
     for (const k in spr) loadImg(spr[k], (im) => setSprite(k, im));
     for (const k in ico)
       loadImg(ico[k], (im) => {
@@ -9424,7 +9497,7 @@
       '</b><span class="hero-detail-role">' +
       (X.locked
         ? '<span class="uic i-lock"></span> ' + H.role
-        : H.role + (X.ch ? "" : " · Maestria Nv " + mlv(v))) +
+        : H.role + (X.ch ? "" : " | Maestria Nv " + mlv(v))) +
       "</span></div>" +
       h("ATRIBUTOS") +
       bar("Salvação", sg(dh, ""), cl(3 + Math.round(dh / (1.5 * HPS)))) +
@@ -9485,7 +9558,7 @@
           : nx
             ? '<b class="hero-gold">PRÓXIMA M' +
             (l + 1) +
-            " · " +
+            " | " +
             nx[0].toUpperCase() +
             '</b><div class="hero-muted">' +
             nx[1] +
@@ -9609,7 +9682,7 @@
     persist();
   }
   /* Acesso gratuito aos mundos por conquistas existentes (não criam compra em save.iap, não dependem do Google Play Games):
-     Deserto de Sur ← "Leviatã Vencido" (b4, derrote o 4º chefe) · Vale da Sombra ← "Dragão Vencido" (b5, derrote o chefe final).
+     Deserto de Sur ← "Leviatã Vencido" (b4, derrote o 4º chefe) | Vale da Sombra ← "Dragão Vencido" (b5, derrote o chefe final).
      Na bateria de 60 partidas (Davi no Vale de Elá): Leviatã caiu em 38% das partidas e o Dragão em 25% (Legião 94%, Belzebu 81%).
      Para ajustar a dificuldade basta trocar o id da conquista aqui. A compra (save.iap) continua liberando o mundo. Elá é sempre aberto. */
   const WORLD_ACH = { world1: ["b4", "Leviatã"], world2: ["b5", "O Dragão"] };
@@ -9718,7 +9791,7 @@
     _rg = mul(c.seed);
     SCR.hidden = true;
     startRun();
-    toast("Desafio do Dia · " + HEROES[c.hero].name + " · " + w.n);
+    toast("Desafio do Dia | " + HEROES[c.hero].name + " | " + w.n);
   }
   function leaveDaily() {
     if (RUN.daily) {
@@ -9769,7 +9842,7 @@
       (nb ? '<br><span class="newrec">MELHOR DO DIA</span>' : "") +
       "</div>" +
       (bonus
-        ? "<div><b>+" + bonus + "</b>Bônus · sequência " + D.streak + "</div>"
+        ? "<div><b>+" + bonus + "</b>Bônus | sequência " + D.streak + "</div>"
         : ""),
     );
   };
@@ -9838,7 +9911,7 @@
       done = D.last === c.k,
       str = D.last === c.k || D.last === yday(c.k) ? D.streak : 0;
     b.innerHTML =
-      '<div class="rw"><span><b>Hoje · ' +
+      '<div class="rw"><span><b>Hoje | ' +
       fmtDate(c.k) +
       "</b><small>Herói: " +
       HEROES[c.hero].name +
@@ -9848,7 +9921,7 @@
       (D.date === c.k ? D.best : "—") +
       "</b><small>Sequência: " +
       str +
-      " dia(s) · Bônus: " +
+      " dia(s) | Bônus: " +
       (done
         ? "já recebido hoje"
         : ECO.DAILY_BASE +
@@ -10590,7 +10663,7 @@
     g.A.push(id);
     g.acd[id] = 6;
     g.sel = g.A.length - 1;
-    toast(ACT[id].n + (TOUCH_UI ? " · botão " : " · tecla ") + g.A.length);
+    toast(ACT[id].n + (TOUCH_UI ? " | botão " : " | tecla ") + g.A.length);
     return true;
   }
   function useAct(i) {
@@ -10631,10 +10704,10 @@
         "data-tip",
         actTip(id, g) +
         (ev
-          ? " · " +
+          ? " | " +
           EVOLUTION_TREES.active[id].paths[ev.path].name +
           (ev.tier
-            ? " · MAESTRIA " +
+            ? " | MAESTRIA " +
             EVOLUTION_TREES.active[id].paths[ev.path].node.name
             : "")
           : ""),
@@ -10678,15 +10751,15 @@
             : "") +
           ' data-tip="' +
           ACT[id].n +
-          " · Nv " +
+          " | Nv " +
           g.al[id] +
-          " · ativa, " +
+          " | ativa, " +
           (TOUCH_UI ? "botão " : "tecla ") +
           (g.A.indexOf(id) + 1) +
           (label
-            ? " · " +
+            ? " | " +
             label.name +
-            (ev.tier ? " · Maestria: " + label.node.name : "")
+            (ev.tier ? " | Maestria: " + label.node.name : "")
             : "") +
           '"><img alt="" src="' +
           gameIconURL(id, "active") +
@@ -10710,7 +10783,7 @@
           "</b><small>" +
           (ev.tier
             ? "✦ Maestria: " + label.node.name
-            : "Caminho escolhido · Maestria pendente") +
+            : "Caminho escolhido | Maestria pendente") +
           "</small></span></div>";
     }
     if (g)
@@ -10735,7 +10808,7 @@
               "</b><small>" +
               (ev.tier
                 ? "✦ Maestria: " + label.node.name
-                : "Caminho escolhido · Maestria pendente") +
+                : "Caminho escolhido | Maestria pendente") +
               "</small></span></div>";
         }
     return h;
@@ -10950,13 +11023,13 @@
       d = "+100% de velocidade de ataque por " + (4.5 + 0.5 * l) + " s.";
     return (
       A.n +
-      " · Nv " +
+      " | Nv " +
       l +
       "\n" +
       d +
       "\nRecarga: " +
       Math.round(actCd(id, l) * actCdMod(g)) +
-      " s · tecla " +
+      " s | tecla " +
       (g.A.indexOf(id) + 1)
     );
   }
@@ -11149,7 +11222,7 @@
   rrb.type = "button";
   rrb.className = "mb alt";
   rrb.hidden = true;
-  rrb.innerHTML = '<span class="uic i-play"></span> Novas Bênçãos (anúncio)';
+  rrb.innerHTML = '<span class="uic i-play"></span> Novas Bênçãos (ADS)';
   $("#cards").insertAdjacentElement("afterend", rrb);
   const choiceToolsUI = document.createElement("div");
   choiceToolsUI.id = "choiceTools";
@@ -11157,7 +11230,7 @@
   choiceToolsUI.hidden = true;
   choiceToolsUI.innerHTML =
     '<button id="banishBtn" class="mb alt" type="button"></button><button id="skipChoiceBtn" class="mb alt" type="button"></button><button id="choiceToolsAdBtn" class="mb" type="button">' +
-    "+1 de cada · anúncio" +
+    "+1 de cada | ad" +
     '</button><span id="choiceToolsHint" role="status" hidden></span>';
   rrb.insertAdjacentElement("beforebegin", choiceToolsUI);
   const banishBtn = choiceToolsUI.querySelector("#banishBtn"),
@@ -11178,13 +11251,13 @@
       skipMax = tools.max.skip + (tools.adBonus ? 1 : 0);
     banishBtn.textContent =
       "BANIR" +
-      " · " +
+      " | " +
       choiceToolUsesLeft("banish") +
       "/" +
       banishMax;
     skipChoiceBtn.innerHTML =
       "PULAR" +
-      " · " +
+      " | " +
       choiceToolUsesLeft("skip") +
       "/" +
       skipMax;
@@ -11357,10 +11430,10 @@
       left <= 0
         ? '<span class="uic i-play"></span> +' +
         u +
-        " moedas · limite de hoje atingido"
+        " moedas | limite de hoje atingido"
         : '<span class="uic i-play"></span> +' +
         u +
-        " moedas · anúncio (restam " +
+        " moedas | ad (restam " +
         left +
         " hoje)";
     dbl.onclick = () => {
@@ -11529,7 +11602,7 @@
         name: W.name,
         ref: W.ref,
         desc: W.desc,
-        tag: "Arma · " + (CAT[id] || ""),
+        tag: "Arma | " + (CAT[id] || ""),
         badge: "Nv " + MAXW,
         img: () => iconURL(id),
       });
@@ -11542,7 +11615,7 @@
         name: P.name,
         ref: P.ref,
         desc: P.desc,
-        tag: "Dom · " + (CAT[id] || ""),
+        tag: "Dom | " + (CAT[id] || ""),
         badge: "Nv " + passiveMaxLevel(id),
         img: () => iconURL(id),
       });
@@ -11555,7 +11628,7 @@
         name: A.n,
         ref: A.ref,
         desc: A.d,
-        tag: "Ativa · " + (CAT[id] || ""),
+        tag: "Ativa | " + (CAT[id] || ""),
         badge: "Nv " + MAXA,
         img: () => iconURL(id),
       });
@@ -11582,7 +11655,7 @@
         name: B.name,
         ref: p[1] || "",
         desc: p[0],
-        tag: "Chefe · " + fmt(BOSS_T[i]),
+        tag: "Chefe | " + fmt(BOSS_T[i]),
         badge: "Vida " + B.hp,
         img: () => sprURL(S[B.spr]),
       });
@@ -11615,7 +11688,7 @@
           if (HU[id].coins) parts.push(HU[id].coins + " moedas");
           else if (HU[id].ads) parts.push(HU[id].ads + " anúncios");
         }
-        unlock = parts.length ? parts.join(" · ou ") : "Bloqueado";
+        unlock = parts.length ? parts.join(" | ou ") : "Bloqueado";
       }
       L.push({
         g: "h",
@@ -11623,7 +11696,7 @@
         name: X.name,
         ref: "",
         desc: H.role || X.role || "",
-        tag: "Herói · " + (H.role || X.role || ""),
+        tag: "Herói | " + (H.role || X.role || ""),
         badge: locked ? "BLOQ" : "M" + mlv(id),
         img: () => sprURL(S.hero[id] && S.hero[id][0]),
         locked,
@@ -11694,9 +11767,66 @@
     e.desc +
     '</span><span class="lc-foot">' +
     (e.g === "w" ? "Arma" : e.g === "p" ? "Dom" : "Habilidade ativa") +
-    " · Nv " +
+    " | Nv " +
     e.max +
     "</span>";
+
+  /* ---------- Recomendado: liga uma arma ao seu dom da Evolução Suprema ---------- */
+  /* Retorna o texto do selo se a carta for recomendada, ou null.
+     - dom na carta, arma na build (e ainda não evoluída)  -> recomenda o dom
+     - arma na carta, dom na build (e arma ainda não evoluída) -> recomenda a arma */
+  function recForCard(c) {
+    if (!G || !G.W || !G.evo) return null;
+    if (c.kind === "p") {
+      const armas = Object.keys(NX_EVO).filter(
+        (w) => NX_EVO[w].dom === c.id && G.W[w] && !G.evo[w],
+      );
+      if (!armas.length) return null;
+      const nomes = armas.map((w) => (WEAPONS[w] ? WEAPONS[w].name : w)).join(" e ");
+      return "Recomendado: completa a Evolução Suprema de " + nomes;
+    }
+    if (c.kind === "w") {
+      const E = NX_EVO[c.id];
+      if (!E || G.evo[c.id] || !PASSIVES[E.dom]) return null;
+      if (!(G.P[E.dom] > 0)) return null;
+      return (
+        "Recomendado: com " + PASSIVES[E.dom].name + " na build, completa a Evolução Suprema"
+      );
+    }
+    return null;
+  }
+  /* ícone de polegar: usa assets/icons/like.png; sem o arquivo, cai no desenho em SVG */
+  const THUMB_PIX = [
+    ".OOO......",
+    "OFFFO.....",
+    "OFFFOOOO..",
+    "OFFFFFFFO.",
+    "OFFFFFFFO.",
+    ".OFFFFFFO.",
+    "..OFFFFO..",
+    "...OOOO...",
+  ];
+  const THUMB_SVG = (() => {
+    const d = { O: "", F: "" };
+    THUMB_PIX.forEach((row, y) =>
+      [...row].forEach((c, x) => {
+        if (c in d) d[c] += "M" + x + " " + y + "h1v1h-1z";
+      }),
+    );
+    return (
+      '<svg viewBox="0 0 10 8" aria-hidden="true" focusable="false">' +
+      '<path class="o" d="' + d.O + '"/><path class="f" d="' + d.F + '"/></svg>'
+    );
+  })();
+  function recFlagHTML(title) {
+    const icone = ICONS && ICONS.like
+      ? '<img class="rec-img" alt="" src="' + ICONS.like + '">'
+      : THUMB_SVG;
+    return (
+      '<span class="rec-flag" title="' + title + '">' + icone + "</span>"
+    );
+  }
+
   /* ---------- Glossário de Evoluções de Armas ----------
      Dom Nv 3 + arma Nv 6 = Evolução Suprema. Os dados vêm de NX_EVO (as mesmas regras do combate).
      Na pausa mostra o progresso da partida; na Biblioteca é só consulta. */
@@ -11722,11 +11852,14 @@
       const wl = g && g.W[id] ? g.W[id].lvl : 0,
         dl = g ? g.P[E.dom] || 0 : 0,
         done = !!(g && g.evo && g.evo[id]),
-        ready = !!(g && !done && wl >= MAXW && dl >= domLv);
+        ready = !!(g && !done && wl >= MAXW && dl >= domLv),
+        rec = !!(g && !done && g.W[id]); /* arma da build ainda sem evolução */
       h +=
         '<div class="evo-r' +
         (done ? " is-done" : ready ? " is-ready" : "") +
+        (rec ? " is-rec" : "") +
         '">' +
+        (rec ? recFlagHTML("Recomendado: completa a Evolução Suprema de " + WEAPONS[id].name) : "") +
         '<div class="evo-eq">' +
         piece(E.dom, "p", "Nv " + domLv + "+", dl, domLv) +
         '<span class="evo-op">+</span>' +
@@ -11745,7 +11878,7 @@
         (done
           ? '<u class="evo-tag">EVOLUÍDA</u>'
           : ready
-            ? '<u class="evo-tag">PRONTA · próxima Arca</u>'
+            ? '<u class="evo-tag">PRONTA | próxima Arca</u>'
             : "") +
         "</b><span>" +
         E.d +
@@ -11772,7 +11905,7 @@
       '" type="button">' +
       t +
       "</button>";
-    /* 0 Habilidades · 1 Árvores · 2 Demônios · 3 Chefes · 4 Heróis · 5 Evoluções */
+    /* 0 Habilidades | 1 Árvores | 2 Demônios | 3 Chefes | 4 Heróis | 5 Evoluções */
     const isSkills = libTab === 0,
       isTrees = libTab === 1,
       isHeroes = libTab === 4,
@@ -11962,7 +12095,7 @@
       );
       evo.push([
         "Arma inicial",
-        e.startName + (H.startLvl ? " · já no nível " + H.startLvl : ""),
+        e.startName + (H.startLvl ? " | já no nível " + H.startLvl : ""),
       ]);
       evo.push(["Bônus", H.bonus || "—"]);
       evo.push(["Graça", e.graceN + (e.graceD ? " — " + e.graceD : "")]);
@@ -11970,7 +12103,7 @@
         X.perks.forEach((p, i) =>
           evo.push([
             "Maestria M" + (i + 2),
-            p[0] + " · " + p[1] + (MQ[i] ? " · " + MQ[i] : ""),
+            p[0] + " | " + p[1] + (MQ[i] ? " | " + MQ[i] : ""),
           ]),
         );
       else if (X.ch) evo.push(["Maestria", "Sem maestria (herói de desafio)"]);
@@ -12026,8 +12159,8 @@
     const sub =
       e.g === "h"
         ? e.locked
-          ? '<span class="uic i-lock"></span> Bloqueado · ' + e.tag
-          : e.tag + " · Maestria Nv " + mlv(e.id)
+          ? '<span class="uic i-lock"></span> Bloqueado | ' + e.tag
+          : e.tag + " | Maestria Nv " + mlv(e.id)
         : e.tag;
     const bodyExtra =
       e.g === "h"
@@ -12056,7 +12189,7 @@
                 (p, j) =>
                   "<li><b>M" +
                   (j + 2) +
-                  " · " +
+                  " | " +
                   p[0] +
                   "</b> " +
                   p[1] +
@@ -12127,7 +12260,7 @@
           iconURL(e.id) +
           '"></div><div class="lt-path-copy"><div class="lt-branch-kicker">CAMINHO ' +
           (n + 1) +
-          " · EVOLUÇÃO</div>" +
+          " | EVOLUÇÃO</div>" +
           "<h4>" +
           path.name +
           "</h4>" +
@@ -12157,14 +12290,14 @@
       e.img() +
       '"></div><div class="ld-tree-title"><div class="ld-sub">' +
       category +
-      " · PRÉVIA DA ÁRVORE</div><h3>" +
+      " | PRÉVIA DA ÁRVORE</div><h3>" +
       e.name +
       (e.ref ? "<small>" + e.ref + "</small>" : "") +
       "</h3><p>" +
       e.desc +
       '</p><div class="lt-unlock"><b>Como desbloquear</b><span>' +
       unlock +
-      '</span></div></div></div><div class="lt-branches-title"><h4>ESCOLHA SEU CAMINHO</h4><span>3 rotas · 1 escolha por partida</span></div><div class="lt-branches">' +
+      '</span></div></div></div><div class="lt-branches-title"><h4>ESCOLHA SEU CAMINHO</h4><span>3 rotas | 1 escolha por partida</span></div><div class="lt-branches">' +
       branches +
       '</div><div class="lt-footnote">Esta é uma biblioteca de consulta. As melhorias são aplicadas durante a partida quando você escolhe as cartas correspondentes.</div></div>' +
       '<button type="button" class="mb ld-nav ld-prev" data-d="-1" aria-label="Anterior"><span class="uic i-left"></span></button><button type="button" class="mb ld-nav ld-next" data-d="1" aria-label="Próximo"><span class="uic i-right"></span></button><button type="button" class="mb ld-x ld-closed" aria-label="Fechar"><span class="uic i-close"></span></button><div class="ld-close">Toque fora para fechar</div>';
@@ -12557,16 +12690,152 @@
     if (!g || state !== "play" || g.resumeT > 0 || !g.tel) return;
     for (const f of g.tel) {
       f.t += dt;
+      if (f.quake && !f.done && f.t > f.delay - 0.4) /* tremor crescente antes da pisada */
+        g.shake = Math.max(g.shake, 0.06 + 0.16 * ((f.t - (f.delay - 0.4)) / 0.4));
       if (f.k === "circ" && !f.done && f.t >= f.delay) {
         f.done = true;
-        burst(f.x, f.y, 12, "#ff9a2a", 90);
-        g.shake = Math.max(g.shake, 0.15);
+        if (f.quake) {
+          burst(f.x, f.y, 14, "#c9a46a", 95);
+          burst(f.x, f.y, 8, "#6b4a2a", 70);
+          g.shake = Math.max(g.shake, 0.32);
+        } else {
+          burst(f.x, f.y, 12, "#ff9a2a", 90);
+          g.shake = Math.max(g.shake, 0.15);
+        }
         if (f.dmg && Math.hypot(g.p.x - f.x, g.p.y - f.y) < f.r + 4)
           hurtPlayer(f.dmg, f.who || "Chamas do chefe");
       }
     }
     g.tel = g.tel.filter((f) => f.t < f.life);
   };
+
+  /* ================= Pisada do Bruto: telégrafo de terremoto =================
+     Antes do impacto: rachaduras crescem do centro, a borda da área treme, um anel de contagem
+     encolhe até o centro e poeira sobe. No impacto: clarão, onda de choque, cratera, rachaduras
+     que se apagam e pedras voando. Dano/área continuam os da pisada (f.r, f.dmg). */
+  const qHash = (n) => {
+    const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  };
+  function qLine(x0, y0, x1, y1) {
+    const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+    for (let i = 0; i <= n; i++)
+      ctx.fillRect(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), 1, 1);
+  }
+  function qCracks(cx, cy, R, sd, grow, glow) {
+    const N = 9;
+    for (let i = 0; i < N; i++) {
+      const a0 = (i / N) * 6.2832 + (qHash(sd + i) - 0.5) * 0.5,
+        L = R * (0.4 + 0.6 * qHash(sd + i * 3.1)) * grow;
+      let x = cx,
+        y = cy,
+        a = a0;
+      const seg = 5;
+      for (let s = 0; s < seg; s++) {
+        const len = L / seg;
+        a += (qHash(sd + i * 7 + s * 1.7) - 0.5) * 0.9; /* rachadura em zigue-zague */
+        const nx = x + Math.cos(a) * len,
+          ny = y + Math.sin(a) * len;
+        ctx.fillStyle = "#140b22";
+        qLine(x, y + 1, nx, ny + 1); /* sombra da fenda */
+        ctx.fillStyle = glow && s >= 2 ? "#ff8a3a" : "#5a3d28"; /* brasa na ponta quando está perto de bater */
+        qLine(x, y, nx, ny);
+        qLine(x + 1, y, nx + 1, ny); /* fenda mais grossa (2 px) */
+        x = nx;
+        y = ny;
+        if (s === 2 && i % 2 === 0) { /* ramificação */
+          const ba = a + (i % 4 === 0 ? 0.9 : -0.9),
+            bl = len * 1.4;
+          ctx.fillStyle = "#4a3322";
+          qLine(x, y, x + Math.cos(ba) * bl, y + Math.sin(ba) * bl);
+        }
+      }
+    }
+  }
+  function qRing(cx, cy, r, steps, col, alpha, size, jit, t) {
+    ctx.fillStyle = col;
+    ctx.globalAlpha = alpha;
+    for (let k = 0; k < steps; k++) {
+      if (k % 2) continue; /* tracejado */
+      const a = (k / steps) * 6.2832,
+        rr = r + (jit ? (qHash(k + Math.floor(t * 30)) - 0.5) * 2 * jit : 0);
+      ctx.fillRect(Math.round(cx + Math.cos(a) * rr), Math.round(cy + Math.sin(a) * rr), size, size);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawQuakeCirc(f, g) {
+    const cx = Math.round(sx(f.x)),
+      cy = Math.round(sy(f.y)),
+      R = f.r,
+      sd = f.sd || f.x * 0.37 + f.y * 0.11,
+      fq = FXQ();
+    if (f.t < f.delay) {
+      const p = f.t / f.delay; /* 0 → 1 até o impacto */
+      ctx.globalAlpha = 0.16 + 0.22 * p; /* chão escurecendo */
+      ctx.fillStyle = "#1b120e";
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, 6.2832);
+      ctx.fill();
+      ctx.globalAlpha = 0.08 + 0.18 * p; /* tom de perigo avermelhado */
+      ctx.fillStyle = "#ff4a2a";
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, 6.2832);
+      ctx.fill();
+      ctx.globalAlpha = 0.45 + 0.4 * p; /* limite da área, sempre legível */
+      ctx.strokeStyle = "#ff8a3a";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, 6.2832);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      qCracks(cx, cy, R, sd, Math.min(1, p * 1.5), p > 0.55);
+      const blink = 0.55 + 0.45 * Math.sin(f.t * (14 + 30 * p)); /* pisca mais rápido perto do impacto */
+      qRing(cx, cy, R, 64, "#ffd27a", blink, p > 0.7 ? 2 : 1, 0.4 + 2.2 * p, f.t); /* borda tremendo */
+      if (p < 0.92) qRing(cx, cy, R * (1 - p) + 2, 40, "#ffe08a", 0.85, 1, 0, f.t); /* anel de contagem */
+      if (fq) {
+        ctx.fillStyle = "#c9a46a"; /* poeira subindo da borda */
+        for (let i = 0; i < 12; i++) {
+          const rise = (f.t * 0.9 + qHash(sd + i)) % 1,
+            a = qHash(sd + i * 2.3) * 6.2832;
+          ctx.globalAlpha = (1 - rise) * 0.7 * (0.3 + p);
+          ctx.fillRect(Math.round(cx + Math.cos(a) * R * 0.95), Math.round(cy + Math.sin(a) * R * 0.95 - rise * 9), 1, 1);
+        }
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      const q = Math.min(1, (f.t - f.delay) / Math.max(0.01, f.life - f.delay)); /* 0 → 1 depois do impacto */
+      if (q < 0.15) { /* clarão do impacto */
+        ctx.globalAlpha = (1 - q / 0.15) * 0.55;
+        ctx.fillStyle = "#fff0c8";
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, 6.2832);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 0.5 * (1 - q); /* cratera */
+      ctx.fillStyle = "#1b120e";
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 0.92, 0, 6.2832);
+      ctx.fill();
+      ctx.globalAlpha = Math.max(0, 1 - q * 1.1);
+      qCracks(cx, cy, R, sd, 1, false); /* rachaduras permanecem e somem */
+      ctx.globalAlpha = 1;
+      const e = 1 - Math.pow(1 - Math.min(1, q * 1.5), 3); /* onda de choque (visual, passa um pouco da área) */
+      qRing(cx, cy, R * (0.9 + 0.5 * e), 72, "#ffe0a0", Math.pow(1 - q, 1.3), 2, 0, 0);
+      qRing(cx, cy, R * (0.7 + 0.45 * e), 56, "#c9a46a", Math.pow(1 - q, 1.6) * 0.8, 1, 0, 0);
+      if (fq) {
+        for (let i = 0; i < 12; i++) { /* pedras voando */
+          const a = qHash(sd + i * 5.1) * 6.2832,
+            dist = R * (0.4 + 0.7 * qHash(sd + i * 1.9)) * (1 - Math.pow(1 - q, 2)),
+            h = Math.sin(Math.PI * Math.min(1, q * 1.15)) * (10 + 14 * qHash(sd + i * 3.3));
+          ctx.globalAlpha = Math.max(0, 1 - q * 0.9);
+          ctx.fillStyle = i % 3 === 0 ? "#9a7a4a" : "#6b4a2a";
+          const sz = i % 4 === 0 ? 2 : 1;
+          ctx.fillRect(Math.round(cx + Math.cos(a) * dist), Math.round(cy + Math.sin(a) * dist * 0.8 - h), sz, sz);
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
 
   /* Chamas do chefe (padrão "fire"): marca de fogo no chão e labaredas em pixel art */
   const FIRE_PX = 2;
@@ -12816,6 +13085,8 @@
       if (f.k === "circ") {
         if (f.fire) {
           drawFireCirc(f, g);
+        } else if (f.quake) {
+          drawQuakeCirc(f, g);
         } else if (f.t < f.delay) {
           ctx.globalAlpha = 0.3 + 0.25 * Math.sin(f.t * 20);
           ctx.fillStyle = "#ff6a2a";
@@ -13116,7 +13387,7 @@
     for (const k in keys) keys[k] = false;
     stick.on = false;
     update(dt * 0.25);
-    if (!D.c && D.t >= 0.8) {
+    if (!D.c && D.t >= 0.5) {
       D.c = true;
       const sp = S.hero[g.hk][0],
         w = sp.w,
@@ -13137,11 +13408,11 @@
             x: g.p.x - w / 2 + (fl ? w - 1 - x : x),
             y: g.p.y - h / 2 + y,
             col: "rgb(" + px[i] + "," + px[i + 1] + "," + px[i + 2] + ")",
-            d: D.t + (y / h) * 1.8 + rngFx() * 0.5,
+            d: D.t + (y / h) * 1.0 + rngFx() * 0.3,
             vx: 0,
             vy: 0,
             a: 1,
-            life: rndFx(1.4, 2.6),
+            life: rndFx(0.9, 1.6),
             on: false,
           });
         }
@@ -13162,7 +13433,7 @@
       q.y += q.vy * dt + Math.sin(D.t * 9 + q.x * 0.3) * 0.25;
       q.a -= dt / q.life;
     }
-    if (D.t >= 6.2) {
+    if (D.t >= 3) {
       if (D.sw) S.hero[g.hk] = D.sw;
       g.t = D.t0;
       g.dying = null;
@@ -13246,7 +13517,7 @@
           renderHeroes(b);
         });
     } else {
-      const lb = "Desbloquear · " + U.coins + " moedas";
+      const lb = "Desbloquear | " + U.coins + " moedas";
       bt.textContent = lb;
       if (save.coins < U.coins) bt.style.opacity = 0.6;
       bt.onclick = () => {
@@ -13288,7 +13559,7 @@
         save.coins +
         " moedas" +
         (avg
-          ? " · média de " + avg + " por partida (" + c.n + " partidas)"
+          ? " | média de " + avg + " por partida (" + c.n + " partidas)"
           : "") +
         "</small>",
       );
@@ -13308,13 +13579,13 @@
     '<div class="hr"><b>Mirar e atacar</b><span>Automático: as armas acertam o demônio mais próximo.<small>Para mirar com o mouse, ative o modo Manual em Configurações e clique.</small></span></div>' +
     '<div class="hr"><b>Habilidade ativa</b><span>' +
     K("Espaço") +
-    "<small>usa a habilidade selecionada · " +
+    "<small>usa a habilidade selecionada | " +
     K("Q", "E") +
     " trocam</small></span></div>" +
     '<div class="hr"><b>Escolher bênção</b><span>' +
     K("1", "2", "3") +
     "<small>" +
-    "ou clique na carta · Banir remove uma opção desta partida e Pular continua sem escolher; ambos têm usos limitados." +
+    "ou clique na carta | Banir remove uma opção desta partida e Pular continua sem escolher; ambos têm usos limitados." +
     "</small></span></div>" +
     '<div class="hr"><b>Pausar</b><span>' +
     K("P") +
@@ -13413,7 +13684,7 @@
   const scaleDesc = (d, m) =>
     /^\+\d+/.test(d)
       ? d.replace(/\d+/, (n) => Math.round(n * m))
-      : d + " · Potência ×" + +m.toFixed(2);
+      : d + " | Potência ×" + +m.toFixed(2);
   function effP() {
     const P = {};
     for (const k in G.P) P[k] = G.Pw && G.Pw[k] != null ? G.Pw[k] : G.P[k];
@@ -14389,7 +14660,7 @@
     bt.innerHTML =
       '<span class="uic i-lock"></span> Comprar ' +
       w.n +
-      " · " +
+      " | " +
       Billing.priceOf(w.key);
     bt.onclick = () => buyWorld(i, () => renderWorldPick(host));
     box.appendChild(bt);
@@ -14593,7 +14864,7 @@
         H.role +
         '</div><div class="st">Salvação <b>' +
         H.hp +
-        "</b> · Velocidade <b>" +
+        "</b> | Velocidade <b>" +
         H.spd +
         "</b><br>Inicia com: <b>" +
         WEAPONS[H.start].name +
@@ -15102,7 +15373,7 @@
       "Pacote inicial" +
       "</h2>" +
       '<p class="starter-sub">' +
-      "Primeira compra · oferta única" +
+      "Primeira compra | oferta única" +
       "</p>" +
       '<ul class="starter-list">' +
       "<li>" +
@@ -15281,20 +15552,23 @@
       } catch (e) { }
     },
     async restore() {
-      if (Billing.busy) return;
+      if (Billing.busy)
+        return notify("Aguarde a operação anterior terminar.", "info");
       if (!window.FeIAP)
         return notify("Disponível apenas no aplicativo instalado.", "warn");
       Billing.busy = true;
       try {
-        const snap = () => JSON.stringify([save.noAds, save.iap, save.coins]),
-          before = snap();
+        const snap = () => JSON.stringify([save.noAds, save.iap, save.coins]);
+        const before = snap();
         await Billing.sync();
-        notify(
-          snap() !== before
-            ? "Compras restauradas!"
-            : "Nenhuma compra encontrada nesta conta.",
-          snap() !== before ? "ok" : "info",
-        );
+        const changed = snap() !== before;
+        /* direitos já ativos neste aparelho (ex.: após reinstalar ou apagar o progresso) */
+        const hasRights =
+          !!save.noAds || Object.keys(save.iap || {}).some((k) => !!save.iap[k]);
+        if (changed) notify("Compras restauradas!", "ok");
+        else if (hasRights)
+          notify("Suas compras já estão ativas neste aparelho.", "ok");
+        else notify("Nenhuma compra encontrada nesta conta.", "info");
       } catch (e) {
         notify("Não foi possível verificar suas compras agora.", "warn");
       } finally {
@@ -15506,7 +15780,7 @@
             badge: "Oferta única",
             hot: true,
             title: "Pacote inicial",
-            sub: n(STARTER.coins) + " moedas · Sansão · Deserto de Sur",
+            sub: n(STARTER.coins) + " moedas | Sansão | Deserto de Sur",
             cta: cta(
               Billing.priceOf("starter") || PRODUCTS.starter.fb,
               false,
@@ -15554,7 +15828,7 @@
               n(P.coins) +
               " moedas" +
               (bonus > 0
-                ? ' · <span class="pk-bonus">+' + bonus + "% bônus</span>"
+                ? ' | <span class="pk-bonus">+' + bonus + "% bônus</span>"
                 : ""),
             cta: cta(Billing.priceOf(key), false, async () => {
               if (await Billing.buy(key))
@@ -15582,7 +15856,7 @@
           title: "Pacote inicial",
           sub:
             n(STARTER.coins) +
-            " moedas · herói Sansão · Deserto de Sur · sem anúncios intersticiais",
+            " moedas | herói Sansão | Deserto de Sur | sem anúncios intersticiais",
           cta: owned
             ? cta("Adquirido", true, () => { })
             : cta(
@@ -15633,7 +15907,7 @@
           );
           return;
         }
-        const lbl = "Desbloquear · " + n(U.coins) + " moedas";
+        const lbl = "Desbloquear | " + n(U.coins) + " moedas";
         const bt = cta(
           '<span class="uic i-lock"></span> ' + lbl,
           save.coins < U.coins ? "dim" : false,
@@ -15666,7 +15940,7 @@
             art: ico("star"),
             artCls: "skin-art",
             title: X.name,
-            sub: "Skin 1 · em breve",
+            sub: "Skin 1 | em breve",
           }),
         );
       });
@@ -15683,7 +15957,7 @@
           let bt;
           if (!own) {
             const html =
-              '<span class="uic i-lock"></span> Comprar · ' +
+              '<span class="uic i-lock"></span> Comprar | ' +
               n(cost) +
               " moedas";
             bt = cta(html, save.coins < cost ? "dim" : false, () =>
@@ -15778,10 +16052,13 @@
     });
   };
 
-  /* "Apagar progresso" apaga só o jogo. Ficam: sem anúncios, mundos comprados e as moedas COMPRADAS ainda não gastas
-     (save.paid acompanha quanto do saldo veio de compra; ao gastar, o saldo pago diminui junto). Nada é restaurado aqui. */
+  /* "Apagar progresso" apaga só o jogo. Ficam: sem anúncios, mundos comprados, moedas COMPRADAS ainda não gastas
+   e o herói do pacote inicial (direito permanente). Nada é restaurado aqui. */
   function wipeProgress() {
     const paid = Math.min(save.paid || 0, save.coins || 0);
+    /* herói do pacote inicial: é um direito comprado, não progresso de partida */
+    const unl = {};
+    if (save.iap && save.iap.starter) unl[STARTER.hero] = 1;
     /* pid permanece — é ID do dispositivo, não progresso de partida */
     const keep = {
       noAds: save.noAds,
@@ -15790,6 +16067,7 @@
       iapMig: 1,
       paid: paid,
       coins: paid,
+      unl: unl,
       pid: save.pid,
       prof: save.prof
         ? { name: save.prof.name, icon: save.prof.icon, named: save.prof.named }
@@ -15798,7 +16076,12 @@
     window.__wiping = true;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(keep));
-    } catch (e) { }
+    } catch (e) {
+      /* se a gravação falhar, o save antigo continua valendo: avisa em vez de recarregar em silêncio */
+      window.__wiping = false;
+      notify("Não foi possível apagar o progresso agora. Tente de novo.", "warn");
+      return;
+    }
     location.reload();
   }
 
@@ -17016,7 +17299,7 @@
       T.tier +
       " de " +
       PROF_TITLES.length +
-      " · Moldura " +
+      " | Moldura " +
       T.frame;
     id.querySelector(".pf-ach span").textContent =
       "Conquistas " +
@@ -17024,8 +17307,8 @@
       "/" +
       T.total +
       (T.next
-        ? " · faltam " + (T.needNext - T.n) + " para " + T.next
-        : " · título máximo");
+        ? " | faltam " + (T.needNext - T.n) + " para " + T.next
+        : " | título máximo");
     id.querySelector(".pf-ach u").style.width =
       Math.max(0, Math.min(100, bar)) + "%";
     const mb = id.querySelectorAll(".pf-meta b");
@@ -17131,7 +17414,7 @@
         "pf-trk" +
         (i + 1 === used ? " cur" : "") +
         (i + 1 > T.tier ? " lk" : "");
-      c.title = PROF_TITLES[i][0] + " · moldura " + PROF_FRAME_NAMES[i];
+      c.title = PROF_TITLES[i][0] + " | moldura " + PROF_FRAME_NAMES[i];
       c.setAttribute("aria-pressed", i + 1 === used ? "true" : "false");
       c.appendChild(profFramed(P.icon, 1, i + 1));
       c.insertAdjacentHTML("beforeend", "<b></b><small></small>");
@@ -17284,7 +17567,7 @@
     rev.hidden = !(g && g.pre && !won && !ret && !g.revived);
     rev.disabled = false;
     rev.innerHTML =
-      '<span class="uic i-play"></span> Reviver? Vida cheia · anúncio';
+      '<span class="uic i-play"></span> Reviver? | ad';
   }
   rev.onclick = () =>
     ADS.rewarded((ok) => {
@@ -17491,7 +17774,7 @@
       (save.best ? fmt(save.best) : "—") +
       "</b><small>Partidas jogadas: " +
       (save.runs || 0) +
-      '</small></span></div><div class="rw"><span>Vigília Eterna · melhor tempo <b>' +
+      '</small></span></div><div class="rw"><span>Vigília Eterna | melhor tempo <b>' +
       (save.bestInf ? fmt(save.bestInf) : "—") +
       '</b></span></div><div class="hdg">SUAS MELHORES PARTIDAS</div>' +
       (top.length
@@ -17506,11 +17789,11 @@
               (r.w ? " (vitória)" : "") +
               "<small>" +
               r.k +
-              " abates · nível " +
+              " abates | nível " +
               r.l +
-              " · " +
+              " | " +
               ((HEROES[r.h] || {}).name || r.h) +
-              " · " +
+              " | " +
               fmtDate(r.d) +
               "</small></span></div>",
           )
@@ -17883,7 +18166,7 @@
           statValue(k, g.stCur[k]) +
           (ST_UNIT[k] || ""),
       )
-      .join(" · ");
+      .join(" | ");
   }
   (() => {
     const p = document.createElement("div");
@@ -20097,6 +20380,8 @@
             dmg: e.dmg,
             done: false,
             who: "Bruto",
+            quake: true, /* desenho de terremoto (drawQuakeCirc) */
+            sd: rndFx(1, 1000), /* semente visual das rachaduras */
           });
         }
         return [vx, vy];
@@ -20299,6 +20584,13 @@
     }
   }
   const SQUASH_T = 0.12;
+  /* inimigo congelado: tom gelado via filtro do canvas */
+  function frzDraw(e, g, air) {
+    const frz = g.freezeT > 0;
+    if (frz) ctx.filter = "hue-rotate(170deg) saturate(0.5) brightness(1.2)";
+    drawEnemy(e, g, air);
+    if (frz) ctx.filter = "none";
+  }
   function drawEnemy(e, g, air) {
     const s = eSpr(e, g);
     if (!s) return;
@@ -22631,7 +22923,7 @@
   };
 
 
-  /* ---------- Corvo Negro (Elias · 1 Reis 17:6) ----------
+  /* ---------- Corvo Negro (Elias | 1 Reis 17:6) ----------
      Mecânica própria, evolução da ideia da Pomba: cada corvo escolhe a PRESA MAIS FORTE ao alcance
      (chefe > elite > mais vida), voa até ela perseguindo, atravessa alguns inimigos e VOLTA ao herói,
      ferindo de novo na volta. Quem acertou alguém traz PÃO: cura Salvação (com intervalo entre entregas). */
@@ -23996,7 +24288,7 @@
           evolutionIconURL(c.id, "supreme", true) +
           '"></div><div class="ct">' +
           W.name +
-          " · " +
+          " | " +
           PASSIVES[E.dom].name +
           '</div><div class="cd">' +
           E.d +
@@ -24528,7 +24820,7 @@
         PASSIVES[E.dom].name +
         " Nv " +
         NXV.domLv +
-        "+ · " +
+        "+ | " +
         WEAPONS[e.id].name +
         " Nv " +
         MAXW +
@@ -24887,7 +25179,7 @@
       if (S)
         x.graceD =
           (x.graceD ? x.graceD + " " : "") +
-          "PODER HEROICO · " +
+          "PODER HEROICO | " +
           S.n +
           ": " +
           S.d;
@@ -26744,7 +27036,7 @@
     report: { ok: [], miss: [] },
   };
   const NXA_EXT = ["ogg", "wav", "mp3"];
-  /* g = ganho base · r = faixa de tom · v = vozes simultâneas · gap = intervalo mínimo (ms) · pri = prioridade · max = duração máx (s) · rms = nível-alvo · duck = abaixa a música (ms) */
+  /* g = ganho base | r = faixa de tom | v = vozes simultâneas | gap = intervalo mínimo (ms) | pri = prioridade | max = duração máx (s) | rms = nível-alvo | duck = abaixa a música (ms) */
   const NXA_EV = {
     impact: {
       f: "sfx_impact",

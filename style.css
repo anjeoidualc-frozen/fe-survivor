@@ -124,6 +124,10 @@ button {
 }
 
 #timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
@@ -295,6 +299,10 @@ button {
 }
 
 #kills {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   font-family: var(--f-title);
   font-size: 8px;
   margin: 6px 0 8px;
@@ -779,6 +787,10 @@ span b {
   }
 
   #timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     font-size: 14px;
     top: 22px;
   }
@@ -3503,6 +3515,7 @@ button:focus-visible {
 
 #tlcol #hptxt {
   font-size: 10px;
+  font-weight: 800;
 }
 
 #tlcol #coins {
@@ -3532,9 +3545,10 @@ button:focus-visible {
 #tccol #obj {
   position: static;
   max-width: 100%;
-  background: none;
-  border: 0;
-  padding: 0;
+  background-color: #161616b5;
+  border-radius: 2px;
+  margin-top: -3px;
+  padding: 2px 6px;
   font: 12px/1.25 var(--f-body);
   letter-spacing: 0;
   text-transform: none;
@@ -3671,7 +3685,8 @@ button:focus-visible {
   }
 
   #tlcol #hptxt {
-    font-size: 9px;
+    font-size: 10px;
+    font-weight: 800;
   }
 
   #tccol {
@@ -3680,10 +3695,19 @@ button:focus-visible {
   }
 
   #timer {
-    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 800;
   }
 
   #tccol #obj {
+    background-color: #161616b5;
+    border-radius: 2px;
+    margin-top: -3px;
+    padding: 2px 6px;
     font-size: 11px;
   }
 
@@ -3707,12 +3731,17 @@ button:focus-visible {
   }
 
   #lvl {
-    font-size: 12px;
+    font-size: 14px;
+    font-weight: 800;
   }
 
   #kills {
     font-size: 8px;
     margin: 4px 0 0;
+    background-color: #131313e8;
+    width: fit-content;
+    padding: 2px 6px;
+    border-radius: 4px;
   }
 
   #pauseBtn {
@@ -3734,9 +3763,10 @@ button:focus-visible {
   }
 
   .slot {
-    width: 32px;
-    height: 32px;
+    width: 38px;
+    height: 38px;
     border-width: 2px;
+    border-radius: 4px;
   }
 
   .slot img {
@@ -3837,6 +3867,7 @@ button:focus-visible {
   /*telas*/
   .ov {
     padding: calc(8px + var(--sat)) calc(12px + var(--sar)) calc(8px + var(--sab)) calc(12px + var(--sal));
+    background: rgba(7, 5, 15, 0.80);
   }
 
   .ov h1 {
@@ -3870,7 +3901,8 @@ button:focus-visible {
   .btn {
     padding: 0px 18px 0px;
     min-height: 32px;
-    font-size: 8px;
+    font-size: 12px;
+    font-weight: 800;
     border-bottom-width: 4px;
     box-shadow: 0 0 0 2px #000;
   }
@@ -3879,7 +3911,7 @@ button:focus-visible {
     min-width: 120px;
     font-size: 12px;
     padding: 0 12px;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 3;
     box-shadow:
       0 0 0 3px #000,
@@ -4089,6 +4121,8 @@ button:focus-visible {
     margin: 0;
     text-align: center;
     line-height: 1.35;
+    font-weight: 300;
+    font-size: 8px;
   }
 
   #end .end-r .row {
@@ -4118,6 +4152,10 @@ button:focus-visible {
   #endNote {
     font-size: 10px;
     margin: 0 auto 8px;
+  }
+  
+  #lvlup .ov {
+    background: rgba(7, 5, 15, 0.8) !important;
   }
 
   /*cartas de bênção*/
@@ -5294,7 +5332,7 @@ button:focus-visible {
     0 0 0 2px #05030c;
   text-transform: uppercase;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .mc-st {
@@ -9240,4 +9278,93 @@ button.pf-trk:not(.lk):not(.cur):hover {
   width: 18px;
   height: 18px;
   vertical-align: -4px;
+}
+
+/* selo "Recomendado" (polegar verde) */
+.card {
+  position: relative;
+  /* pode apagar se as cartas já tiverem position */
+}
+
+.rec-flag {
+  position: absolute;
+  top: 28px;
+  left: 7px;
+  z-index: 4;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #2fbf5a;
+  border: 2px solid #0c0918;
+  box-shadow:
+    0 0 0 2px #9dffb8,
+    0 0 10px rgba(47, 191, 90, 0.7);
+  pointer-events: none;
+}
+
+.rec-flag .rec-img {
+  width: 18px;
+  height: 18px;
+  image-rendering: pixelated;
+}
+
+.evo-r.is-rec .rec-flag .rec-img {
+  width: 15px;
+  height: 15px;
+}
+
+.rec-flag svg {
+  width: 18px;
+  height: 14px;
+  shape-rendering: crispEdges;
+}
+
+.rec-flag .o {
+  fill: #0a2414;
+}
+
+.rec-flag .f {
+  fill: #eafff0;
+}
+
+/* borda verde nas cartas recomendadas */
+.card.is-rec {
+  border-color: #2fbf5a;
+  box-shadow: 0 0 14px rgba(47, 191, 90, 0.45);
+}
+
+/* linha da Evolução Suprema da arma ainda não evoluída */
+.evo-r.is-rec {
+  position: relative;
+  box-shadow: inset 3px 0 0 #2fbf5a;
+}
+
+.evo-r.is-rec .rec-flag {
+  top: 8px;
+  left: 8px;
+  width: 26px;
+  height: 26px;
+}
+
+.evo-r.is-rec .rec-flag svg {
+  width: 15px;
+  height: 12px;
+}
+
+/* HUD: ícone à esquerda do timer e dos derrotados */
+#timer .uic {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  image-rendering: pixelated;
+}
+
+#kills .uic {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  image-rendering: pixelated;
+  transform: scale(1.4);
 }
