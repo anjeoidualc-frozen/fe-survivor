@@ -106,12 +106,10 @@
       title.textContent = (NEWS.title || "Notas da Versão") + " " + APP_VER;
     if (!body) return;
     let html = "";
-    if (NEWS.lead)
-      html += '<p class="news-lead">' + NEWS.lead + "</p>";
+    if (NEWS.lead) html += '<p class="news-lead">' + NEWS.lead + "</p>";
     (NEWS.sections || []).forEach((sec) => {
       html += '<div class="news-section">';
-      if (sec.tag)
-        html += '<div class="news-tag">✦ ' + sec.tag + "</div>";
+      if (sec.tag) html += '<div class="news-tag">✦ ' + sec.tag + "</div>";
       if (sec.items && sec.items.length)
         html +=
           "<ul>" +
@@ -1639,8 +1637,7 @@
       dove: '<path d="M3 15L10 10L9 5L14 9L21 7L17 13L20 17L13 15L8 20Z" fill="#d9e7ff" stroke="#fff" stroke-width="1"/><circle cx="16" cy="11" r="1" fill="#2b1a0b"/>',
       trumpet:
         '<path d="M4 10H10L20 5V19L10 14H4Z" fill="#f2c14e" stroke="#fff0a3" stroke-width="1.2"/><path d="M7 14L8 19H11L10 14" fill="#c58a4c"/>',
-      whip:
-        '<path d="M4 20Q8 14 11 13Q15 11 15 7Q17 4 21 3" fill="none" stroke="#a8743a" stroke-width="2.2" stroke-linecap="round"/><path d="M4 20Q8 14 11 13Q15 11 15 7Q17 4 21 3" fill="none" stroke="#f0d49a" stroke-width="0.8"/><path d="M20 2L22 5M22 3L19 5" stroke="#ffe27a" stroke-width="1.2"/><rect x="3" y="19" width="4" height="3" fill="#4a2a12"/>',
+      whip: '<path d="M4 20Q8 14 11 13Q15 11 15 7Q17 4 21 3" fill="none" stroke="#a8743a" stroke-width="2.2" stroke-linecap="round"/><path d="M4 20Q8 14 11 13Q15 11 15 7Q17 4 21 3" fill="none" stroke="#f0d49a" stroke-width="0.8"/><path d="M20 2L22 5M22 3L19 5" stroke="#ffe27a" stroke-width="1.2"/><rect x="3" y="19" width="4" height="3" fill="#4a2a12"/>',
       firewall:
         '<circle cx="12" cy="12" r="8" fill="none" stroke="#ff6a1a" stroke-width="3"/><circle cx="12" cy="12" r="8" fill="none" stroke="#ffe27a" stroke-width="1"/><path d="M12 1L14 5H10ZM12 23L14 19H10ZM1 12L5 10V14ZM23 12L19 10V14Z" fill="#ffb43a"/><path d="M12 9L15 13L12 16L9 13Z" fill="#fff0a3"/>',
       fire: '<path d="M12 3L15 9L19 7L18 13L21 16L16 22H8L4 17L8 11L9 14Z" fill="#ff8d3a" stroke="#ffe3a0" stroke-width="1"/><path d="M12 12L15 16L12 20L9 17Z" fill="#fff0a3"/>',
@@ -1754,57 +1751,58 @@
         path,
         !!mastery,
       ));
-    const buildEvoIcon = (useFile) => mk(32, 32, (g) => {
-      g.imageSmoothingEnabled = false;
-      R(g, "#05030b", 0, 0, 32, 32);
-      R(g, mastery ? "#563b13" : "#211534", 1, 1, 30, 30);
-      R(g, accent, 2, 2, 28, 2);
-      R(g, accent, 2, 28, 28, 2);
-      R(g, accent, 2, 4, 2, 24);
-      R(g, accent, 28, 4, 2, 24);
-      R(g, mastery ? "#fff0a3" : "#e8d9ff", 4, 4, 24, 1);
-      g.save();
-      g.translate(4, 4);
-      if (useFile) g.drawImage(ICON_IMG[ownerId], 0, 0, 24, 24);
-      else drawBase(g);
-      g.restore();
-      R(g, "#05030b", 21, 21, 9, 9);
-      R(g, accent, 22, 22, 7, 7);
-      R(g, "#171027", 23, 23, 5, 5);
-      if (mastery) {
-        R(g, "#fff2ad", 24, 23, 3, 2);
-        R(g, "#f2c14e", 23, 25, 2, 3);
-        R(g, "#f2c14e", 26, 25, 2, 3);
-        R(g, "#fff2ad", 24, 27, 3, 1);
-        R(g, "#fff2ad", 4, 4, 2, 2);
-        R(g, "#fff2ad", 26, 4, 2, 2);
-      } else {
-        const p = String(path).toLowerCase();
-        if (
-          /pierc|spear|cleave|snip|arrow|aim|target|seek|precision/.test(p)
-        ) {
-          R(g, accent, 24, 24, 1, 5);
-          R(g, accent, 22, 26, 5, 1);
-          R(g, "#fff", 24, 25, 1, 3);
-        } else if (
-          /shield|bastion|fortress|sanctuary|ward|guard|refuge/.test(p)
-        ) {
-          R(g, accent, 23, 24, 5, 1);
-          R(g, accent, 24, 25, 3, 2);
-          R(g, accent, 25, 27, 1, 1);
-        } else if (/echo|pulse|storm|chain|flock|orbit|wave|ring/.test(p)) {
-          R(g, accent, 24, 23, 1, 6);
-          R(g, accent, 22, 25, 5, 1);
-          R(g, accent, 23, 24, 3, 3);
+    const buildEvoIcon = (useFile) =>
+      mk(32, 32, (g) => {
+        g.imageSmoothingEnabled = false;
+        R(g, "#05030b", 0, 0, 32, 32);
+        R(g, mastery ? "#563b13" : "#211534", 1, 1, 30, 30);
+        R(g, accent, 2, 2, 28, 2);
+        R(g, accent, 2, 28, 28, 2);
+        R(g, accent, 2, 4, 2, 24);
+        R(g, accent, 28, 4, 2, 24);
+        R(g, mastery ? "#fff0a3" : "#e8d9ff", 4, 4, 24, 1);
+        g.save();
+        g.translate(4, 4);
+        if (useFile) g.drawImage(ICON_IMG[ownerId], 0, 0, 24, 24);
+        else drawBase(g);
+        g.restore();
+        R(g, "#05030b", 21, 21, 9, 9);
+        R(g, accent, 22, 22, 7, 7);
+        R(g, "#171027", 23, 23, 5, 5);
+        if (mastery) {
+          R(g, "#fff2ad", 24, 23, 3, 2);
+          R(g, "#f2c14e", 23, 25, 2, 3);
+          R(g, "#f2c14e", 26, 25, 2, 3);
+          R(g, "#fff2ad", 24, 27, 3, 1);
+          R(g, "#fff2ad", 4, 4, 2, 2);
+          R(g, "#fff2ad", 26, 4, 2, 2);
         } else {
-          R(g, accent, 24, 23, 3, 1);
-          R(g, accent, 23, 24, 1, 3);
-          R(g, accent, 26, 24, 1, 3);
-          R(g, accent, 24, 27, 3, 1);
+          const p = String(path).toLowerCase();
+          if (
+            /pierc|spear|cleave|snip|arrow|aim|target|seek|precision/.test(p)
+          ) {
+            R(g, accent, 24, 24, 1, 5);
+            R(g, accent, 22, 26, 5, 1);
+            R(g, "#fff", 24, 25, 1, 3);
+          } else if (
+            /shield|bastion|fortress|sanctuary|ward|guard|refuge/.test(p)
+          ) {
+            R(g, accent, 23, 24, 5, 1);
+            R(g, accent, 24, 25, 3, 2);
+            R(g, accent, 25, 27, 1, 1);
+          } else if (/echo|pulse|storm|chain|flock|orbit|wave|ring/.test(p)) {
+            R(g, accent, 24, 23, 1, 6);
+            R(g, accent, 22, 25, 5, 1);
+            R(g, accent, 23, 24, 3, 3);
+          } else {
+            R(g, accent, 24, 23, 3, 1);
+            R(g, accent, 23, 24, 1, 3);
+            R(g, accent, 26, 24, 1, 3);
+            R(g, accent, 24, 27, 3, 1);
+          }
         }
-      }
-      R(g, "#fff8", 3, 3, 4, 1);
-    });
+        R(g, "#fff8", 3, 3, 4, 1);
+      });
     try {
       let url = null;
       /* 1º: ícone da pasta assets/icons; 2º (fallback): ícone desenhado via código */
@@ -1919,8 +1917,7 @@
       expiredByReason: {},
       byType: {},
     };
-    run.metrics.drops.expiredByReason =
-      run.metrics.drops.expiredByReason || {};
+    run.metrics.drops.expiredByReason = run.metrics.drops.expiredByReason || {};
     run.metrics.drops.byType = run.metrics.drops.byType || {};
     run.choiceTools = run.choiceTools || {
       upgrades: {},
@@ -1942,7 +1939,9 @@
       const raw = JSON.parse(localStorage.getItem(BALANCE_STORE_KEY) || "null");
       if (!raw || !Array.isArray(raw.runs)) {
         if (raw != null)
-          console.warn("[balance] histórico local inválido; gravação bloqueada para evitar sobrescrita.");
+          console.warn(
+            "[balance] histórico local inválido; gravação bloqueada para evitar sobrescrita.",
+          );
         return {
           schemaVersion: BALANCE_SCHEMA_VERSION,
           runs: [],
@@ -2192,10 +2191,10 @@
         return;
       }
       r.events.push(
-        Object.assign(
-          payload || {},
-          { type, t: Math.round(((G && G.t) || 0) * 10) / 10 },
-        ),
+        Object.assign(payload || {}, {
+          type,
+          t: Math.round(((G && G.t) || 0) * 10) / 10,
+        }),
       );
     },
     start(g) {
@@ -2274,11 +2273,12 @@
           },
           dailyChallenge: RUN.daily ? RUN.daily.k || true : false,
           rng: {
-            seed: RUN.daily && Number.isFinite(RUN.daily.seed)
-              ? RUN.daily.seed
-              : Number.isFinite(_balanceDebugSeed)
-                ? _balanceDebugSeed
-                : null,
+            seed:
+              RUN.daily && Number.isFinite(RUN.daily.seed)
+                ? RUN.daily.seed
+                : Number.isFinite(_balanceDebugSeed)
+                  ? _balanceDebugSeed
+                  : null,
             source: RUN.daily
               ? "daily"
               : Number.isFinite(_balanceDebugSeed)
@@ -2473,7 +2473,10 @@
     bossPattern(e, name) {
       const r = this.current;
       if (!r || !e) return;
-      const f = e._balanceFightIndex != null ? r.bossFights[e._balanceFightIndex] : null;
+      const f =
+        e._balanceFightIndex != null
+          ? r.bossFights[e._balanceFightIndex]
+          : null;
       if (f) {
         f.patterns = f.patterns || {};
         f.patterns[name] = (f.patterns[name] || 0) + 1;
@@ -2588,7 +2591,8 @@
       m.damageTaken += amount;
       m.hitsTaken++;
       m.rawDamageTaken = (m.rawDamageTaken || 0) + rawHit;
-      m.mitigatedDamage = (m.mitigatedDamage || 0) + Math.max(0, rawHit - amount);
+      m.mitigatedDamage =
+        (m.mitigatedDamage || 0) + Math.max(0, rawHit - amount);
       m.maxHit = Math.max(m.maxHit || 0, amount);
       m.damageSources = m.damageSources || {};
       m.damageSources[name] = (m.damageSources[name] || 0) + amount;
@@ -2612,7 +2616,13 @@
       });
       if (this.recentHits.length > 8) this.recentHits.shift();
       /* dano causado por chefe ao herói, por luta */
-      const bs = source && (source.boss ? source : source.src && source.src.boss ? source.src : null);
+      const bs =
+        source &&
+        (source.boss
+          ? source
+          : source.src && source.src.boss
+            ? source.src
+            : null);
       if (bs && bs._balanceFightIndex != null) {
         const f = r.bossFights[bs._balanceFightIndex];
         if (f) {
@@ -2638,7 +2648,8 @@
         m.overhealing = (m.overhealing || 0) + (requested - amount);
       if (!(amount > 0)) return;
       m.healingReceived = (m.healingReceived || 0) + amount;
-      const reason = typeof requested === "string" ? requested : "pickup_or_skill";
+      const reason =
+        typeof requested === "string" ? requested : "pickup_or_skill";
       m.healingBySource = m.healingBySource || {};
       m.healingBySource[reason] = (m.healingBySource[reason] || 0) + amount;
       const bucket = this.minuteBucket(G && G.t);
@@ -2670,8 +2681,8 @@
       const bucket = this.minuteBucket(G && G.t);
       if (bucket) {
         bucket.drops.collected++;
-        const minuteType =
-          (bucket.drops.byType[type] = bucket.drops.byType[type] || {});
+        const minuteType = (bucket.drops.byType[type] =
+          bucket.drops.byType[type] || {});
         minuteType.collected = (minuteType.collected || 0) + 1;
         if (type === "coin") bucket.coinsCollected++;
       }
@@ -2688,8 +2699,8 @@
       const bucket = this.minuteBucket(G && G.t);
       if (bucket) {
         bucket.drops.generated++;
-        const minuteType =
-          (bucket.drops.byType[id] = bucket.drops.byType[id] || {});
+        const minuteType = (bucket.drops.byType[id] =
+          bucket.drops.byType[id] || {});
         minuteType.generated = (minuteType.generated || 0) + 1;
       }
       if (convertedToXp) {
@@ -2716,8 +2727,8 @@
       const bucket = this.minuteBucket(G && G.t);
       if (bucket) {
         bucket.drops.placed++;
-        const minuteType =
-          (bucket.drops.byType[type] = bucket.drops.byType[type] || {});
+        const minuteType = (bucket.drops.byType[type] =
+          bucket.drops.byType[type] || {});
         minuteType.placed = (minuteType.placed || 0) + 1;
       }
     },
@@ -2738,8 +2749,8 @@
       if (bucket) {
         bucket.drops.expired++;
         this.addCount(bucket.drops.expiredByReason, cause);
-        const minuteType =
-          (bucket.drops.byType[type] = bucket.drops.byType[type] || {});
+        const minuteType = (bucket.drops.byType[type] =
+          bucket.drops.byType[type] || {});
         minuteType.expired = (minuteType.expired || 0) + 1;
         minuteType.expiredByReason = minuteType.expiredByReason || {};
         this.addCount(minuteType.expiredByReason, cause);
@@ -2791,7 +2802,8 @@
         ownerId: c.ownerId || null,
         ownerName: ownerDef ? ownerDef.name || ownerDef.n || c.ownerId : null,
         rarity: c.r == null ? null : c.r,
-        rarityName: c.r == null ? null : (RAR[c.r] && RAR[c.r].n) || String(c.r),
+        rarityName:
+          c.r == null ? null : (RAR[c.r] && RAR[c.r].n) || String(c.r),
         name:
           (choiceDef && (choiceDef.name || choiceDef.n)) ||
           (def && (def.name || def.n)) ||
@@ -2805,9 +2817,11 @@
     openChoiceSession(pending, choices) {
       const r = this.current;
       if (!r) return;
-      const prior = this.activeChoiceSessionId && r.choices.find(
-        (session) => session.sessionId === this.activeChoiceSessionId,
-      );
+      const prior =
+        this.activeChoiceSessionId &&
+        r.choices.find(
+          (session) => session.sessionId === this.activeChoiceSessionId,
+        );
       if (prior && prior.status === "open") {
         prior.status = "ended_unselected";
         prior.endedReason = "replaced_without_selection";
@@ -2850,10 +2864,14 @@
       const removed = this.choiceCard(option);
       session.removedOptions.push({
         option: removed,
-        remainingOptions: (remaining || []).map((card) => this.choiceCard(card)),
+        remainingOptions: (remaining || []).map((card) =>
+          this.choiceCard(card),
+        ),
         t: Math.round(((G && G.t) || 0) * 10) / 10,
       });
-      session.visibleOptions = (remaining || []).map((card) => this.choiceCard(card));
+      session.visibleOptions = (remaining || []).map((card) =>
+        this.choiceCard(card),
+      );
       r.metrics.banishedOptions = (r.metrics.banishedOptions || 0) + 1;
       this.syncChoiceTools();
       this.event("choice_banished", {
@@ -2915,7 +2933,9 @@
       if (session) {
         session.status = "selected";
         session.selected = this.choiceCard(selected);
-        session.visibleOptions = (choices || []).map((card) => this.choiceCard(card));
+        session.visibleOptions = (choices || []).map((card) =>
+          this.choiceCard(card),
+        );
         session.endedAt = Math.round(((G && G.t) || 0) * 10) / 10;
       }
       this.syncChoiceTools();
@@ -2950,7 +2970,10 @@
           range: this.safeNum(s.range),
           radius: this.safeNum(s.radius),
           evolved: !!(g.evo && g.evo[id]),
-          stats: this.primitiveModifiers(s) /* todos os atributos da arma (alcance, anéis, orbes, lentidão...) */,
+          stats:
+            this.primitiveModifiers(
+              s,
+            ) /* todos os atributos da arma (alcance, anéis, orbes, lentidão...) */,
         };
       });
       const passives = Object.keys(g.P || {}).map((id) => ({
@@ -3000,8 +3023,7 @@
         enemyHealthCurse: this.safeNum(mods.curse),
         enemySpawnFrequencyCurse: this.safeNum(mods.curse),
         enemySpeedCurse: this.safeNum(mods.curseSpd),
-        resurrectionsAvailable:
-          g.P && g.P.manto > 0 && !g.reviveUsed ? 1 : 0,
+        resurrectionsAvailable: g.P && g.P.manto > 0 && !g.reviveUsed ? 1 : 0,
         resurrectionsUsed: g.reviveUsed ? 1 : 0,
       };
       r.snapshots.push({
@@ -3069,9 +3091,10 @@
       let cursor = startT;
       while (cursor < endT) {
         const minuteEnd = (Math.floor(cursor / 60) + 1) * 60,
-          sampleEnd = this.nextAliveSampleAt > cursor
-            ? this.nextAliveSampleAt
-            : cursor + 1,
+          sampleEnd =
+            this.nextAliveSampleAt > cursor
+              ? this.nextAliveSampleAt
+              : cursor + 1,
           next = Math.min(endT, minuteEnd, sampleEnd),
           elapsed = Math.max(0, next - cursor),
           bucket = this.minuteBucket(cursor);
@@ -3248,7 +3271,10 @@
     patchEconomy(patch) {
       const r = this.lastRun;
       if (!r || !r.result || !patch) return;
-      const e = (r.result.economy = Object.assign(r.result.economy || {}, patch));
+      const e = (r.result.economy = Object.assign(
+        r.result.economy || {},
+        patch,
+      ));
       e.totalGranted =
         this.safeNum(e.coinsCredited) +
         this.safeNum(e.adCoins) +
@@ -3328,7 +3354,11 @@
         hpScale: HPS,
         rules: {
           winTimeSeconds: typeof WIN_T === "number" ? WIN_T : null,
-          standardSlots: { weapons: 4, passives: 4, actives: MAX_ACTIVE_STANDARD },
+          standardSlots: {
+            weapons: 4,
+            passives: 4,
+            actives: MAX_ACTIVE_STANDARD,
+          },
           infiniteSlots: {
             weapons: INF_SLOTS_W,
             passives: INF_SLOTS_P,
@@ -3338,8 +3368,7 @@
           maxPassiveLevel: MAXP,
           enemyCap: ENEMY_CAP,
           stackCaps: STACK_CAPS,
-          domLevelForEvolution:
-            typeof NXV !== "undefined" ? NXV.domLv : null,
+          domLevelForEvolution: typeof NXV !== "undefined" ? NXV.domLv : null,
         },
         heroes: Object.fromEntries(
           Object.entries(content.heroes || {}).map(([id, h]) => [
@@ -3388,23 +3417,60 @@
     },
     toCSVMinutes() {
       const fields = [
-        "runId", "attempt", "status", "gameVersion", "fingerprint", "mode", "world", "heroId", "won", "durationSeconds",
-        "minute", "activeSeconds", "averageEnemiesAlive", "averageHpRatio", "spawns", "kills", "eliteKills",
-        "bossesSpawned", "bossesDefeated", "damageDealt", "damageToBosses", "damageToElites", "damageTaken",
-        "mitigatedDamage", "hitsTaken", "blockedHits", "healingReceived", "xpRaw", "xpEffective", "coinsCollected",
-        "levelsGained", "choicesMade", "dropsGenerated", "dropsCollected", "dropsExpired", "topDamageSource",
-        "damageBySource", "killsByType", "enemySpawnsByType", "activeUses",
+        "runId",
+        "attempt",
+        "status",
+        "gameVersion",
+        "fingerprint",
+        "mode",
+        "world",
+        "heroId",
+        "won",
+        "durationSeconds",
+        "minute",
+        "activeSeconds",
+        "averageEnemiesAlive",
+        "averageHpRatio",
+        "spawns",
+        "kills",
+        "eliteKills",
+        "bossesSpawned",
+        "bossesDefeated",
+        "damageDealt",
+        "damageToBosses",
+        "damageToElites",
+        "damageTaken",
+        "mitigatedDamage",
+        "hitsTaken",
+        "blockedHits",
+        "healingReceived",
+        "xpRaw",
+        "xpEffective",
+        "coinsCollected",
+        "levelsGained",
+        "choicesMade",
+        "dropsGenerated",
+        "dropsCollected",
+        "dropsExpired",
+        "topDamageSource",
+        "damageBySource",
+        "killsByType",
+        "enemySpawnsByType",
+        "activeUses",
       ];
       const rows = [];
       const sum = (o) => Object.values(o || {}).reduce((a, b) => a + b, 0);
       for (const r of this.allRuns())
         for (const b of r.minuteBuckets || []) {
-          const top = Object.entries(b.damageBySource || {}).sort((x, y) => y[1] - x[1])[0];
+          const top = Object.entries(b.damageBySource || {}).sort(
+            (x, y) => y[1] - x[1],
+          )[0];
           rows.push({
             ...this.runHead(r),
             minute: b.minute,
             activeSeconds: Math.round((b.activeSeconds || 0) * 10) / 10,
-            averageEnemiesAlive: Math.round((b.averageEnemiesAlive || 0) * 10) / 10,
+            averageEnemiesAlive:
+              Math.round((b.averageEnemiesAlive || 0) * 10) / 10,
             averageHpRatio: Math.round((b.averageHpRatio || 0) * 1000) / 1000,
             spawns: sum(b.enemySpawnsByType),
             kills: sum(b.killsByType),
@@ -3429,7 +3495,10 @@
             dropsExpired: b.drops && b.drops.expired,
             topDamageSource: top ? top[0] + ":" + Math.round(top[1]) : "",
             damageBySource: Object.fromEntries(
-              Object.entries(b.damageBySource || {}).map(([k, v]) => [k, Math.round(v)]),
+              Object.entries(b.damageBySource || {}).map(([k, v]) => [
+                k,
+                Math.round(v),
+              ]),
             ),
             killsByType: b.killsByType,
             enemySpawnsByType: b.enemySpawnsByType,
@@ -3440,9 +3509,30 @@
     },
     toCSVWeapons() {
       const fields = [
-        "runId", "attempt", "status", "gameVersion", "fingerprint", "mode", "world", "heroId", "won", "durationSeconds",
-        "source", "kind", "finalLevel", "evolved", "damage", "damageShare", "dps", "hits", "avgHit", "kills",
-        "killShare", "crits", "critRate", "finalStats",
+        "runId",
+        "attempt",
+        "status",
+        "gameVersion",
+        "fingerprint",
+        "mode",
+        "world",
+        "heroId",
+        "won",
+        "durationSeconds",
+        "source",
+        "kind",
+        "finalLevel",
+        "evolved",
+        "damage",
+        "damageShare",
+        "dps",
+        "hits",
+        "avgHit",
+        "kills",
+        "killShare",
+        "crits",
+        "critRate",
+        "finalStats",
       ];
       const rows = [];
       for (const r of this.allRuns()) {
@@ -3457,7 +3547,11 @@
           totalDmg = Object.values(dbw).reduce((a, b) => a + b, 0) || 1,
           totalKills = Object.values(kbw).reduce((a, b) => a + b, 0) || 1,
           dur = (r.result && r.result.durationSeconds) || r.lastT || 1,
-          ids = new Set([...Object.keys(dbw), ...Object.keys(kbw), ...Object.keys(lw)]);
+          ids = new Set([
+            ...Object.keys(dbw),
+            ...Object.keys(kbw),
+            ...Object.keys(lw),
+          ]);
         for (const id of ids) {
           const w = lw[id],
             isWeapon = !!WEAPONS[id],
@@ -3477,7 +3571,9 @@
             kills: kbw[id] || 0,
             killShare: Math.round(((kbw[id] || 0) / totalKills) * 1000) / 1000,
             crits: cbw[id] || 0,
-            critRate: hits ? Math.round(((cbw[id] || 0) / hits) * 1000) / 1000 : "",
+            critRate: hits
+              ? Math.round(((cbw[id] || 0) / hits) * 1000) / 1000
+              : "",
             finalStats: w ? w.stats : "",
           });
         }
@@ -3486,9 +3582,30 @@
     },
     toCSVEnemies() {
       const fields = [
-        "runId", "attempt", "status", "gameVersion", "fingerprint", "mode", "world", "heroId", "won", "durationSeconds",
-        "type", "name", "spawned", "killed", "killRate", "avgSpawnHp", "avgSpawnDmg", "avgSpawnSpeed", "avgLifetimeSeconds",
-        "maxLifetimeSeconds", "damageTakenFromPlayer", "damageDealtToPlayer", "hitsOnPlayer", "dpsContribution",
+        "runId",
+        "attempt",
+        "status",
+        "gameVersion",
+        "fingerprint",
+        "mode",
+        "world",
+        "heroId",
+        "won",
+        "durationSeconds",
+        "type",
+        "name",
+        "spawned",
+        "killed",
+        "killRate",
+        "avgSpawnHp",
+        "avgSpawnDmg",
+        "avgSpawnSpeed",
+        "avgLifetimeSeconds",
+        "maxLifetimeSeconds",
+        "damageTakenFromPlayer",
+        "damageDealtToPlayer",
+        "hitsOnPlayer",
+        "dpsContribution",
       ];
       const rows = [];
       for (const r of this.allRuns()) {
@@ -3511,7 +3628,9 @@
             name: nm,
             spawned: sp[type],
             killed: kb[type] || 0,
-            killRate: sp[type] ? Math.round(((kb[type] || 0) / sp[type]) * 1000) / 1000 : "",
+            killRate: sp[type]
+              ? Math.round(((kb[type] || 0) / sp[type]) * 1000) / 1000
+              : "",
             avgSpawnHp: s ? Math.round((s.hp / s.n) * 10) / 10 : "",
             avgSpawnDmg: s ? Math.round((s.dmg / s.n) * 10) / 10 : "",
             avgSpawnSpeed: s ? Math.round((s.spd / s.n) * 10) / 10 : "",
@@ -3528,10 +3647,35 @@
     },
     toCSVBosses() {
       const fields = [
-        "runId", "attempt", "status", "gameVersion", "fingerprint", "mode", "world", "heroId", "won", "durationSeconds",
-        "boss", "index", "cycle", "spawnedAt", "defeated", "secondsAlive", "hpMax", "enemyDmg", "enemySpeed",
-        "damageDealt", "playerDps", "playerLevelAtSpawn", "playerLevelAtKill", "playerMaxHpAtSpawn",
-        "playerHpRatioAtSpawn", "playerHpRatioAtEnd", "damageToPlayer", "hitsOnPlayer", "patterns",
+        "runId",
+        "attempt",
+        "status",
+        "gameVersion",
+        "fingerprint",
+        "mode",
+        "world",
+        "heroId",
+        "won",
+        "durationSeconds",
+        "boss",
+        "index",
+        "cycle",
+        "spawnedAt",
+        "defeated",
+        "secondsAlive",
+        "hpMax",
+        "enemyDmg",
+        "enemySpeed",
+        "damageDealt",
+        "playerDps",
+        "playerLevelAtSpawn",
+        "playerLevelAtKill",
+        "playerMaxHpAtSpawn",
+        "playerHpRatioAtSpawn",
+        "playerHpRatioAtEnd",
+        "damageToPlayer",
+        "hitsOnPlayer",
+        "patterns",
       ];
       const rows = [];
       for (const r of this.allRuns())
@@ -3546,7 +3690,8 @@
             secondsAlive: f.secondsAlive,
             hpMax: Math.round(f.hpMax || 0),
             enemyDmg: f.enemyDmg,
-            enemySpeed: f.enemySpeed != null ? Math.round(f.enemySpeed * 10) / 10 : "",
+            enemySpeed:
+              f.enemySpeed != null ? Math.round(f.enemySpeed * 10) / 10 : "",
             damageDealt: Math.round(f.damageDealt || 0),
             playerDps: f.playerDps,
             playerLevelAtSpawn: f.playerLevelAtSpawn,
@@ -3567,19 +3712,26 @@
           this._crcT ||
           Array.from({ length: 256 }, (_, n) => {
             let c = n;
-            for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            for (let k = 0; k < 8; k++)
+              c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
             return c >>> 0;
           }));
       const crc = (u8) => {
         let c = 0xffffffff;
-        for (let i = 0; i < u8.length; i++) c = crcT[(c ^ u8[i]) & 255] ^ (c >>> 8);
+        for (let i = 0; i < u8.length; i++)
+          c = crcT[(c ^ u8[i]) & 255] ^ (c >>> 8);
         return (c ^ 0xffffffff) >>> 0;
       };
       const parts = [],
         central = [];
       let offset = 0;
       const u16 = (v) => [v & 255, (v >>> 8) & 255],
-        u32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+        u32 = (v) => [
+          v & 255,
+          (v >>> 8) & 255,
+          (v >>> 16) & 255,
+          (v >>> 24) & 255,
+        ];
       const dosTime = 0,
         dosDate = ((2026 - 1980) << 9) | (1 << 5) | 1;
       for (const [name, text] of files) {
@@ -3587,19 +3739,38 @@
           data = enc.encode(text),
           c = crc(data),
           local = new Uint8Array([
-            ...u32(0x04034b50), ...u16(20), ...u16(0x0800), ...u16(0),
-            ...u16(dosTime), ...u16(dosDate), ...u32(c),
-            ...u32(data.length), ...u32(data.length),
-            ...u16(nameB.length), ...u16(0),
+            ...u32(0x04034b50),
+            ...u16(20),
+            ...u16(0x0800),
+            ...u16(0),
+            ...u16(dosTime),
+            ...u16(dosDate),
+            ...u32(c),
+            ...u32(data.length),
+            ...u32(data.length),
+            ...u16(nameB.length),
+            ...u16(0),
           ]);
         parts.push(local, nameB, data);
         central.push(
           new Uint8Array([
-            ...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0),
-            ...u16(dosTime), ...u16(dosDate), ...u32(c),
-            ...u32(data.length), ...u32(data.length),
-            ...u16(nameB.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
-            ...u32(0), ...u32(offset),
+            ...u32(0x02014b50),
+            ...u16(20),
+            ...u16(20),
+            ...u16(0x0800),
+            ...u16(0),
+            ...u16(dosTime),
+            ...u16(dosDate),
+            ...u32(c),
+            ...u32(data.length),
+            ...u32(data.length),
+            ...u16(nameB.length),
+            ...u16(0),
+            ...u16(0),
+            ...u16(0),
+            ...u16(0),
+            ...u32(0),
+            ...u32(offset),
           ]),
           nameB,
         );
@@ -3607,11 +3778,20 @@
       }
       const cdSize = central.reduce((n, p) => n + p.length, 0),
         end = new Uint8Array([
-          ...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length),
-          ...u16(files.length), ...u32(cdSize), ...u32(offset), ...u16(0),
+          ...u32(0x06054b50),
+          ...u16(0),
+          ...u16(0),
+          ...u16(files.length),
+          ...u16(files.length),
+          ...u32(cdSize),
+          ...u32(offset),
+          ...u16(0),
         ]);
       return new Uint8Array(
-        [...parts, ...central, end].reduce((a, p) => a.concat(Array.from(p)), []),
+        [...parts, ...central, end].reduce(
+          (a, p) => a.concat(Array.from(p)),
+          [],
+        ),
       );
     },
     exportPackage() {
@@ -3623,13 +3803,20 @@
           ["03-por-arma.csv", this.toCSVWeapons()],
           ["04-por-inimigo.csv", this.toCSVEnemies()],
           ["05-por-chefe.csv", this.toCSVBosses()],
-          ["06-tabelas-de-balanceamento.json", JSON.stringify(this.balanceTables(), null, 2)],
+          [
+            "06-tabelas-de-balanceamento.json",
+            JSON.stringify(this.balanceTables(), null, 2),
+          ],
           ["07-telemetria-completa.json", json],
         ];
       let ok = false;
       try {
         const zip = this.zipStore(files);
-        ok = this.download("fe-survivor-balance-pacote-" + stamp + ".zip", zip, "application/zip");
+        ok = this.download(
+          "fe-survivor-balance-pacote-" + stamp + ".zip",
+          zip,
+          "application/zip",
+        );
       } catch (e) {
         ok = false;
       }
@@ -3842,7 +4029,10 @@
           critRate: m.hitsByWeapon
             ? Math.round(
               ((m.crits || 0) /
-                Math.max(1, Object.values(m.hitsByWeapon).reduce((a, b) => a + b, 0))) *
+                Math.max(
+                  1,
+                  Object.values(m.hitsByWeapon).reduce((a, b) => a + b, 0),
+                )) *
               1000,
             ) / 1000
             : "",
@@ -3852,21 +4042,42 @@
           maxHit: m.maxHit,
           blockedDamage: Math.round(m.blockedDamage || 0),
           overhealing: Math.round(m.overhealing || 0),
-          damagePerSecond: Math.round(
-            ((m.damageDealt || 0) / Math.max(1, res.durationSeconds || r.lastT || 1)) * 10,
-          ) / 10,
-          damageTakenPerSecond: Math.round(
-            ((m.damageTaken || 0) / Math.max(1, res.durationSeconds || r.lastT || 1)) * 100,
-          ) / 100,
+          damagePerSecond:
+            Math.round(
+              ((m.damageDealt || 0) /
+                Math.max(1, res.durationSeconds || r.lastT || 1)) *
+              10,
+            ) / 10,
+          damageTakenPerSecond:
+            Math.round(
+              ((m.damageTaken || 0) /
+                Math.max(1, res.durationSeconds || r.lastT || 1)) *
+              100,
+            ) / 100,
           killsByWeapon: m.killsByWeapon,
           damageByTargetType: m.damageByTargetType
-            ? Object.fromEntries(Object.entries(m.damageByTargetType).map(([k, v]) => [k, Math.round(v)]))
+            ? Object.fromEntries(
+              Object.entries(m.damageByTargetType).map(([k, v]) => [
+                k,
+                Math.round(v),
+              ]),
+            )
             : null,
           healingBySource: m.healingBySource
-            ? Object.fromEntries(Object.entries(m.healingBySource).map(([k, v]) => [k, Math.round(v)]))
+            ? Object.fromEntries(
+              Object.entries(m.healingBySource).map(([k, v]) => [
+                k,
+                Math.round(v),
+              ]),
+            )
             : null,
           damageSources: m.damageSources
-            ? Object.fromEntries(Object.entries(m.damageSources).map(([k, v]) => [k, Math.round(v)]))
+            ? Object.fromEntries(
+              Object.entries(m.damageSources).map(([k, v]) => [
+                k,
+                Math.round(v),
+              ]),
+            )
             : null,
           lastHits: res.lastHits,
           damageByWeapon: dbw,
@@ -3940,11 +4151,26 @@
     },
     exportCSV(kind) {
       const gen = {
-        resumo: ["fe-survivor-balance-resumo.csv", () => "\ufeff" + this.toCSV()],
-        minutos: ["fe-survivor-balance-por-minuto.csv", () => this.toCSVMinutes()],
-        armas: ["fe-survivor-balance-por-arma.csv", () => this.toCSVWeapons()],
-        inimigos: ["fe-survivor-balance-por-inimigo.csv", () => this.toCSVEnemies()],
-        chefes: ["fe-survivor-balance-por-chefe.csv", () => this.toCSVBosses()],
+        resumo: [
+          "fe-survivor-balance-resumo.csv",
+          () => "\ufeff" + this.toCSV(),
+        ],
+        minutos: [
+          "fe-survivor-balance-por-minuto.csv",
+          () => this.toCSVMinutes(),
+        ],
+        armas: [
+          "fe-survivor-balance-por-arma.csv",
+          () => this.toCSVWeapons(),
+        ],
+        inimigos: [
+          "fe-survivor-balance-por-inimigo.csv",
+          () => this.toCSVEnemies(),
+        ],
+        chefes: [
+          "fe-survivor-balance-por-chefe.csv",
+          () => this.toCSVBosses(),
+        ],
       }[kind || "resumo"],
         ok = this.download(gen[0], gen[1](), "text/csv");
       this.status(
@@ -3957,7 +4183,8 @@
       const el = document.getElementById("balanceExportStatus");
       if (el)
         el.textContent = this.storageFull
-          ? msg + " A persistência local falhou; exporte o JSON para preservar os dados."
+          ? msg +
+          " A persistência local falhou; exporte o JSON para preservar os dados."
           : msg;
     },
     initUI() {
@@ -4182,7 +4409,8 @@
     if (H.dmg) m.dmg = lim("dmg", m.dmg, H.dmg * C.dmg, true);
     if (H.xp) m.xp = lim("xp", m.xp, H.xp * C.xp, true);
     if (H.spd) m.spd = lim("speed", m.spd, H.spd * C.speed, true);
-    if (H.pickup) m.pickup = lim("pickup", m.pickup, 26 * H.pickup * C.pickup, true);
+    if (H.pickup)
+      m.pickup = lim("pickup", m.pickup, 26 * H.pickup * C.pickup, true);
     m.cd = lim("cd", m.cd, C.cdMin, false);
     m.crit = lim("crit", m.crit || 0, C.crit, true);
     m.critMul = lim("critMul", m.critMul || 2, C.critMul, true);
@@ -4543,7 +4771,8 @@
     e.hp -= d;
     e.flash = 0.09;
     e.hurtT = 0.12;
-    if (!(e.sqT > 0)) e.sqT = 0.12; /* um pulso por vez: sob fogo contínuo vira pulsar, não deformação fixa */
+    if (!(e.sqT > 0))
+      e.sqT = 0.12; /* um pulso por vez: sob fogo contínuo vira pulsar, não deformação fixa */
     if (kb) {
       const k =
         (kb * (G.mods.kbm || 1) * (G.mods.kbBonus || 1)) /
@@ -4682,8 +4911,10 @@
     }
     if (KILL_MS.indexOf(G.kills) >= 0) toast(G.kills + " demônios derrotados!");
     if (e.ab === "fuse") explode(e);
-    if (e.boss) burst(e.x, e.y, 40, e.col, 120);
-    else enemyDeathFx(e);
+    if (e.boss) {
+      burst(e.x, e.y, 40, e.col, 120);
+      bossDisintegrate(e);
+    } else enemyDeathFx(e);
     SFX.play("kill");
     if (e.boss) {
       G.boss = null;
@@ -5912,8 +6143,12 @@
                 d = Math.hypot(dx, dy) || 1;
               if (d < e.r + hitRadius) {
                 e.shCd = 0.42;
-                (w.swT || (w.swT = []))[i] = G.t; /* dispara o golpe de espada deste anjo */
-                (w.swA || (w.swA = []))[i] = Math.atan2(dy, dx); /* direção do inimigo */
+                (w.swT || (w.swT = []))[i] =
+                  G.t; /* dispara o golpe de espada deste anjo */
+                (w.swA || (w.swA = []))[i] = Math.atan2(
+                  dy,
+                  dx,
+                ); /* direção do inimigo */
                 if (FXQ()) fxSpark(e.x, e.y, "#fff0a3", 8);
                 hurt(
                   e,
@@ -6827,6 +7062,7 @@
     g.shake = Math.max(0, g.shake - dt);
     g.flash = Math.max(0, g.flash - dt);
     g.hurtFlash = Math.max(0, g.hurtFlash - dt);
+    stepBossDust(dt);
     g.freezeT = Math.max(0, (g.freezeT || 0) - dt);
 
     if (p.hp <= 0) return endRun(false);
@@ -6996,7 +7232,13 @@
     if (alpha !== undefined && alpha < 1) ctx.globalAlpha = alpha;
     ctx.scale((flip ? -1 : 1) * sc * (sxx || 1), sc * (syy || 1));
     if (rim && RIM_ON && s.c)
-      ctx.drawImage(rimOf(s, rim), -s.w / 2 - 1, -s.h / 2 - 1, s.w + 2, s.h + 2);
+      ctx.drawImage(
+        rimOf(s, rim),
+        -s.w / 2 - 1,
+        -s.h / 2 - 1,
+        s.w + 2,
+        s.h + 2,
+      );
     ctx.drawImage(flash ? s.f : s.c, -s.w / 2, -s.h / 2);
     ctx.restore();
   }
@@ -7010,7 +7252,10 @@
     const p = g.p,
       mh = g.mods && g.mods.maxhp;
     if (!p || !(mh > 0) || p.hp <= 0 || g.fallY > 0) return;
-    if (gameEl.classList.contains("tutor") && !gameEl.classList.contains("t-hp"))
+    if (
+      gameEl.classList.contains("tutor") &&
+      !gameEl.classList.contains("t-hp")
+    )
       return;
     const k = clamp(p.hp / mh, 0, 1),
       hv2 = HFR[g.hk] && HFR[g.hk].v2,
@@ -7256,9 +7501,7 @@
         k = ice
           ? Math.min(1, g.freezeT / 0.8)
           : Math.min(1, g.hurtFlash / 0.45),
-        a = ice
-          ? 0.6 * k
-          : 0.5 * k * (0.65 + 0.35 * Math.cos((1 - k) * 14));
+        a = ice ? 0.6 * k : 0.5 * k * (0.65 + 0.35 * Math.cos((1 - k) * 14));
       const gr = ctx.createRadialGradient(
         VW / 2,
         VH / 2,
@@ -7287,6 +7530,7 @@
     bossbar: $("#bossbar"),
     bossname: $("#bossname"),
     bossfill: $("#bossfill"),
+    bosstxt: $("#bosstxt"),
     rack: $("#rack"),
     fps: $("#fps"),
   };
@@ -7367,6 +7611,13 @@
       setT(H$.bossname, "bn", BOSSES[g.boss.idx].name);
       H$.bossfill.style.width =
         clamp((g.boss.hp / g.boss.mhp) * 100, 0, 100).toFixed(1) + "%";
+      setT(
+        H$.bosstxt,
+        "bt",
+        Math.max(0, Math.ceil(g.boss.hp)).toLocaleString("pt-BR") +
+        " / " +
+        Math.ceil(g.boss.mhp).toLocaleString("pt-BR"),
+      );
     } else H$.bossbar.hidden = true;
   }
   function slotHTML(id, lvl, isW) {
@@ -7390,11 +7641,12 @@
         (mastered ? " mastered" : "") +
         (sup ? " supreme" : "") +
         (rdy ? " evo-ready" : "");
+    const def = isW ? WEAPONS[id] : PASSIVES[id];
     const title =
-      (isW ? WEAPONS[id].name : PASSIVES[id].name) +
+      def.name +
       " | Nv " +
       lvl +
-      (isW ? "" : "&#10;" + (PASSIVES[id].desc || "")) +
+      // (def.desc ? "&#10;" + def.desc : "") +
       (path
         ? "&#10;" +
         path.name +
@@ -7588,9 +7840,7 @@
       c.s += runCoins();
     }
     save.mast[selHero] = Math.max(save.mast[selHero] || 0, G.t);
-    const newBest = G.inf
-      ? G.t > (save.bestInf || 0)
-      : G.t > save.best;
+    const newBest = G.inf ? G.t > (save.bestInf || 0) : G.t > save.best;
     if (newBest) {
       if (G.inf) save.bestInf = G.t;
       else save.best = G.t;
@@ -7604,7 +7854,9 @@
     }
     if (!quiet) SFX.play(won ? "win" : "lose");
     $("#hud").hidden = true;
-    const v = ret ? END_VERSES.interrupted : pick(END_VERSES[won ? "win" : "lose"]);
+    const v = ret
+      ? END_VERSES.interrupted
+      : pick(END_VERSES[won ? "win" : "lose"]);
     $("#endT").textContent = ret
       ? "Jornada interrompida"
       : won
@@ -7676,6 +7928,8 @@
     starterMenu();
   }
   function refreshMeta() {
+    /* tela de menu (home) recebe um fundo próprio */
+    $("#menu").style.setProperty("--menu-bg", screenBgUrl("Menu"));
     $("#meta").textContent =
       "Moedas guardadas: " +
       save.coins +
@@ -7910,7 +8164,12 @@
       color: "#4a9ee8",
       icon: "shield",
       key: [
-        ["k_fort", "Fortaleza da Fé", "+20% da Salvação base do herói.", "cross"],
+        [
+          "k_fort",
+          "Fortaleza da Fé",
+          "+20% da Salvação base do herói.",
+          "cross",
+        ],
         [
           "k_thorn",
           "Coroa de Espinhos",
@@ -7931,7 +8190,12 @@
           "+7% de chance de bloquear golpes.",
           "shield",
         ],
-        ["d1_dr", "Pele de Ferro", "−3 de dano recebido (mínimo 40% do golpe).", "armor"],
+        [
+          "d1_dr",
+          "Pele de Ferro",
+          "−3 de dano recebido (mínimo 40% do golpe).",
+          "armor",
+        ],
       ],
       t2: [
         [
@@ -7982,12 +8246,7 @@
       ],
       t2: [
         ["u2_tithe", "Dízimo", "+20% de moedas ao fim da partida.", "coin"],
-        [
-          "u2_swift",
-          "Passos Leves",
-          "+6% de velocidade de movimento.",
-          "wing",
-        ],
+        ["u2_swift", "Passos Leves", "+6% de velocidade de movimento.", "wing"],
       ],
       t3: [
         [
@@ -8044,11 +8303,12 @@
    Faltou o arquivo? Fica o SVG desenhado em RT_ICONS (fallback).
    Outro nome de arquivo: ASSET_MANIFEST.runes = { k_blade: "icons/runes/lamina.png" } */
   const RT_IMG_DIR = "icons/runes/"; /* relativo a ASSET_DIR (assets/) */
-  const RT_IMG = {}; /* id -> url carregada | false (não existe) | null (aguardando) */
+  const RT_IMG =
+    {}; /* id -> url carregada | false (não existe) | null (aguardando) */
   const rtImgUrl = (id) =>
-    (ASSET_MANIFEST.runes && ASSET_MANIFEST.runes[id]) || RT_IMG_DIR + id + ".png";
-  const rtImgTag = (url) =>
-    '<img src="' + url + '" alt="" draggable="false">';
+    (ASSET_MANIFEST.runes && ASSET_MANIFEST.runes[id]) ||
+    RT_IMG_DIR + id + ".png";
+  const rtImgTag = (url) => '<img src="' + url + '" alt="" draggable="false">';
   function rtImgApply(id) {
     const url = RT_IMG[id];
     if (!url) return;
@@ -8080,7 +8340,9 @@
   const rtIcon = (n, id) => {
     if (id) rtImgLoad(id);
     return (
-      '<span class="rt-ico" data-rt="' + (id || "") + '">' +
+      '<span class="rt-ico" data-rt="' +
+      (id || "") +
+      '">' +
       (id && RT_IMG[id] ? rtImgTag(RT_IMG[id]) : rtSvg(n)) +
       "</span>"
     );
@@ -8157,7 +8419,8 @@
     if (!ch) return;
     const roll = rng(),
       e = g.eco || (g.eco = ecoNew());
-    if (roll < ch && e.harvest.raw + 1 <= ECO.HARVEST_CAP) ecoGain("harvest", 1);
+    if (roll < ch && e.harvest.raw + 1 <= ECO.HARVEST_CAP)
+      ecoGain("harvest", 1);
   }
   /* moedas da partida antes do teto da Vigília */
   function runCoinsRaw(g = G) {
@@ -8178,9 +8441,7 @@
       ECO.DAILY_STREAK_MAX_STEPS,
     );
     return (
-      ECO.DAILY_BASE +
-      (won ? ECO.DAILY_WIN : 0) +
-      steps * ECO.DAILY_STREAK_STEP
+      ECO.DAILY_BASE + (won ? ECO.DAILY_WIN : 0) + steps * ECO.DAILY_STREAK_STEP
     );
   }
   function ecoReport(g = G) {
@@ -8190,9 +8451,22 @@
       cred = runCoins(g);
     return {
       version: 1,
-      coinsFromEnemies: { n: e.drop.n, base: r3(e.drop.raw), baseAfterTime: r3(e.drop.eff) },
-      coinsFromHarvest: { n: e.harvest.n, base: r3(e.harvest.raw), baseAfterTime: r3(e.harvest.eff), cap: ECO.HARVEST_CAP },
-      coinsFromOffer: { n: e.offer.n, base: r3(e.offer.raw), afterTime: r3(e.offer.eff) },
+      coinsFromEnemies: {
+        n: e.drop.n,
+        base: r3(e.drop.raw),
+        baseAfterTime: r3(e.drop.eff),
+      },
+      coinsFromHarvest: {
+        n: e.harvest.n,
+        base: r3(e.harvest.raw),
+        baseAfterTime: r3(e.harvest.eff),
+        cap: ECO.HARVEST_CAP,
+      },
+      coinsFromOffer: {
+        n: e.offer.n,
+        base: r3(e.offer.raw),
+        afterTime: r3(e.offer.eff),
+      },
       coinsFromSkip: 0,
       skipXp: Math.round(finiteNum(e.skip.xp) * 100) / 100,
       skipsUsed: e.skip.n,
@@ -8205,7 +8479,8 @@
       vigilCapApplied: !!(g && g.inf && pre > cred),
       adCoins: finiteNum(g && g.dblPaid),
       dailyBonus: finiteNum(g && g.dailyBonus),
-      totalGranted: cred + finiteNum(g && g.dblPaid) + finiteNum(g && g.dailyBonus),
+      totalGranted:
+        cred + finiteNum(g && g.dblPaid) + finiteNum(g && g.dailyBonus),
     };
   }
   // efeitos de atributos: recalculados a cada partida (recalc). Campos que o motor usa como gancho ficam em m.
@@ -8282,11 +8557,18 @@
   /* Conquistas: nome, descrição e recompensa ficam em registry.js → achievements. Aqui só as regras (funções). */
   /* Helpers dos Testemunhos (leem o save; Runas do Reino ficam em save.rt = {ramo:{slot:id}}, 4 slots por ramo) */
   const rtCount = (s) =>
-    Object.values(s.rt || {}).reduce((n, c) => n + Object.keys(c || {}).length, 0),
+    Object.values(s.rt || {}).reduce(
+      (n, c) => n + Object.keys(c || {}).length,
+      0,
+    ),
     rtFull = (s) =>
-      Object.values(s.rt || {}).filter((c) => Object.keys(c || {}).length >= 4).length,
+      Object.values(s.rt || {}).filter((c) => Object.keys(c || {}).length >= 4)
+        .length,
     coinsEarned = (s) =>
-      Math.max((s.cst && s.cst.s) || 0, (s.prof && s.prof.st && s.prof.st.coins) || 0),
+      Math.max(
+        (s.cst && s.cst.s) || 0,
+        (s.prof && s.prof.st && s.prof.st.coins) || 0,
+      ),
     treeMastered = (g) =>
       !!(g.slingTree && g.slingTree.tier >= 1) ||
       [g.weaponTrees, g.passiveTrees, g.activeTrees].some(
@@ -8324,9 +8606,11 @@
     evo1: (g) => !!g.evo && Object.keys(g.evo).length >= 1,
     h1: (g, s) => Object.keys(s.unl || {}).length >= 1,
     h3: (g, s) => Object.keys(s.unl || {}).length >= 3,
-    h5: (g, s) => Object.keys(s.unl || {}).length >= FE_CONTENT.lockedHeroIds.length,
+    h5: (g, s) =>
+      Object.keys(s.unl || {}).length >= FE_CONTENT.lockedHeroIds.length,
     whero3: (g, s) => Object.keys(s.winH || {}).length >= 3,
-    mast: (g, s) => Object.values(s.mast || {}).filter((v) => v >= 600).length >= 6,
+    mast: (g, s) =>
+      Object.values(s.mast || {}).filter((v) => v >= 600).length >= 6,
     ww2: (g) => wIdx() >= 1 && (g.t || 0) >= 180,
     ww3: (g) => !!g.won && wIdx() >= 2,
     d1: (g, s) => !!(s.daily && s.daily.last),
@@ -8338,7 +8622,9 @@
     c1000: (g, s) => (s.coins || 0) >= 1000,
     cmax: (g, s) => rtFull(s) >= 3,
     rev: (g) => !!g.revived,
-    prova: (g) => ((g.P && g.P.provacao) || 0) >= passiveMaxLevel("provacao") && (g.t || 0) >= 300,
+    prova: (g) =>
+      ((g.P && g.P.provacao) || 0) >= passiveMaxLevel("provacao") &&
+      (g.t || 0) >= 300,
     fast: (g) => wN(g) === 1 && (g.t || 0) >= 300,
     nodmg: (g) => (g.t || 0) >= 120 && !g.dmgTaken,
     mend: (g) => g.hk === "mendigo" && (g.t || 0) >= 180,
@@ -8346,7 +8632,8 @@
     r100: (g, s) => (s.runs || 0) >= 100,
   };
   const ACH = FE_CONTENT.achievements.entries.map((a) => {
-    if (!ACH_RULES[a.id]) console.warn("[Content] Conquista sem regra: " + a.id);
+    if (!ACH_RULES[a.id])
+      console.warn("[Content] Conquista sem regra: " + a.id);
     return [
       a.id,
       a.name,
@@ -8356,7 +8643,8 @@
     ];
   });
 
-  const ACH_HEAD = FE_CONTENT.achievements.sections; /* registry.js → achievements.sections */
+  const ACH_HEAD =
+    FE_CONTENT.achievements.sections; /* registry.js → achievements.sections */
 
   function checkAch() {
     if (TUT.on) return;
@@ -8446,6 +8734,31 @@
   SCR.innerHTML =
     '<div class="ov-in subscreen-panel"><h2 id="sT"></h2><div id="sB"></div><button class="mb back-btn" id="sBack" type="button" aria-label="Voltar"><span class="pxchev" aria-hidden="true"></span></button></div>';
   gameEl.appendChild(SCR);
+  /* ===== Fundos das telas: imagens de assets/loading ===== */
+  const SCREEN_BG_FILES = Array.from(
+    { length: 21 },
+    (_, i) => "loading/loading_" + String(i + 1).padStart(2, "0") + ".png",
+  );
+  /* Fixe uma imagem para uma tela pelo título exato (ex.: "Loja"); as demais
+     recebem uma imagem de forma fixa, escolhida pelo nome da tela. */
+  const SCREEN_BG = {
+    "Preparar a jornada": "loading/hero_select.png",
+    "Biblioteca": "loading/biblioteca.png",
+    "Loja": "loading/loja.png",
+    "Selecione o Mundo": "loading/mode_select.png"
+  };
+  function screenBgHash(s) {
+    let h = 0;
+    for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return h;
+  }
+  function screenBgUrl(key) {
+    const base = typeof ASSET_DIR !== "undefined" ? ASSET_DIR : "assets/";
+    const file =
+      SCREEN_BG[key] ||
+      SCREEN_BG_FILES[screenBgHash(key) % SCREEN_BG_FILES.length];
+    return 'url("' + base + file + '")';
+  }
   /* CSS moved to style.css: shared modal, rows, tooltips and achievements. */
   function scr(t, fn) {
     $("#sT").textContent = t;
@@ -8459,6 +8772,7 @@
     // Renderiza a tela atual.
     fn(body);
 
+    SCR.style.setProperty("--scr-bg", screenBgUrl(t));
     const wasOpen = !SCR.hidden;
     SCR.hidden = false;
     resetScrollTree(SCR);
@@ -8717,43 +9031,72 @@
     trip: "#9fb8ff",
   };
   const ACH_ICON = {
-    k25: ["sword", ACH_COL.atk], k100: ["target", ACH_COL.atk], k300: ["flame", ACH_COL.atk],
-    k500: ["bolt", ACH_COL.atk], k1000: ["group", ACH_COL.atk], k2000: ["wing", ACH_COL.atk],
-    t1: ["hourglass", ACH_COL.time], t3: ["hourglass", ACH_COL.time], t5: ["hourglass", ACH_COL.time],
-    t8: ["moon", ACH_COL.time], t10: ["sun", ACH_COL.time],
-    vig15: ["moon", ACH_COL.vig], vig20: ["eye", ACH_COL.vig],
-    b1: ["group", ACH_COL.boss], b2: ["wind", ACH_COL.boss], b3: ["wing", ACH_COL.boss],
-    b4: ["drop", ACH_COL.boss], b5: ["flame", ACH_COL.boss],
-    l10: ["star", ACH_COL.lvl], l20: ["halo", ACH_COL.lvl], l30: ["sun", ACH_COL.lvl],
-    w4: ["stack", ACH_COL.build], p4: ["armor", ACH_COL.build], a3: ["bolt", ACH_COL.build],
-    wmax: ["sword", ACH_COL.build], ark: ["ark", ACH_COL.build], tree: ["branch", ACH_COL.build],
+    k25: ["sword", ACH_COL.atk],
+    k100: ["target", ACH_COL.atk],
+    k300: ["flame", ACH_COL.atk],
+    k500: ["bolt", ACH_COL.atk],
+    k1000: ["group", ACH_COL.atk],
+    k2000: ["wing", ACH_COL.atk],
+    t1: ["hourglass", ACH_COL.time],
+    t3: ["hourglass", ACH_COL.time],
+    t5: ["hourglass", ACH_COL.time],
+    t8: ["moon", ACH_COL.time],
+    t10: ["sun", ACH_COL.time],
+    vig15: ["moon", ACH_COL.vig],
+    vig20: ["eye", ACH_COL.vig],
+    b1: ["group", ACH_COL.boss],
+    b2: ["wind", ACH_COL.boss],
+    b3: ["wing", ACH_COL.boss],
+    b4: ["drop", ACH_COL.boss],
+    b5: ["flame", ACH_COL.boss],
+    l10: ["star", ACH_COL.lvl],
+    l20: ["halo", ACH_COL.lvl],
+    l30: ["sun", ACH_COL.lvl],
+    w4: ["stack", ACH_COL.build],
+    p4: ["armor", ACH_COL.build],
+    a3: ["bolt", ACH_COL.build],
+    wmax: ["sword", ACH_COL.build],
+    ark: ["ark", ACH_COL.build],
+    tree: ["branch", ACH_COL.build],
     evo1: ["thorn", ACH_COL.build],
-    h1: ["halo", ACH_COL.hero], h3: ["group", ACH_COL.hero], h5: ["crown", ACH_COL.hero],
-    whero3: ["trophy", ACH_COL.hero], mast: ["target", ACH_COL.hero],
-    ww2: ["boot", ACH_COL.world], ww3: ["sun", ACH_COL.world],
-    d1: ["calendar", ACH_COL.day], d3: ["wheat", ACH_COL.day], d7: ["sun", ACH_COL.day],
-    c1: ["coin", ACH_COL.gold], c10: ["scroll", ACH_COL.gold], c100: ["wheat", ACH_COL.gold],
-    c1000: ["star", ACH_COL.gold], cmax: ["stack", ACH_COL.gold],
-    rev: ["heart", ACH_COL.chal], prova: ["cross", ACH_COL.chal], fast: ["dove", ACH_COL.chal],
-    nodmg: ["shield", ACH_COL.chal], mend: ["staff", ACH_COL.chal],
-    r25: ["boot", ACH_COL.trip], r100: ["trophy", ACH_COL.trip],
+    h1: ["halo", ACH_COL.hero],
+    h3: ["group", ACH_COL.hero],
+    h5: ["crown", ACH_COL.hero],
+    whero3: ["trophy", ACH_COL.hero],
+    mast: ["target", ACH_COL.hero],
+    ww2: ["boot", ACH_COL.world],
+    ww3: ["sun", ACH_COL.world],
+    d1: ["calendar", ACH_COL.day],
+    d3: ["wheat", ACH_COL.day],
+    d7: ["sun", ACH_COL.day],
+    c1: ["coin", ACH_COL.gold],
+    c10: ["scroll", ACH_COL.gold],
+    c100: ["wheat", ACH_COL.gold],
+    c1000: ["star", ACH_COL.gold],
+    cmax: ["stack", ACH_COL.gold],
+    rev: ["heart", ACH_COL.chal],
+    prova: ["cross", ACH_COL.chal],
+    fast: ["dove", ACH_COL.chal],
+    nodmg: ["shield", ACH_COL.chal],
+    mend: ["staff", ACH_COL.chal],
+    r25: ["boot", ACH_COL.trip],
+    r100: ["trophy", ACH_COL.trip],
   };
   /* Imagens opcionais: assets/icons/ach/<id>.png (id = k25, t1, b1, vig15...). Faltou o arquivo? Fica o glifo desenhado acima.
      Para apontar outro arquivo: ASSET_MANIFEST.ach = { k25: "icons/ach/primeiro.png" }. assetReport() lista o que carregou/faltou. */
   const ACH_IMG_DIR = "icons/ach/"; /* relativo a ASSET_DIR (assets/) */
-  const ACH_IMG = {}; /* id -> url carregada | false (arquivo não existe) | null (pedida, aguardando) */
+  const ACH_IMG =
+    {}; /* id -> url carregada | false (arquivo não existe) | null (pedida, aguardando) */
   const achImgUrl = (id) =>
     (ASSET_MANIFEST.ach && ASSET_MANIFEST.ach[id]) || ACH_IMG_DIR + id + ".png";
   function achImgApply(id) {
     const url = ACH_IMG[id];
     if (!url) return;
-    document
-      .querySelectorAll('.ach-hex[data-id="' + id + '"]')
-      .forEach((h) => {
-        const im = h.querySelector(".ach-img");
-        if (im.getAttribute("src") !== url) im.src = url;
-        h.classList.add("has-img");
-      });
+    document.querySelectorAll('.ach-hex[data-id="' + id + '"]').forEach((h) => {
+      const im = h.querySelector(".ach-img");
+      if (im.getAttribute("src") !== url) im.src = url;
+      h.classList.add("has-img");
+    });
   }
   function achImgLoad(id) {
     if (id in ACH_IMG) return;
@@ -8776,7 +9119,9 @@
   function achRow(a, ok) {
     const tpl = document.getElementById("achRowTpl");
     if (!tpl) {
-      console.warn("[Testemunhos] <template id=\"achRowTpl\"> ausente em index.html");
+      console.warn(
+        '[Testemunhos] <template id="achRowTpl"> ausente em index.html',
+      );
       const r = document.createElement("div");
       r.className = "rw " + (ok ? "ok" : "lk");
       r.textContent = a[1] + " — " + a[2];
@@ -8788,10 +9133,13 @@
     row.classList.add(ok ? "ok" : "lk");
     hex.dataset.id = a[0];
     hex.style.setProperty("--c", col);
-    row.querySelector(".ach-glyph").innerHTML = ACH_GLYPHS[gl] || ACH_GLYPHS.star;
+    row.querySelector(".ach-glyph").innerHTML =
+      ACH_GLYPHS[gl] || ACH_GLYPHS.star;
     row.querySelector(".ach-name").textContent = a[1];
     row.querySelector(".ach-desc").textContent = a[2];
-    row.querySelector(".ach-state .uic").classList.add("i-" + (ok ? "check" : "lock"));
+    row
+      .querySelector(".ach-state .uic")
+      .classList.add("i-" + (ok ? "check" : "lock"));
     return row;
   }
   function renderAch(b) {
@@ -9149,8 +9497,10 @@
     icons: {},
     ach: {} /* opcional: { k25: 'icons/ach/outro.png' } */,
     ui: {},
-    loading: {} /* opcional: { scenes: [{ video: 'loading/a.mp4', image: 'loading/a.png' }, …] } */,
-    modes: {} /* opcional: { dawn: 'modes/amanhecer.jpg', vigil: '...', upcoming: '...' } */,
+    loading:
+      {} /* opcional: { scenes: [{ video: 'loading/a.mp4', image: 'loading/a.png' }, …] } */,
+    modes:
+      {} /* opcional: { dawn: 'modes/amanhecer.jpg', vigil: '...', upcoming: '...' } */,
     sfx: {},
     music: {
       menu: ["music/music_menus.mp3", "music/music_menus_2.mp3"],
@@ -9257,7 +9607,9 @@
       const id = p[1],
         i = +p[2];
       if (!S.hero || !S.hero[id]) return;
-      skBeforeAsset(id); /* v0.68: devolve os sprites clássicos antes de trocar (a skin é refeita abaixo) */
+      skBeforeAsset(
+        id,
+      ); /* v0.68: devolve os sprites clássicos antes de trocar (a skin é refeita abaixo) */
       const F = HERO_FILE[id] || (HERO_FILE[id] = [0, 0]);
       S.hero[id][i] = sp;
       F[i] = 1;
@@ -9351,7 +9703,10 @@
           const pr = SFX._pj || 1;
           if (pr !== 1) {
             c.playbackRate = pr;
-            c.preservesPitch = c.mozPreservesPitch = c.webkitPreservesPitch = false;
+            c.preservesPitch =
+              c.mozPreservesPitch =
+              c.webkitPreservesPitch =
+              false;
           }
           c.play().catch(() => { });
         };
@@ -9558,20 +9913,25 @@
     }
     b.appendChild(row);
     const cl = (n) => Math.max(1, Math.min(5, n)),
-      sg = (n, u) => (n ? (n > 0 ? "+" : "−") + Math.abs(n) + u : "—");
-    const dh = H.hp - 10 * HPS,
+      sgz = (n, u) => (n >= 0 ? "+" : "−") + Math.abs(n) + u,
+      dh = H.hp - 10 * HPS,
       dp = Math.round((H.spd - 60) / 0.6),
       dd = Math.round(((H.dmg || 1) - 1) * 100),
       dx = Math.round(((H.xp || 1) - 1) * 100);
-    const bar = (l, val, f) =>
+    const attr = (ico, l, val, f) =>
       '<div class="hero-stat-row"><span class="hero-stat-label">' +
+      '<img class="hero-attr-ico" alt="" src="' +
+      iconURL(ico) +
+      '">' +
       l +
       '</span><span class="bar">' +
       [1, 2, 3, 4, 5]
         .map((i) => '<i class="' + (i <= f ? "on" : "") + '"></i>')
         .join("") +
       '</span><b class="hero-stat-value ' +
-      (val[0] === "−" ? "is-negative" : "is-positive") +
+      (String(val)[0] === "−" || String(val)[0] === "-"
+        ? "is-negative"
+        : "is-positive") +
       '">' +
       val +
       "</b></div>";
@@ -9585,24 +9945,26 @@
         : H.role + (X.ch ? "" : " | Maestria Nv " + mlv(v))) +
       "</span></div>" +
       h("ATRIBUTOS") +
-      bar("Salvação", sg(dh, ""), cl(3 + Math.round(dh / (1.5 * HPS)))) +
-      bar("Poder", sg(dd, "%"), cl(3 + Math.round(dd / 10))) +
-      bar("Passo", sg(dp, "%"), cl(3 + Math.round(dp / 6))) +
-      bar("Sabedoria", sg(dx, "%"), cl(3 + Math.round(dx / 10))) +
-      bar(
+      attr(
+        "heal",
+        "Salvação",
+        String(H.hp),
+        cl(3 + Math.round(dh / (1.5 * HPS))),
+      ) +
+      attr("sword", "Poder", sgz(dd, "%"), cl(3 + Math.round(dd / 10))) +
+      attr("boots", "Passos", String(H.spd), cl(3 + Math.round(dp / 6))) +
+      attr(
+        "wisdom",
+        "Sabedoria",
+        (H.xp || 1).toFixed(1),
+        cl(3 + Math.round(dx / 10)),
+      ) +
+      attr(
+        "sling",
         "Alcance",
         String(HRNG[v] || 90),
         cl(Math.round((HRNG[v] || 90) / 35)),
-      ) +
-      (H.attackSpeed
-        ? bar(
-          "Velocidade de ataque",
-          "+" + Math.round((H.attackSpeed - 1) * 100) + "%",
-          4,
-        )
-        : "") +
-      (H.crit ? bar("Crítico", Math.round(H.crit * 100) + "%", 3) : "") +
-      (H.luck ? bar("Sorte", Math.round(H.luck * 100) + "%", 3) : "");
+      );
     if (X.locked)
       o +=
         h("ARMA INICIAL") +
@@ -9618,41 +9980,73 @@
         H.quest +
         '</b><div class="hero-hint">Desbloqueie na Loja.</div>';
     else {
-      const l = mlv(v),
-        nx = l < 4 ? X.perks[l - 1] : null;
-      o +=
-        h("ARMA INICIAL") +
-        '<div><img class="hero-weapon-icon" alt="" src="' +
-        iconURL(H.start) +
-        '"> ' +
-        WEAPONS[H.start].name +
-        '</div><div class="hero-bonus">Bônus: ' +
-        H.bonus +
-        "</div>" +
-        h("GRAÇA PESSOAL") +
-        (X.grace
-          ? "<b>" +
-          X.grace.n +
-          '</b><div class="hero-muted">' +
-          X.grace.d +
-          "</div>"
-          : '<b>NENHUMA</b><div class="hero-muted">Sem passiva, escudo ou cura. Desafio para experientes.</div>') +
-        h("MAESTRIA") +
-        (X.ch
-          ? '<b class="hero-blood">SEM MAESTRIA</b><div class="hero-muted">Sem bônus de classe.</div>'
-          : nx
-            ? '<b class="hero-gold">PRÓXIMA M' +
-            (l + 1) +
-            " | " +
-            nx[0].toUpperCase() +
+      const compact = b.id === "prepH";
+      if (compact) {
+        /* "Preparar a jornada": arma e graça lado a lado, sem maestria */
+        const gr = X.grace;
+        const panel = (title, ico, name, desc) =>
+          '<div class="hero-pan"><div class="hero-pan-title">' +
+          title +
+          '</div><div class="hero-pan-body"><img class="hero-pan-ico" alt="" src="' +
+          ico +
+          '"><div class="hero-pan-txt"><b class="hero-pan-name">' +
+          name +
+          '</b><small class="hero-pan-desc">' +
+          desc +
+          "</small></div></div></div>";
+        o +=
+          '<div class="hero-pans">' +
+          panel(
+            "ARMA INICIAL",
+            iconURL(H.start),
+            WEAPONS[H.start].name,
+            "Bônus: " + H.bonus,
+          ) +
+          panel(
+            "GRAÇA DO HERÓI",
+            iconURL("grace"),
+            gr ? gr.n : "Nenhuma",
+            gr ? gr.d : "Este herói não tem graça especial.",
+          ) +
+          "</div>";
+      } else {
+        /* Biblioteca: mantém as seções completas */
+        const l = mlv(v),
+          nx = l < 4 ? X.perks[l - 1] : null;
+        o +=
+          h("ARMA INICIAL") +
+          '<div><img class="hero-weapon-icon" alt="" src="' +
+          iconURL(H.start) +
+          '"> ' +
+          WEAPONS[H.start].name +
+          '</div><div class="hero-bonus">Bônus: ' +
+          H.bonus +
+          "</div>" +
+          h("GRAÇA PESSOAL") +
+          (X.grace
+            ? "<b>" +
+            X.grace.n +
             '</b><div class="hero-muted">' +
-            nx[1] +
-            " — " +
-            MQ[l - 1] +
-            " com " +
-            X.name +
+            X.grace.d +
             "</div>"
-            : '<b class="hero-gold">MAESTRIA MÁXIMA</b>');
+            : '<b>NENHUMA</b><div class="hero-muted">Sem passiva, escudo ou cura. Desafio para experientes.</div>') +
+          h("MAESTRIA") +
+          (X.ch
+            ? '<b class="hero-blood">SEM MAESTRIA</b><div class="hero-muted">Sem bônus de classe.</div>'
+            : nx
+              ? '<b class="hero-gold">PRÓXIMA M' +
+              (l + 1) +
+              " · " +
+              nx[0].toUpperCase() +
+              '</b><div class="hero-muted">' +
+              nx[1] +
+              " — " +
+              MQ[l - 1] +
+              " com " +
+              X.name +
+              "</div>"
+              : '<b class="hero-gold">MAESTRIA MÁXIMA</b>');
+      }
     }
     const p = document.createElement("div");
     p.className = "rw hero-details";
@@ -9754,7 +10148,9 @@
   /* ================= v0.5: novos heróis, armas, desbloqueio, reset de debug ================= */
 
   /* ================= v0.6: mundos e Desafio do Dia ================= */
-  const WORLDS = FE_CONTENT.worlds.map((w) => Object.assign({}, w)); /* registry.js → worlds */
+  const WORLDS = FE_CONTENT.worlds.map((w) =>
+    Object.assign({}, w),
+  ); /* registry.js → worlds */
 
   save.world = save.world || 0;
   save.daily = save.daily || { date: "", best: 0, streak: 0, last: "" };
@@ -10618,8 +11014,7 @@
         path = ev && ev.path,
         tier = ev && ev.tier ? 1 : 0,
         p = g.p,
-        seconds =
-          2.75 + 0.25 * l + (path === "longday" ? (tier ? 2 : 1) : 0);
+        seconds = 2.75 + 0.25 * l + (path === "longday" ? (tier ? 2 : 1) : 0);
       p.stasisT = seconds;
       p.stasisHeal = path === "fought" ? (tier ? 0.18 : 0.1) : 0;
       p.sh = Math.max(p.sh, seconds);
@@ -10650,7 +11045,9 @@
           follow: true,
           gold: true,
         });
-      toast(ACT[id].n + ": " + Math.round(seconds * 10) / 10 + " s parado no tempo");
+      toast(
+        ACT[id].n + ": " + Math.round(seconds * 10) / 10 + " s parado no tempo",
+      );
     },
     attack_speed_buff(g, l, id) {
       /* Mãos Treinadas: velocidade de ataque temporária (aplicada em recalc()). */
@@ -10658,8 +11055,7 @@
         path = ev && ev.path,
         tier = ev && ev.tier ? 1 : 0,
         p = g.p,
-        seconds =
-          4.5 + 0.5 * l + (path === "fingers" ? (tier ? 3 : 1.5) : 0),
+        seconds = 4.5 + 0.5 * l + (path === "fingers" ? (tier ? 3 : 1.5) : 0),
         bonus = 1 + (path === "raised" ? (tier ? 0.5 : 0.25) : 0);
       p.atkBuffT = Math.max(p.atkBuffT || 0, seconds);
       p.atkBuffBonus = bonus;
@@ -10672,7 +11068,12 @@
       SFX.play("dash");
       burst(p.x, p.y, 12, "#ffe08a", 80);
       toast(
-        ACT[id].n + ": +" + Math.round(bonus * 100) + "% de ataque por " + Math.round(seconds * 10) / 10 + " s",
+        ACT[id].n +
+        ": +" +
+        Math.round(bonus * 100) +
+        "% de ataque por " +
+        Math.round(seconds * 10) / 10 +
+        " s",
       );
     },
   };
@@ -10765,7 +11166,9 @@
     const id = g.A[i];
     if (!id) return;
     if (g.p && g.p.stasisT > 0) {
-      toast("O tempo está parado: você não pode se mover nem usar habilidades.");
+      toast(
+        "O tempo está parado: você não pode se mover nem usar habilidades.",
+      );
       return;
     }
     g.sel = i;
@@ -11110,7 +11513,10 @@
       d = "Cura " + Math.round((0.2 + 0.05 * l) * 100) + "% da Salvação.";
     else if (id === "refuge") d = "Invencível por " + (4 + l) + " s.";
     else if (id === "sunstop")
-      d = "Invulnerável e imóvel por " + (2.75 + 0.25 * l) + " s. Suas armas continuam atirando.";
+      d =
+        "Invulnerável e imóvel por " +
+        (2.75 + 0.25 * l) +
+        " s. Suas armas continuam atirando.";
     else if (id === "handsbattle")
       d = "+100% de velocidade de ataque por " + (4.5 + 0.5 * l) + " s.";
     return (
@@ -11322,7 +11728,7 @@
   choiceToolsUI.hidden = true;
   choiceToolsUI.innerHTML =
     '<button id="banishBtn" class="mb alt" type="button"></button><button id="skipChoiceBtn" class="mb alt" type="button"></button><button id="choiceToolsAdBtn" class="mb" type="button">' +
-    "+1 de cada | ad" +
+    "+1 de cada | AD" +
     '</button><span id="choiceToolsHint" role="status" hidden></span>';
   rrb.insertAdjacentElement("beforebegin", choiceToolsUI);
   const banishBtn = choiceToolsUI.querySelector("#banishBtn"),
@@ -11342,17 +11748,9 @@
     const banishMax = tools.max.banish + (tools.adBonus ? 1 : 0),
       skipMax = tools.max.skip + (tools.adBonus ? 1 : 0);
     banishBtn.textContent =
-      "BANIR" +
-      " | " +
-      choiceToolUsesLeft("banish") +
-      "/" +
-      banishMax;
+      "BANIR" + " | " + choiceToolUsesLeft("banish") + "/" + banishMax;
     skipChoiceBtn.innerHTML =
-      "PULAR" +
-      " | " +
-      choiceToolUsesLeft("skip") +
-      "/" +
-      skipMax;
+      "PULAR" + " | " + choiceToolUsesLeft("skip") + "/" + skipMax;
     banishBtn.title = "Remova uma bênção das próximas escolhas desta partida.";
     skipChoiceBtn.title =
       "Encerre esta escolha sem selecionar uma bênção e ganhe um pouco de XP.";
@@ -11423,9 +11821,7 @@
         (c, index) => index !== i && !tools.banished.includes(cardKey(c)),
       );
     if (!remaining.length) {
-      toast(
-        "Mantenha ao menos uma bênção disponível para esta escolha.",
-      );
+      toast("Mantenha ao menos uma bênção disponível para esta escolha.");
       return;
     }
     tools.banished.push(key);
@@ -11451,9 +11847,7 @@
       }, 1000);
     }
     refreshChoiceToolUI();
-    toast(
-      "Bênção banida desta partida.",
-    );
+    toast("Bênção banida desta partida.");
   }
   banishBtn.onclick = () => {
     if (state !== "levelup" || !G || choiceToolUsesLeft("banish") <= 0) return;
@@ -11564,7 +11958,9 @@
     );
     const step = () => {
       const k = Math.min(1, (performance.now() - t0) / 750);
-      b.textContent = Math.round(base + n * k); /* conta de base até base + n (ex.: 24 → 54) */
+      b.textContent = Math.round(
+        base + n * k,
+      ); /* conta de base até base + n (ex.: 24 → 54) */
       if (k < 1) requestAnimationFrame(step);
     };
     step();
@@ -11874,7 +12270,9 @@
         (w) => NX_EVO[w].dom === c.id && G.W[w] && !G.evo[w],
       );
       if (!armas.length) return null;
-      const nomes = armas.map((w) => (WEAPONS[w] ? WEAPONS[w].name : w)).join(" e ");
+      const nomes = armas
+        .map((w) => (WEAPONS[w] ? WEAPONS[w].name : w))
+        .join(" e ");
       return "Recomendado: completa a Evolução Suprema de " + nomes;
     }
     if (c.kind === "w") {
@@ -11882,7 +12280,9 @@
       if (!E || G.evo[c.id] || !PASSIVES[E.dom]) return null;
       if (!(G.P[E.dom] > 0)) return null;
       return (
-        "Recomendado: com " + PASSIVES[E.dom].name + " na build, completa a Evolução Suprema"
+        "Recomendado: com " +
+        PASSIVES[E.dom].name +
+        " na build, completa a Evolução Suprema"
       );
     }
     return null;
@@ -11907,16 +12307,19 @@
     );
     return (
       '<svg viewBox="0 0 10 8" aria-hidden="true" focusable="false">' +
-      '<path class="o" d="' + d.O + '"/><path class="f" d="' + d.F + '"/></svg>'
+      '<path class="o" d="' +
+      d.O +
+      '"/><path class="f" d="' +
+      d.F +
+      '"/></svg>'
     );
   })();
   function recFlagHTML(title) {
-    const icone = ICONS && ICONS.like
-      ? '<img class="rec-img" alt="" src="' + ICONS.like + '">'
-      : THUMB_SVG;
-    return (
-      '<span class="rec-flag" title="' + title + '">' + icone + "</span>"
-    );
+    const icone =
+      ICONS && ICONS.like
+        ? '<img class="rec-img" alt="" src="' + ICONS.like + '">'
+        : THUMB_SVG;
+    return '<span class="rec-flag" title="' + title + '">' + icone + "</span>";
   }
 
   /* ---------- Glossário de Evoluções de Armas ----------
@@ -11951,7 +12354,11 @@
         (done ? " is-done" : ready ? " is-ready" : "") +
         (rec ? " is-rec" : "") +
         '">' +
-        (rec ? recFlagHTML("Recomendado: completa a Evolução Suprema de " + WEAPONS[id].name) : "") +
+        (rec
+          ? recFlagHTML(
+            "Recomendado: completa a Evolução Suprema de " + WEAPONS[id].name,
+          )
+          : "") +
         '<div class="evo-eq">' +
         piece(E.dom, "p", "Nv " + domLv + "+", dl, domLv) +
         '<span class="evo-op">+</span>' +
@@ -12391,7 +12798,12 @@
           "</article>",
       )
       .join("");
-    const unlock = ("A árvore é desbloqueada ao atingir o nível máximo (" + (e.max) + ") de " + (e.name) + ". Escolha apenas um dos três caminhos nesta partida. Depois, a carta de Maestria desse caminho volta às escolhas seguintes até ser selecionada.");
+    const unlock =
+      "A árvore é desbloqueada ao atingir o nível máximo (" +
+      e.max +
+      ") de " +
+      e.name +
+      ". Escolha apenas um dos três caminhos nesta partida. Depois, a carta de Maestria desse caminho volta às escolhas seguintes até ser selecionada.";
     LIBD.innerHTML =
       '<div class="ld-tree-wrap"><div class="ld-tree-head"><div class="lt-title-art"><img alt="" src="' +
       e.img() +
@@ -12797,8 +13209,12 @@
     if (!g || state !== "play" || g.resumeT > 0 || !g.tel) return;
     for (const f of g.tel) {
       f.t += dt;
-      if (f.quake && !f.done && f.t > f.delay - 0.4) /* tremor crescente antes da pisada */
-        g.shake = Math.max(g.shake, 0.06 + 0.16 * ((f.t - (f.delay - 0.4)) / 0.4));
+      if (f.quake && !f.done && f.t > f.delay - 0.4)
+        /* tremor crescente antes da pisada */
+        g.shake = Math.max(
+          g.shake,
+          0.06 + 0.16 * ((f.t - (f.delay - 0.4)) / 0.4),
+        );
       if (f.k === "circ" && !f.done && f.t >= f.delay) {
         f.done = true;
         if (f.quake) {
@@ -12825,9 +13241,17 @@
     return s - Math.floor(s);
   };
   function qLine(x0, y0, x1, y1) {
-    const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+    const n = Math.max(
+      1,
+      Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))),
+    );
     for (let i = 0; i <= n; i++)
-      ctx.fillRect(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), 1, 1);
+      ctx.fillRect(
+        Math.round(x0 + ((x1 - x0) * i) / n),
+        Math.round(y0 + ((y1 - y0) * i) / n),
+        1,
+        1,
+      );
   }
   function qCracks(cx, cy, R, sd, grow, glow) {
     const N = 9;
@@ -12840,17 +13264,23 @@
       const seg = 5;
       for (let s = 0; s < seg; s++) {
         const len = L / seg;
-        a += (qHash(sd + i * 7 + s * 1.7) - 0.5) * 0.9; /* rachadura em zigue-zague */
+        a +=
+          (qHash(sd + i * 7 + s * 1.7) - 0.5) *
+          0.9; /* rachadura em zigue-zague */
         const nx = x + Math.cos(a) * len,
           ny = y + Math.sin(a) * len;
         ctx.fillStyle = "#140b22";
         qLine(x, y + 1, nx, ny + 1); /* sombra da fenda */
-        ctx.fillStyle = glow && s >= 2 ? "#ff8a3a" : "#5a3d28"; /* brasa na ponta quando está perto de bater */
+        ctx.fillStyle =
+          glow && s >= 2
+            ? "#ff8a3a"
+            : "#5a3d28"; /* brasa na ponta quando está perto de bater */
         qLine(x, y, nx, ny);
         qLine(x + 1, y, nx + 1, ny); /* fenda mais grossa (2 px) */
         x = nx;
         y = ny;
-        if (s === 2 && i % 2 === 0) { /* ramificação */
+        if (s === 2 && i % 2 === 0) {
+          /* ramificação */
           const ba = a + (i % 4 === 0 ? 0.9 : -0.9),
             bl = len * 1.4;
           ctx.fillStyle = "#4a3322";
@@ -12866,7 +13296,12 @@
       if (k % 2) continue; /* tracejado */
       const a = (k / steps) * 6.2832,
         rr = r + (jit ? (qHash(k + Math.floor(t * 30)) - 0.5) * 2 * jit : 0);
-      ctx.fillRect(Math.round(cx + Math.cos(a) * rr), Math.round(cy + Math.sin(a) * rr), size, size);
+      ctx.fillRect(
+        Math.round(cx + Math.cos(a) * rr),
+        Math.round(cy + Math.sin(a) * rr),
+        size,
+        size,
+      );
     }
     ctx.globalAlpha = 1;
   }
@@ -12896,22 +13331,57 @@
       ctx.stroke();
       ctx.globalAlpha = 1;
       qCracks(cx, cy, R, sd, Math.min(1, p * 1.5), p > 0.55);
-      const blink = 0.55 + 0.45 * Math.sin(f.t * (14 + 30 * p)); /* pisca mais rápido perto do impacto */
-      qRing(cx, cy, R, 64, "#ffd27a", blink, p > 0.7 ? 2 : 1, 0.4 + 2.2 * p, f.t); /* borda tremendo */
-      if (p < 0.92) qRing(cx, cy, R * (1 - p) + 2, 40, "#ffe08a", 0.85, 1, 0, f.t); /* anel de contagem */
+      const blink =
+        0.55 +
+        0.45 *
+        Math.sin(
+          f.t * (14 + 30 * p),
+        ); /* pisca mais rápido perto do impacto */
+      qRing(
+        cx,
+        cy,
+        R,
+        64,
+        "#ffd27a",
+        blink,
+        p > 0.7 ? 2 : 1,
+        0.4 + 2.2 * p,
+        f.t,
+      ); /* borda tremendo */
+      if (p < 0.92)
+        qRing(
+          cx,
+          cy,
+          R * (1 - p) + 2,
+          40,
+          "#ffe08a",
+          0.85,
+          1,
+          0,
+          f.t,
+        ); /* anel de contagem */
       if (fq) {
         ctx.fillStyle = "#c9a46a"; /* poeira subindo da borda */
         for (let i = 0; i < 12; i++) {
           const rise = (f.t * 0.9 + qHash(sd + i)) % 1,
             a = qHash(sd + i * 2.3) * 6.2832;
           ctx.globalAlpha = (1 - rise) * 0.7 * (0.3 + p);
-          ctx.fillRect(Math.round(cx + Math.cos(a) * R * 0.95), Math.round(cy + Math.sin(a) * R * 0.95 - rise * 9), 1, 1);
+          ctx.fillRect(
+            Math.round(cx + Math.cos(a) * R * 0.95),
+            Math.round(cy + Math.sin(a) * R * 0.95 - rise * 9),
+            1,
+            1,
+          );
         }
         ctx.globalAlpha = 1;
       }
     } else {
-      const q = Math.min(1, (f.t - f.delay) / Math.max(0.01, f.life - f.delay)); /* 0 → 1 depois do impacto */
-      if (q < 0.15) { /* clarão do impacto */
+      const q = Math.min(
+        1,
+        (f.t - f.delay) / Math.max(0.01, f.life - f.delay),
+      ); /* 0 → 1 depois do impacto */
+      if (q < 0.15) {
+        /* clarão do impacto */
         ctx.globalAlpha = (1 - q / 0.15) * 0.55;
         ctx.fillStyle = "#fff0c8";
         ctx.beginPath();
@@ -12926,18 +13396,52 @@
       ctx.globalAlpha = Math.max(0, 1 - q * 1.1);
       qCracks(cx, cy, R, sd, 1, false); /* rachaduras permanecem e somem */
       ctx.globalAlpha = 1;
-      const e = 1 - Math.pow(1 - Math.min(1, q * 1.5), 3); /* onda de choque (visual, passa um pouco da área) */
-      qRing(cx, cy, R * (0.9 + 0.5 * e), 72, "#ffe0a0", Math.pow(1 - q, 1.3), 2, 0, 0);
-      qRing(cx, cy, R * (0.7 + 0.45 * e), 56, "#c9a46a", Math.pow(1 - q, 1.6) * 0.8, 1, 0, 0);
+      const e =
+        1 -
+        Math.pow(
+          1 - Math.min(1, q * 1.5),
+          3,
+        ); /* onda de choque (visual, passa um pouco da área) */
+      qRing(
+        cx,
+        cy,
+        R * (0.9 + 0.5 * e),
+        72,
+        "#ffe0a0",
+        Math.pow(1 - q, 1.3),
+        2,
+        0,
+        0,
+      );
+      qRing(
+        cx,
+        cy,
+        R * (0.7 + 0.45 * e),
+        56,
+        "#c9a46a",
+        Math.pow(1 - q, 1.6) * 0.8,
+        1,
+        0,
+        0,
+      );
       if (fq) {
-        for (let i = 0; i < 12; i++) { /* pedras voando */
+        for (let i = 0; i < 12; i++) {
+          /* pedras voando */
           const a = qHash(sd + i * 5.1) * 6.2832,
-            dist = R * (0.4 + 0.7 * qHash(sd + i * 1.9)) * (1 - Math.pow(1 - q, 2)),
-            h = Math.sin(Math.PI * Math.min(1, q * 1.15)) * (10 + 14 * qHash(sd + i * 3.3));
+            dist =
+              R * (0.4 + 0.7 * qHash(sd + i * 1.9)) * (1 - Math.pow(1 - q, 2)),
+            h =
+              Math.sin(Math.PI * Math.min(1, q * 1.15)) *
+              (10 + 14 * qHash(sd + i * 3.3));
           ctx.globalAlpha = Math.max(0, 1 - q * 0.9);
           ctx.fillStyle = i % 3 === 0 ? "#9a7a4a" : "#6b4a2a";
           const sz = i % 4 === 0 ? 2 : 1;
-          ctx.fillRect(Math.round(cx + Math.cos(a) * dist), Math.round(cy + Math.sin(a) * dist * 0.8 - h), sz, sz);
+          ctx.fillRect(
+            Math.round(cx + Math.cos(a) * dist),
+            Math.round(cy + Math.sin(a) * dist * 0.8 - h),
+            sz,
+            sz,
+          );
         }
         ctx.globalAlpha = 1;
       }
@@ -12963,7 +13467,9 @@
       fx = FXQ(),
       boom = f.t >= f.delay,
       q = boom ? Math.min(1, (f.t - f.delay) / (f.life - f.delay)) : 0,
-      k = boom ? 1 - q : Math.min(1, f.t / f.delay); /* cresce na marcação, some na explosão */
+      k = boom
+        ? 1 - q
+        : Math.min(1, f.t / f.delay); /* cresce na marcação, some na explosão */
     const Rn = boom ? R * (1 + 0.5 * q) : R * (0.8 + 0.2 * k);
 
     ctx.save();
@@ -13003,7 +13509,13 @@
         const t = row / h,
           w = (1 - t) * 3 + 1,
           col =
-            t < 0.3 ? "#b3200f" : t < 0.6 ? "#ff6a1a" : t < 0.85 ? "#ffd24a" : "#fff6d6";
+            t < 0.3
+              ? "#b3200f"
+              : t < 0.6
+                ? "#ff6a1a"
+                : t < 0.85
+                  ? "#ffd24a"
+                  : "#fff6d6";
         const bx = cx + ux * (Rn + row) - uy * sway * t * t,
           by = cy + uy * (Rn + row) + ux * sway * t * t;
         for (let j = -w; j <= w; j += FIRE_PX)
@@ -13108,16 +13620,59 @@
         const b = 0.5 + 0.5 * Math.sin(tm * 3.1 + seed * 0.53);
         let H = 5 + 11 * (0.55 * a + 0.45 * b);
         /* línguas altas ocasionais, que pulsam */
-        if (hash(seed) > 0.86)
-          H *= 1.35 + 0.35 * Math.sin(tm * 4 + seed);
+        if (hash(seed) > 0.86) H *= 1.35 + 0.35 * Math.sin(tm * 4 + seed);
         const sway = Math.sin(tm * 5 + seed * 1.3) * 2.2;
         const al = fx ? 0.78 : 0.95;
-        flame(px, py, tx, ty, nx, ny, 3.8, H, sway, "rgba(205, 28, 18," + al + ")");
-        flame(px, py, tx, ty, nx, ny, 2.9, H * 0.78, sway * 0.8, "rgba(255, 118, 24," + al + ")");
+        flame(
+          px,
+          py,
+          tx,
+          ty,
+          nx,
+          ny,
+          3.8,
+          H,
+          sway,
+          "rgba(205, 28, 18," + al + ")",
+        );
+        flame(
+          px,
+          py,
+          tx,
+          ty,
+          nx,
+          ny,
+          2.9,
+          H * 0.78,
+          sway * 0.8,
+          "rgba(255, 118, 24," + al + ")",
+        );
         if (fx) {
-          flame(px, py, tx, ty, nx, ny, 1.9, H * 0.52, sway * 0.55, "rgba(255, 214, 80,.9)");
+          flame(
+            px,
+            py,
+            tx,
+            ty,
+            nx,
+            ny,
+            1.9,
+            H * 0.52,
+            sway * 0.55,
+            "rgba(255, 214, 80,.9)",
+          );
           if (H > 11)
-            flame(px, py, tx, ty, nx, ny, 1, H * 0.28, sway * 0.3, "rgba(255, 250, 226,.95)");
+            flame(
+              px,
+              py,
+              tx,
+              ty,
+              nx,
+              ny,
+              1,
+              H * 0.28,
+              sway * 0.3,
+              "rgba(255, 250, 226,.95)",
+            );
         }
       }
       /* faixa de brasa na base das chamas */
@@ -13167,6 +13722,91 @@
     ctx.strokeRect(x + 6, y + 6, w - 12, h - 12);
     ctx.setLineDash([]);
     ctx.restore();
+  }
+    /* ===== marcadores de itens especiais e da Arca ===== */
+  const MARK_TYPES = { bread: 1, fire: 1, shield: 1, frozen: 1, mana: 1, ark: 1 };
+  const MARK_MARGIN = 26; /* distância mínima entre o marcador e a borda */
+
+  function markArrow(x, y, ang, col) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(6, 0);
+    ctx.lineTo(-4, -5);
+    ctx.lineTo(-4, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawEdgeMarker(k, ex, ey, ang) {
+    const im = S[k.type],
+      col = k.type === "ark" ? "#ffd86b" : "#ffffff";
+    ctx.save();
+    ctx.fillStyle = "rgba(10, 8, 20, 0.85)";
+    ctx.beginPath();
+    ctx.arc(ex, ey, 14, 0, 6.2832);
+    ctx.fill();
+    ctx.strokeStyle = k.type === "ark" ? "#f2c14e" : "#c9b6ff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (im && im.c) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(im.c, ex - 10, ey - 10, 20, 20);
+    }
+    ctx.restore();
+    /* seta entre o centro da tela e o marcador, apontando para o item */
+    markArrow(ex - Math.cos(ang) * 20, ey - Math.sin(ang) * 20, ang, col);
+  }
+
+  function drawItemMarkers() {
+    const g = G;
+    if (!g || !g.pk || !g.pk.length) return;
+    const cx = VW / 2,
+      cy = VH / 2,
+      off = [];
+    for (const k of g.pk) {
+      if (!MARK_TYPES[k.type]) continue;
+      const x = sx(k.x),
+        y = sy(k.y),
+        col = k.type === "ark" ? "#ffd86b" : "#ffffff";
+      const inside =
+        x >= MARK_MARGIN &&
+        x <= VW - MARK_MARGIN &&
+        y >= MARK_MARGIN &&
+        y <= VH - MARK_MARGIN;
+      if (inside) {
+        /* item visível: seta pulsando logo acima dele */
+        const bob = Math.sin(g.t * 5 + k.ph) * 2;
+        markArrow(x, y - 22 + bob, Math.PI / 2, col);
+      } else {
+        off.push({
+          k,
+          dx: x - cx,
+          dy: y - cy,
+          d: Math.hypot(x - cx, y - cy),
+        });
+      }
+    }
+    /* fora da tela: marcador na borda, na direção do item (os 8 mais próximos) */
+    off.sort((a, b) => a.d - b.d);
+    for (const o of off.slice(0, 8)) {
+      const tx =
+          Math.abs(o.dx) > 0.001
+            ? (cx - MARK_MARGIN) / Math.abs(o.dx)
+            : Infinity,
+        ty =
+          Math.abs(o.dy) > 0.001
+            ? (cy - MARK_MARGIN) / Math.abs(o.dy)
+            : Infinity,
+        t = Math.min(tx, ty),
+        ex = cx + o.dx * t,
+        ey = cy + o.dy * t,
+        ang = Math.atan2(o.dy, o.dx);
+      drawEdgeMarker(o.k, ex, ey, ang);
+    }
   }
   function drawOverlay() {
     const g = G;
@@ -13288,6 +13928,8 @@
       ctx.translate(-cx, -cy);
     }
     _dw();
+    drawBossDust();
+    if (!D && !W) drawItemMarkers();
     drawOverlay();
     if (D) {
       for (const q of D.dust) {
@@ -13476,6 +14118,81 @@
     }
     return _erD(won, ret);
   };
+  /* ===== desintegração do chefe derrotado (mesmo efeito de pó da morte do herói) ===== */
+  function bossDisintegrate(e) {
+    const g = G,
+      sp = eSpr(e, g);
+    if (!g || !sp || !sp.c || !save.set.fx) return;
+    const w = sp.w || sp.c.width,
+      h = sp.h || sp.c.height,
+      k = e.sc || 1;
+    let px;
+    try {
+      px = sp.c.getContext("2d").getImageData(0, 0, w, h).data;
+    } catch (err) {
+      return; /* canvas bloqueado: sem efeito, mas sem erro */
+    }
+    /* amostragem: sprites grandes geram menos partículas */
+    const STEP = w * h > 3600 ? 2 : 1,
+      s = STEP > 1 || k > 2 ? 2 : 1,
+      ox = e.x - (w * k) / 2,
+      oy = e.y - (h * k) / 2,
+      out = [];
+    for (let y = 0; y < h; y += STEP)
+      for (let x = 0; x < w; x += STEP) {
+        const i = (y * w + x) * 4;
+        if (px[i + 3] < 128) continue;
+        out.push({
+          x: ox + x * k,
+          y: oy + y * k,
+          col: "rgb(" + px[i] + "," + px[i + 1] + "," + px[i + 2] + ")",
+          d: g.t + (y / h) * 1.0 + rngFx() * 0.35,
+          vx: 0,
+          vy: 0,
+          a: 1,
+          life: rndFx(1.0, 1.8),
+          on: false,
+          s: s,
+        });
+      }
+    g.bossDust = (g.bossDust || []).concat(out);
+  }
+
+  /* avança o pó: cada pixel se solta no seu momento e vai desaparecendo */
+  function stepBossDust(dt) {
+    const g = G;
+    if (!g || !g.bossDust) return;
+    let alive = false;
+    for (const q of g.bossDust) {
+      if (!q.on) {
+        if (g.t >= q.d) {
+          q.on = true;
+          q.vx = rndFx(20, 90);
+          q.vy = rndFx(-70, 0);
+        }
+      } else {
+        q.x += q.vx * dt;
+        q.y += q.vy * dt;
+        q.a -= dt / q.life;
+      }
+      if (q.a > 0) alive = true;
+    }
+    if (!alive) g.bossDust = null;
+  }
+
+  /* desenha o pó: os pixels ainda parados já formam a silhueta do chefe */
+  function drawBossDust() {
+    const g = G;
+    if (!g || !g.bossDust) return;
+    for (const q of g.bossDust) {
+      if (q.a <= 0) continue;
+      ctx.globalAlpha = Math.max(0, q.a);
+      ctx.fillStyle = q.col;
+      ctx.fillRect(sx(q.x), sy(q.y), q.s, q.s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function startDeath() {
     const g = G;
     state = "dying";
@@ -13654,7 +14371,10 @@
         persist();
         refreshMeta();
         SFX.play("coin");
-        buyPop("Herói desbloqueado", X.name + " já está disponível na tela de Herói.");
+        buyPop(
+          "Herói desbloqueado",
+          X.name + " já está disponível na tela de Herói.",
+        );
         renderHeroes(b);
       };
     }
@@ -14789,7 +15509,8 @@
   const MODE_ART = Object.create(null);
   function modeArtResolve(kind, cb) {
     const m =
-      MODE_ART[kind] || (MODE_ART[kind] = { state: "idle", url: null, cbs: [] });
+      MODE_ART[kind] ||
+      (MODE_ART[kind] = { state: "idle", url: null, cbs: [] });
     if (m.state === "ok") return cb && cb(m.url);
     if (m.state === "none") return;
     if (cb) m.cbs.push(cb);
@@ -15498,7 +16219,7 @@
       starterPrice() +
       "</b></div>" +
       '<button type="button" class="mb starter-buy">' +
-      ("Comprar por " + (starterPrice())) +
+      ("Comprar por " + starterPrice()) +
       "</button>" +
       '<button type="button" class="starter-later">' +
       "Agora não" +
@@ -15671,7 +16392,8 @@
         const changed = snap() !== before;
         /* direitos já ativos neste aparelho (ex.: após reinstalar ou apagar o progresso) */
         const hasRights =
-          !!save.noAds || Object.keys(save.iap || {}).some((k) => !!save.iap[k]);
+          !!save.noAds ||
+          Object.keys(save.iap || {}).some((k) => !!save.iap[k]);
         if (changed) notify("Compras restauradas!", "ok");
         else if (hasRights)
           notify("Suas compras já estão ativas neste aparelho.", "ok");
@@ -15694,7 +16416,9 @@
     const ov = document.createElement("div");
     ov.className = "ov buy-pop";
     ov.innerHTML =
-      '<div class="buy-card"><span class="buy-ico uic i-' + (ico || "coin") + '"></span><h2></h2><p></p><button type="button" class="btn buy-ok">Continuar</button></div>';
+      '<div class="buy-card"><span class="buy-ico uic i-' +
+      (ico || "coin") +
+      '"></span><h2></h2><p></p><button type="button" class="btn buy-ok">Continuar</button></div>';
     ov.querySelector("h2").textContent = title;
     ov.querySelector("p").textContent = sub;
     const close = () => ov.remove();
@@ -15739,7 +16463,11 @@
     persist();
     refreshMeta();
     SFX.play("coin");
-    buyPop("Herói desbloqueado", HX[k].name + " já está disponível na tela de Herói.", "star");
+    buyPop(
+      "Herói desbloqueado",
+      HX[k].name + " já está disponível na tela de Herói.",
+      "star",
+    );
     refresh();
   }
   /* compra de ícone de perfil (demônios e chefes): mesmo padrão do herói — toque duas vezes para confirmar */
@@ -16125,7 +16853,8 @@
               sub: own
                 ? "Desbloqueado"
                 : it.cat === "demon"
-                  ? FE_CONTENT.libraryTips[it.id] || "Ícone de demônio para seu perfil."
+                  ? FE_CONTENT.libraryTips[it.id] ||
+                  "Ícone de demônio para seu perfil."
                   : "",
               cta: bt,
             }),
@@ -16223,7 +16952,10 @@
     } catch (e) {
       /* se a gravação falhar, o save antigo continua valendo: avisa em vez de recarregar em silêncio */
       window.__wiping = false;
-      notify("Não foi possível apagar o progresso agora. Tente de novo.", "warn");
+      notify(
+        "Não foi possível apagar o progresso agora. Tente de novo.",
+        "warn",
+      );
       return;
     }
     location.reload();
@@ -16759,7 +17491,10 @@
   }
   const profIconCost = (id) => {
     const i = profIconInfo(id);
-    if (i && i.skin) return skPrice(skDef(i.hero, i.skin)); /* preço da skin, que já traz o ícone */
+    if (i && i.skin)
+      return skPrice(
+        skDef(i.hero, i.skin),
+      ); /* preço da skin, que já traz o ícone */
     return !i || i.cat === "hero"
       ? 0
       : ECO.ICON_COST[id] || ECO.ICON_COST.demon;
@@ -17272,7 +18007,11 @@
           return deny(
             bt,
             it.skin
-              ? "Compre a skin " + it.name + " na Loja (" + n(cost) + " moedas) para usar este ícone."
+              ? "Compre a skin " +
+              it.name +
+              " na Loja (" +
+              n(cost) +
+              " moedas) para usar este ícone."
               : it.cat === "hero"
                 ? "Libere o herói " + it.name + " para usar este ícone."
                 : "Compre este ícone na Loja por " + n(cost) + " moedas.",
@@ -17771,8 +18510,7 @@
     const g = G;
     rev.hidden = !(g && g.pre && !won && !ret && !g.revived);
     rev.disabled = false;
-    rev.innerHTML =
-      '<span class="uic i-play"></span> Reviver? | ad';
+    rev.innerHTML = '<span class="uic i-play"></span> Reviver? | ad';
   }
   rev.onclick = () =>
     ADS.rewarded((ok) => {
@@ -17946,8 +18684,7 @@
   };
   addEventListener("fepgs", () => {
     PGS.sync();
-    if (!SCR.hidden && $("#sT").textContent === "Ranking")
-      renderRank($("#sB"));
+    if (!SCR.hidden && $("#sT").textContent === "Ranking") renderRank($("#sB"));
   });
   function recordRun(won) {
     const g = G,
@@ -18051,9 +18788,15 @@
           "warn",
         );
     };
-    add("Ranking: Vigília Eterna - melhor tempo", () => FePGS.show("timeInf").then(gpFail));
-    add("Ranking: Amanhecer - mais abates", () => FePGS.show("kills").then(gpFail));
-    add("Ranking: Amanhecer - maior nível", () => FePGS.show("level").then(gpFail));
+    add("Ranking: Vigília Eterna - melhor tempo", () =>
+      FePGS.show("timeInf").then(gpFail),
+    );
+    add("Ranking: Amanhecer - mais abates", () =>
+      FePGS.show("kills").then(gpFail),
+    );
+    add("Ranking: Amanhecer - maior nível", () =>
+      FePGS.show("level").then(gpFail),
+    );
     add("Conquistas", () => FePGS.showAch().then(gpFail));
   }
   /* ---- avaliação do jogo (a cada 3 partidas concluídas, ao voltar ao menu) ----
@@ -18396,7 +19139,9 @@
     hav.className = "prof-av";
     tl.prepend(hav);
     mkc("tccol", $("#timer"), $("#obj"), $("#bossbar"));
-    tl.appendChild($("#rack")); /* v0.66: rack dentro de #tlcol (antes: mkc("blcol", $("#rack")) no canto inferior) */
+    tl.appendChild(
+      $("#rack"),
+    ); /* v0.66: rack dentro de #tlcol (antes: mkc("blcol", $("#rack")) no canto inferior) */
   })();
 
   /* ================= entrada ================= */
@@ -18647,7 +19392,10 @@
         }))
         : Array.from({ length: BOOT_SCENE_COUNT }, (_, i) => {
           const id = "loading/loading_" + String(i + 1).padStart(2, "0");
-          return { video: ASSET_DIR + id + ".mp4", image: ASSET_DIR + id + ".png" };
+          return {
+            video: ASSET_DIR + id + ".mp4",
+            image: ASSET_DIR + id + ".png",
+          };
         });
     let bootIdx = Math.floor(Math.random() * bootScenes.length);
     try {
@@ -18776,9 +19524,7 @@
         const go = () => {
           const G2 = window.FePGS;
           if (!G2) return res(null);
-          setSub(
-            "Entrando no Google Play Games…",
-          );
+          setSub("Entrando no Google Play Games…");
           if (G2.signed) return res(true);
           let done = 0;
           const fin = (ok) => {
@@ -19047,7 +19793,8 @@
         L0 = L[0],
         W = A.windup && A.windup.length ? A.windup : null,
         T = A.attack && A.attack.length ? A.attack : null,
-        mk = (sp, o) => stdBake(sp, Object.assign({}, o, { tint: tint(o.tint) })),
+        mk = (sp, o) =>
+          stdBake(sp, Object.assign({}, o, { tint: tint(o.tint) })),
         fr = (spec) => mk(L[(spec.f || 0) % L.length], spec),
         lg = ST.lunge;
       const attack = [
@@ -19098,7 +19845,10 @@
       AB = EA_CFG.abilities;
     if (e.hurtT > 0)
       return Z.hurt[
-        Math.min(1, Math.max(0, Math.floor(((TM.hurt - e.hurtT) / TM.hurt) * 2)))
+        Math.min(
+          1,
+          Math.max(0, Math.floor(((TM.hurt - e.hurtT) / TM.hurt) * 2)),
+        )
       ];
     const st = a ? a.st : 0;
     if (e.sa !== st) {
@@ -19119,9 +19869,18 @@
       if (q < TM.strike[1]) return atk[3];
       if (q < TM.strike[2]) return atk[4];
     }
-    if (a && a.st === 3 && AB.recover.includes(e.ab) && g.t - e.saT < TM.recover)
+    if (
+      a &&
+      a.st === 3 &&
+      AB.recover.includes(e.ab) &&
+      g.t - e.saT < TM.recover
+    )
       return atk[4];
-    if (e.ab === "fuse" && g.p && Math.hypot(e.x - g.p.x, e.y - g.p.y) < TM.fuseRange)
+    if (
+      e.ab === "fuse" &&
+      g.p &&
+      Math.hypot(e.x - g.p.x, e.y - g.p.y) < TM.fuseRange
+    )
       return atk[Math.floor(g.t * TM.fuseFps + e.ph) % 2];
     if (enemyMoving(e, g))
       return Z.run[Math.floor(g.t * (e.fps || 6) * 1.6 + e.ph) % Z.run.length];
@@ -20210,7 +20969,13 @@
       for (let row = 0; row < 7; row++) {
         const width = [5, 8, 9, 9, 8, 7, 5][row];
         rect(9 - Math.floor(width / 2), by + row, width, 1, "D");
-        rect(10 - Math.floor(width / 2), by + row, Math.max(1, width - 2), 1, "F");
+        rect(
+          10 - Math.floor(width / 2),
+          by + row,
+          Math.max(1, width - 2),
+          1,
+          "F",
+        );
       }
       rect(8, by + 3, 5, 3, "L");
       rect(12, by - 2, 6, 6, "D");
@@ -20244,7 +21009,10 @@
           rect(15, by + 2, 2, 1, ".");
         }
       }
-      return buildSprite(pixels.map((row) => row.join("")), palette);
+      return buildSprite(
+        pixels.map((row) => row.join("")),
+        palette,
+      );
     };
     for (const [pose, count] of Object.entries({
       idle: 4,
@@ -20278,7 +21046,8 @@
     const frames = moving ? PLAGUE_RAT_ART.run : PLAGUE_RAT_ART.idle;
     return frames[Math.floor(g.t * (moving ? 12 : 5) + e.ph) % frames.length];
   }
-  const AB_TXT = FE_CONTENT.demonAbilityText; /* registry.js → demonAbilityText */
+  const AB_TXT =
+    FE_CONTENT.demonAbilityText; /* registry.js → demonAbilityText */
 
   const eSfx = (e, g, d) => {
     if (d < 200 && g.t - (g.eSfx || 0) > 0.2) {
@@ -20371,7 +21140,12 @@
       case "poison_flask": {
         const ra = e.rangedAttack;
         if (!ra) return [vx, vy];
-        a = e.ai || (e.ai = { st: 0, t: rnd(ra.initialInterval[0], ra.initialInterval[1]) });
+        a =
+          e.ai ||
+          (e.ai = {
+            st: 0,
+            t: rnd(ra.initialInterval[0], ra.initialInterval[1]),
+          });
         a.t -= dt;
         if (a.st === 1) {
           e.ratMoving = false;
@@ -20589,8 +21363,8 @@
             dmg: e.dmg,
             done: false,
             who: "Bruto",
-            quake: true, /* desenho de terremoto (drawQuakeCirc) */
-            sd: rndFx(1, 1000), /* semente visual das rachaduras */
+            quake: true /* desenho de terremoto (drawQuakeCirc) */,
+            sd: rndFx(1, 1000) /* semente visual das rachaduras */,
           });
         }
         return [vx, vy];
@@ -20789,7 +21563,13 @@
       glow(e.x, e.y + 2, 10 + 6 * q, "rgba(192,77,255,1)", 0.3 + 0.5 * q);
     } else if (e.ab === "poison_flask" && a.st === 1) {
       const q = 1 - a.t / 0.58;
-      glow(e.x + e.face * 5, e.y - 2, 7 + 4 * q, "rgba(129,214,75,1)", 0.3 + 0.45 * q);
+      glow(
+        e.x + e.face * 5,
+        e.y - 2,
+        7 + 4 * q,
+        "rgba(129,214,75,1)",
+        0.3 + 0.45 * q,
+      );
     }
   }
   const SQUASH_T = 0.12;
@@ -20927,12 +21707,8 @@
   const FXR = {};
   FXR.enemyDeath = (f, k) => {
     if (f.frames) {
-      const frame = Math.min(
-        f.frames.length - 1,
-        Math.floor(f.t / 0.13),
-      );
-      if (f.t < 2 / 60)
-        spr(f.frames[0], f.x, f.y, f.sc, true, f.flip, f.syy);
+      const frame = Math.min(f.frames.length - 1, Math.floor(f.t / 0.13));
+      if (f.t < 2 / 60) spr(f.frames[0], f.x, f.y, f.sc, true, f.flip, f.syy);
       else if (f.t < 0.52)
         spr(f.frames[frame], f.x, f.y, f.sc, false, f.flip, f.syy);
       else {
@@ -21723,8 +22499,15 @@
        o mesmo sistema dos demais sprites. A espada é desenhada pixel a pixel: aço em repouso;
        ao ferir um inimigo ela dá um golpe em arco, em chamas, na direção dele. */
   const ANGEL_PAL = {
-    W: "#f4efe0", w: "#c9c1a6", G: "#e8bd52", g: "#b88b2e", D: "#4a3a2a",
-    K: "#2a2433", H: "#e2dac4", h: "#b9b098", X: "#4b4358",
+    W: "#f4efe0",
+    w: "#c9c1a6",
+    G: "#e8bd52",
+    g: "#b88b2e",
+    D: "#4a3a2a",
+    K: "#2a2433",
+    H: "#e2dac4",
+    h: "#b9b098",
+    X: "#4b4358",
   };
   const ANGEL_TPL = {
     body: [
@@ -21748,9 +22531,42 @@
     shield: [".GGGG.", "GGggGG", "GgDDgG", "GgDDgG", "GGggGG", ".GGGG."],
     /* asa esquerda em 3 quadros: alta, aberta, baixa (a direita é o espelho) */
     wing: [
-      ["w.......", "Ww......", "WWw.....", ".WWw....", ".WWWw...", "..WWWWw.", "..wWWWWW", "...wWWWW", "....wwWW", "......ww"],
-      ["........", "........", "....wWWW", "..wWWWWW", ".WWWWWWW", "wWWWWWWW", ".wwWWWWW", "...wwwWW", "......ww", "........"],
-      ["......ww", "....wwWW", "...wWWWW", "..wWWWWW", "..WWWWw.", ".WWWw...", ".WWw....", "WWw.....", "Ww......", "w......."],
+      [
+        "w.......",
+        "Ww......",
+        "WWw.....",
+        ".WWw....",
+        ".WWWw...",
+        "..WWWWw.",
+        "..wWWWWW",
+        "...wWWWW",
+        "....wwWW",
+        "......ww",
+      ],
+      [
+        "........",
+        "........",
+        "....wWWW",
+        "..wWWWWW",
+        ".WWWWWWW",
+        "wWWWWWWW",
+        ".wwWWWWW",
+        "...wwwWW",
+        "......ww",
+        "........",
+      ],
+      [
+        "......ww",
+        "....wwWW",
+        "...wWWWW",
+        "..wWWWWW",
+        "..WWWWw.",
+        ".WWWw...",
+        ".WWw....",
+        "WWw.....",
+        "Ww......",
+        "w.......",
+      ],
     ],
   };
   let ANGEL_SPR = null;
@@ -21788,11 +22604,18 @@
         k = swT === undefined ? 1 : (t - swT) / ANGEL_SWING_T,
         swinging = k >= 0 && k < 1;
       if (fq) {
-        glow(X, Y + bob, 12, "rgba(255,240,170,1)", 0.4 + 0.12 * Math.sin(t * 4 + i));
+        glow(
+          X,
+          Y + bob,
+          12,
+          "rgba(255,240,170,1)",
+          0.4 + 0.12 * Math.sin(t * 4 + i),
+        );
         if (swinging)
           glow(X, Y + bob, 16, "rgba(255,140,40,1)", 0.35 * (1 - k));
         ctx.save();
-        ctx.strokeStyle = "rgba(255,230,150," + (0.25 + 0.15 * Math.sin(t * 3 + i)) + ")";
+        ctx.strokeStyle =
+          "rgba(255,230,150," + (0.25 + 0.15 * Math.sin(t * 3 + i)) + ")";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(sx(p.x), sy(p.y), R, a - 0.12, a + 0.02);
@@ -21800,14 +22623,24 @@
         ctx.restore();
       }
       const face = Math.cos(a) < 0 ? -1 : 1,
-        wf = [0, 1, 2, 1][Math.floor(t * 9 + i * 1.3) & 3]; /* batida das asas */
+        wf = [0, 1, 2, 1][
+          Math.floor(t * 9 + i * 1.3) & 3
+        ]; /* batida das asas */
       ctx.save();
       ctx.translate(Math.round(sx0), Math.round(sy0 + bob));
       ctx.scale(face, 1);
       /* auréola (atrás da cabeça), pulsando de leve */
       ctx.fillStyle = "#f2c14e";
       ctx.globalAlpha = 0.85 + 0.15 * Math.sin(t * 4 + i);
-      for (const q of [[-2, -13, 4], [-3, -12, 1], [2, -12, 1], [-4, -11, 1], [3, -11, 1], [-3, -10, 1], [2, -10, 1]])
+      for (const q of [
+        [-2, -13, 4],
+        [-3, -12, 1],
+        [2, -12, 1],
+        [-4, -11, 1],
+        [3, -11, 1],
+        [-3, -10, 1],
+        [2, -10, 1],
+      ])
         ctx.fillRect(q[0], q[1], q[2], 1);
       ctx.globalAlpha = 1;
       /* asas (atrás do corpo): a direita é a esquerda espelhada */
@@ -21826,7 +22659,12 @@
           ctx.fillStyle = col;
           ctx.globalAlpha = al;
           for (let d = from; d <= len; d++)
-            ctx.fillRect(Math.round(hx + Math.cos(ang) * d), Math.round(hy + Math.sin(ang) * d), 1, 1);
+            ctx.fillRect(
+              Math.round(hx + Math.cos(ang) * d),
+              Math.round(hy + Math.sin(ang) * d),
+              1,
+              1,
+            );
           ctx.globalAlpha = 1;
         };
       if (!swinging) {
@@ -21834,7 +22672,12 @@
         line(ang, 2, "#e8bd52", 1, 0); /* guarda */
         line(ang, 12, "#d7dbe8", 1, 3); /* lâmina de aço */
         ctx.fillStyle = "#fff";
-        ctx.fillRect(Math.round(hx + Math.cos(ang) * 12), Math.round(hy + Math.sin(ang) * 12), 1, 1);
+        ctx.fillRect(
+          Math.round(hx + Math.cos(ang) * 12),
+          Math.round(hy + Math.sin(ang) * 12),
+          1,
+          1,
+        );
       } else {
         /* o ângulo do inimigo está em coordenadas do mundo; o sprite é espelhado quando face = -1 */
         const aw = w.swA[i],
@@ -21842,8 +22685,14 @@
           e = 1 - Math.pow(1 - k, 3),
           ang = la - 1.5 + 3.0 * e;
         const FIRE = ["#ffe08a", "#ffb23a", "#ff8a2a", "#e2431f", "#e2431f"];
-        for (let j = 5; j >= 1; j--) /* rastro de fogo do arco */
-          line(ang - j * 0.2, 12, FIRE[j - 1], Math.max(0, (230 - j * 34) / 255) * (1 - k * 0.6), 6);
+        for (let j = 5; j >= 1; j-- /* rastro de fogo do arco */)
+          line(
+            ang - j * 0.2,
+            12,
+            FIRE[j - 1],
+            Math.max(0, (230 - j * 34) / 255) * (1 - k * 0.6),
+            6,
+          );
         line(ang, 2, "#e8bd52", 1, 0);
         line(ang, 12, "#ffd27a", 1, 3);
         if (fq) {
@@ -21854,12 +22703,20 @@
               const sgn = f === 0 ? 1 : -1;
               ctx.fillRect(
                 Math.round(hx + Math.cos(ang) * d - Math.sin(ang) * sgn),
-                Math.round(hy + Math.sin(ang) * d + Math.cos(ang) * sgn), 1, 1);
+                Math.round(hy + Math.sin(ang) * d + Math.cos(ang) * sgn),
+                1,
+                1,
+              );
             }
           }
         }
         ctx.fillStyle = "#fff";
-        ctx.fillRect(Math.round(hx + Math.cos(ang) * 13), Math.round(hy + Math.sin(ang) * 13), 1, 1);
+        ctx.fillRect(
+          Math.round(hx + Math.cos(ang) * 13),
+          Math.round(hy + Math.sin(ang) * 13),
+          1,
+          1,
+        );
       }
       /* brilho */
       if (fq) {
@@ -22119,8 +22976,7 @@
       if (A2 && A2.hero && A2.hero[k]) a2Hero(k);
     }
     if (A2 && A2.hero)
-      for (const k in A2.hero)
-        if (!HFR[k] && S.hero[k]) a2Hero(k);
+      for (const k in A2.hero) if (!HFR[k] && S.hero[k]) a2Hero(k);
   }
 
   /*SKIN-ENGINE-BEGIN*/
@@ -22129,7 +22985,9 @@
      na cabeça ou nos pés do quadro. O motor trabalha sobre os sprites já prontos (qualquer origem: código, PNG, art_v2),
      então a mesma skin vale para todos os quadros (parado, andando, ação, dano, investida).
      Grade = { w, h, d: Uint8ClampedArray RGBA }. */
-  const SK_OUT = [20, 11, 34]; /* cor do contorno de 1 px que buildSprite() desenha */
+  const SK_OUT = [
+    20, 11, 34,
+  ]; /* cor do contorno de 1 px que buildSprite() desenha */
   function skRGB(hex) {
     let h = String(hex || "#000").replace("#", "");
     if (h.length === 3) h = h.replace(/./g, "$&$&");
@@ -22200,7 +23058,7 @@
         const len = r[1] - r[0] + 1;
         if (!best || len > best.len) best = { len, s: r[0], e: r[1] };
       }
-    const hx = best ? Math.round((best.s + best.e) / 2) : (w >> 1);
+    const hx = best ? Math.round((best.s + best.e) / 2) : w >> 1;
     let bottom = top;
     for (let y = h - 1; y >= 0; y--) {
       let any = false;
@@ -22397,7 +23255,8 @@
     SKD.classic = { id: "classic", name: "Clássica", tag: "Visual original" };
   const SK_RARITY = { rare: "Rara", epic: "Épica", legendary: "Lendária" };
   const SK_PRICE_DEFAULT = 200; /* preço de referência exibido na Loja; o valor real de cada skin vem de "price" em heroes_skins.js */
-  const SKORIG = {}; /* herói → sprites clássicos { s: [parado, andando], hfr } */
+  const SKORIG =
+    {}; /* herói → sprites clássicos { s: [parado, andando], hfr } */
   const SKCACHE = {}; /* "herói:skin" → sprites já recoloridos */
   /* save.skin = { eq: { davi: "rei" }, own: { "davi:rei": 1 } } (own só guarda skins pagas já compradas) */
   function skStore() {
@@ -22447,7 +23306,8 @@
       g.fillRect(0, 0, gr.w, gr.h);
     });
     const sp = { c, f, w: gr.w, h: gr.h };
-    if (src && src.w) sp.pad = { x: (gr.w - src.w) >> 1, y: (gr.h - src.h) >> 1 };
+    if (src && src.w)
+      sp.pad = { x: (gr.w - src.w) >> 1, y: (gr.h - src.h) >> 1 };
     if (src && src.hd) sp.hd = true;
     if (src && src.asset) sp.asset = true;
     return sp;
@@ -22568,7 +23428,8 @@
       );
     if (!bt.dataset.c) {
       bt.dataset.c = 1;
-      bt.textContent = "Confirmar compra? (" + cost.toLocaleString("pt-BR") + ")";
+      bt.textContent =
+        "Confirmar compra? (" + cost.toLocaleString("pt-BR") + ")";
       setTimeout(() => {
         if (bt.isConnected) {
           delete bt.dataset.c;
@@ -22585,7 +23446,10 @@
     SFX.play("coin");
     buyPop(
       "Skin desbloqueada",
-      d.name + " já está equipada em " + HX[h].name + ". O ícone de perfil da skin também foi liberado.",
+      d.name +
+      " já está equipada em " +
+      HX[h].name +
+      ". O ícone de perfil da skin também foi liberado.",
       "star",
     );
     done && done();
@@ -22634,10 +23498,13 @@
   let skT = 0;
   setInterval(() => {
     skT++;
-    document.querySelectorAll("canvas[data-skpv]").forEach((c) => skDraw(c, skT));
+    document
+      .querySelectorAll("canvas[data-skpv]")
+      .forEach((c) => skDraw(c, skT));
   }, 300);
   /* ---- Biblioteca > Heróis > "História": modal com título, resumo e referência (conteúdo em heroes_stories.js) ---- */
-  const STORIES = (typeof window !== "undefined" && window.FE_HERO_STORIES) || {};
+  const STORIES =
+    (typeof window !== "undefined" && window.FE_HERO_STORIES) || {};
   function storyModal(h) {
     const X = HX[h] || { name: h },
       st = STORIES[h],
@@ -22803,7 +23670,8 @@
             skPrice(d).toLocaleString("pt-BR") +
             " moedas";
           bt = document.createElement("button");
-          bt.className = "btn skin-cta" + (save.coins < skPrice(d) ? " dim" : "");
+          bt.className =
+            "btn skin-cta" + (save.coins < skPrice(d) ? " dim" : "");
           bt.innerHTML = lbl;
           bt.onclick = () => skBuy(h, id, bt, lbl, draw);
         }
@@ -22871,7 +23739,12 @@
     box.hidden = false;
     const cv2 = box.querySelector("canvas");
     const maxDim = Math.max(
-      fr.idle.w, fr.idle.h, fr.up.w, fr.up.h, fr.sad.w, fr.sad.h,
+      fr.idle.w,
+      fr.idle.h,
+      fr.up.w,
+      fr.up.h,
+      fr.sad.w,
+      fr.sad.h,
     );
     const L = Math.max(72, Math.ceil((maxDim * 2.2) / 4) * 4),
       u = L / 72;
@@ -22883,7 +23756,13 @@
       const v = Math.sin(n * 12.9898 + 4.1414) * 43758.5453;
       return v - Math.floor(v);
     };
-    const WARM = ["255,214,80", "255,120,25", "255,248,225", "230,40,25", "255,190,60"];
+    const WARM = [
+      "255,214,80",
+      "255,120,25",
+      "255,248,225",
+      "230,40,25",
+      "255,190,60",
+    ];
     const t0 = performance.now();
     let lastT = -1;
     const render = (t) => {
@@ -22951,16 +23830,27 @@
           const px = 36 + Math.cos(ang) * rad,
             py = mid - Math.abs(Math.sin(ang)) * rad * 0.9 - ph * 8;
           g.fillStyle =
-            "rgba(" + WARM[Math.floor(hs(sd + 4) * WARM.length)] + "," + (1 - ph).toFixed(3) + ")";
+            "rgba(" +
+            WARM[Math.floor(hs(sd + 4) * WARM.length)] +
+            "," +
+            (1 - ph).toFixed(3) +
+            ")";
           const z = ph < 0.35 && hs(sd + 5) > 0.5 ? 2 : 1;
           g.fillRect(Math.round(px), Math.round(py), z, z);
         }
         /* estrelinhas piscando */
-        [[14, 20], [58, 16], [10, 44], [62, 40], [36, 8]].forEach((p, i) => {
+        [
+          [14, 20],
+          [58, 16],
+          [10, 44],
+          [62, 40],
+          [36, 8],
+        ].forEach((p, i) => {
           const k2 = Math.max(0, Math.sin(t * 3 + i * 1.7));
           if (k2 < 0.15) return;
           const r = k2 > 0.7 ? 2 : 1;
-          g.fillStyle = i % 2 ? "rgba(255,248,225,.95)" : "rgba(255,214,80,.95)";
+          g.fillStyle =
+            i % 2 ? "rgba(255,248,225,.95)" : "rgba(255,214,80,.95)";
           g.fillRect(p[0], p[1], 1, 1);
           g.fillRect(p[0] - r, p[1], r, 1);
           g.fillRect(p[0] + 1, p[1], r, 1);
@@ -23001,7 +23891,12 @@
         for (let e = -1; e <= 1; e += 2) {
           const ph = (t * 0.65 + (e > 0 ? 0.5 : 0)) % 1;
           g.fillStyle = "rgba(190,225,255," + (1 - ph * 0.6).toFixed(3) + ")";
-          g.fillRect(Math.round(36 + e * 3), Math.round(top + dh / u * 0.3 + ph * 7), 1, 2);
+          g.fillRect(
+            Math.round(36 + e * 3),
+            Math.round(top + (dh / u) * 0.3 + ph * 7),
+            1,
+            2,
+          );
         }
       }
       g.restore();
@@ -23114,8 +24009,18 @@
           sway = Math.sin(ph * 0.9) * 3;
         ctx.beginPath();
         ctx.moveTo(x0 - ww, by);
-        ctx.quadraticCurveTo(x0 - ww * 0.4 + sway * 0.5, by - hh * 0.55, x0 + sway, by - hh);
-        ctx.quadraticCurveTo(x0 + ww * 0.4 + sway * 0.5, by - hh * 0.55, x0 + ww, by);
+        ctx.quadraticCurveTo(
+          x0 - ww * 0.4 + sway * 0.5,
+          by - hh * 0.55,
+          x0 + sway,
+          by - hh,
+        );
+        ctx.quadraticCurveTo(
+          x0 + ww * 0.4 + sway * 0.5,
+          by - hh * 0.55,
+          x0 + ww,
+          by,
+        );
         ctx.closePath();
         ctx.fill();
       }
@@ -23360,38 +24265,11 @@
     nxRect(g, "#9fdcff", 18, 17, 3, 1);
     nxRect(g, "#3a86c8", 14, 21, 9, 1);
   };
-  ICON_DRAW.axe = (g) => {
-    g.lineCap = "round";
-    g.strokeStyle = "#6b4423";
-    g.lineWidth = 3;
-    g.beginPath();
-    g.moveTo(5, 21);
-    g.lineTo(16, 7);
-    g.stroke();
-    g.fillStyle = "#b9c2d4";
-    g.beginPath();
-    g.moveTo(13, 4);
-    g.lineTo(21, 7);
-    g.lineTo(21, 14);
-    g.lineTo(16, 12);
-    g.lineTo(11, 11);
-    g.closePath();
-    g.fill();
-    g.fillStyle = "#eef3ff";
-    g.beginPath();
-    g.moveTo(14, 5);
-    g.lineTo(20, 8);
-    g.lineTo(20, 10);
-    g.lineTo(14, 8);
-    g.closePath();
-    g.fill();
-    g.strokeStyle = "#4a5468";
-    g.lineWidth = 1;
-    g.beginPath();
-    g.moveTo(21, 7);
-    g.lineTo(21, 14);
-    g.stroke();
+    ICON_DRAW.axe = (g) => {
+    g.imageSmoothingEnabled = false;
+    g.drawImage(AXE_CANVAS, 0, 0, 24, 24);
   };
+
   ICON_DRAW.jars = (g) => {
     nxRect(g, "#7a3f1d", 6, 10, 12, 10);
     nxRect(g, "#9a5a2a", 7, 9, 10, 2);
@@ -23807,38 +24685,59 @@
       }
     });
   }
-  FXR.axe = (f, k, g) => {
-    const x = sx(f.x),
-      y = sy(f.y);
+  /* ===== Machado de Eliseu: sprite em pixel art (12×12), gerado uma vez ===== */
+  const AXE_PAL = {
+    O: "#1d2230", /* contorno */
+    W: "#eef3ff", /* brilho da lâmina */
+    B: "#b9c2d4", /* lâmina */
+    D: "#7d879c", /* lâmina na sombra */
+    H: "#c4552a", /* cabo (madeira avermelhada) */
+    h: "#7a2e18", /* cabo na sombra */
+  };
+  const AXE_PX = [
+    "........OOO.",
+    "......OWWBO.",
+    ".....OWWWBBO",
+    "....OWWWBBDO",
+    "...OWWBBDDO.",
+    "..OHBBDDDO..",
+    ".OHHOOOOO...",
+    ".OHhO.......",
+    "OHhO........",
+    "OhO.........",
+    "OO..........",
+    "............",
+  ];
+  const AXE_CANVAS = mk(12, 12, (g) =>
+    AXE_PX.forEach((row, y) =>
+      [...row].forEach((c, x) => {
+        if (AXE_PAL[c]) {
+          g.fillStyle = AXE_PAL[c];
+          g.fillRect(x, y, 1, 1);
+        }
+      }),
+    ),
+  );
+  FXR.axe = (f) => {
+    const x = Math.round(sx(f.x)),
+      y = Math.round(sy(f.y)),
+      S = 2; /* escala inteira: pixel art nítido */
     ctx.save();
+    ctx.imageSmoothingEnabled = false;
     ctx.translate(x, y);
     ctx.rotate(f.spin);
-    ctx.scale(1.45, 1.45);
-    ctx.fillStyle = "rgba(0,0,0,.35)";
-    ctx.fillRect(-2, -8, 4, 16);
-    ctx.fillStyle = "#8a5a2b";
-    ctx.fillRect(-1, -7, 2, 14);
-    ctx.fillStyle = "#b9c2d4";
-    ctx.beginPath();
-    ctx.moveTo(1, -7);
-    ctx.lineTo(8, -5);
-    ctx.lineTo(8, 1);
-    ctx.lineTo(1, -1);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "#f2f6ff";
-    ctx.fillRect(5, -5, 3, 2);
+    ctx.drawImage(AXE_CANVAS, -6 * S, -6 * S, 12 * S, 12 * S);
     ctx.restore();
     if (f.ph === 1) glow(f.x, f.y, 16, "rgba(180,220,255,1)", 0.65);
     else glow(f.x, f.y, 12, "rgba(255,255,255,1)", 0.5);
   };
 
-
   /* ---------- Corvo Negro (Elias | 1 Reis 17:6) ----------
      Mecânica própria, evolução da ideia da Pomba: cada corvo escolhe a PRESA MAIS FORTE ao alcance
      (chefe > elite > mais vida), voa até ela perseguindo, atravessa alguns inimigos e VOLTA ao herói,
      ferindo de novo na volta. Quem acertou alguém traz PÃO: cura Salvação (com intervalo entre entregas). */
-  const ravenScore = (e) => (e.boss ? 1e6 : 0) + (e.elite ? 1e4 : 0) + (e.hp || 0);
+  const ravenScore = (e) =>
+    (e.boss ? 1e6 : 0) + (e.elite ? 1e4 : 0) + (e.hp || 0);
   function ravenLaunch(w, tg, opt) {
     const g = G,
       p = g.p,
@@ -23859,9 +24758,14 @@
       ph: 0 /* 0 = ida, 1 = volta */,
       tg,
       trav: 0,
-      reach: s.reach * (1 + (m.rng - 90) / 320) * (ev ? 1.15 : 1) * (big ? 1.4 : 1),
+      reach:
+        s.reach * (1 + (m.rng - 90) / 320) * (ev ? 1.15 : 1) * (big ? 1.4 : 1),
       speed: s.speed * (m.pspd || 1) * (big ? 0.9 : 1),
-      dmg: s.dmg * m.dmg * (tr.p === "murder" && tr.t ? 1.12 : 1) * (big ? 2.6 : 1),
+      dmg:
+        s.dmg *
+        m.dmg *
+        (tr.p === "murder" && tr.t ? 1.12 : 1) *
+        (big ? 2.6 : 1),
       pierce: s.pierce + (big ? 4 : 0),
       outHits: 0,
       struck: 0,
@@ -23869,7 +24773,8 @@
       r: (big ? 9 : 5) * (m.area || 1),
       flap: rngFx() * 6,
       big,
-      mark: tr.p === "mark" ? (tr.t ? { d: 6, a: 0.3 } : { d: 4, a: 0.2 }) : null,
+      mark:
+        tr.p === "mark" ? (tr.t ? { d: 6, a: 0.3 } : { d: 4, a: 0.2 }) : null,
       t: 0,
       life: 12,
     });
@@ -23911,7 +24816,10 @@
     );
     for (let i = 0; i < n; i++)
       ravenLaunch(w, pool[i % pool.length], {
-        spread: i >= pool.length ? (i - pool.length + 1) * 0.35 * (i % 2 ? 1 : -1) : 0,
+        spread:
+          i >= pool.length
+            ? (i - pool.length + 1) * 0.35 * (i % 2 ? 1 : -1)
+            : 0,
       });
     nxS("raven");
   }
@@ -23923,7 +24831,8 @@
       ev = nxHas("raven"),
       W = g.W.raven;
     if (g.t < (g.ravenBreadAt || 0)) return;
-    let heal = ((W && W.s.bread) || 1) + (tr.p === "bread" ? (tr.t ? 2 : 1) : 0);
+    let heal =
+      ((W && W.s.bread) || 1) + (tr.p === "bread" ? (tr.t ? 2 : 1) : 0);
     if (ev) heal = Math.max(heal, 3);
     g.ravenBreadAt = g.t + (ev ? 2 : tr.p === "bread" ? (tr.t ? 2 : 2.5) : 3);
     if (p.hp < g.mods.maxhp) nxAs("raven", healP, heal * (f.big ? 2 : 1));
@@ -23996,7 +24905,14 @@
         d = Math.hypot(dx, dy) || 1;
       if (d < f.r + e.r) {
         f.hit.add(e);
-        hurtBy(f.wid || "raven", e, f.dmg * (f.ph ? 0.75 : 1), dx / d, dy / d, f.big ? 60 : 22);
+        hurtBy(
+          f.wid || "raven",
+          e,
+          f.dmg * (f.ph ? 0.75 : 1),
+          dx / d,
+          dy / d,
+          f.big ? 60 : 22,
+        );
         f.struck++;
         if (f.mark) {
           /* Presa Marcada: o primeiro ferido sofre mais dano de todas as fontes */
@@ -24026,7 +24942,14 @@
       f.big ? "rgba(255,200,90,1)" : "rgba(150,130,240,1)",
       f.big ? 0.4 : 0.3,
     );
-    sprRot(S.raven[up ? 0 : 1], f.x, f.y, f.big ? 2 : 1, f.vx < 0 ? -ang : ang, f.vx < 0);
+    sprRot(
+      S.raven[up ? 0 : 1],
+      f.x,
+      f.y,
+      f.big ? 2 : 1,
+      f.vx < 0 ? -ang : ang,
+      f.vx < 0,
+    );
   };
 
   /* ---------- Jarros de Gideão ---------- */
@@ -24331,8 +25254,7 @@
     for (const it of w.q) it.t -= dt;
     while (w.q.length && w.q[0].t <= 0) {
       const it = w.q.shift(),
-        tg =
-          it.tg && !it.tg.dead ? it.tg : nearestList(p.x, p.y, it.rng, 1)[0];
+        tg = it.tg && !it.tg.dead ? it.tg : nearestList(p.x, p.y, it.rng, 1)[0];
       if (tg) nxSwordLaunch(w, tg, it, id);
     }
     w.cd -= dt;
@@ -24347,7 +25269,14 @@
     w.cd = s.cd * m.cd;
     for (let i = 0; i < cnt; i++)
       // w.q.push({ t: i * 0.09, tg: list[i % list.length], rng, i, n: cnt });
-      w.q.push({ t: i * 0.09, tg: list[i % list.length], rng, i, n: cnt, ll: list.length });
+      w.q.push({
+        t: i * 0.09,
+        tg: list[i % list.length],
+        rng,
+        i,
+        n: cnt,
+        ll: list.length,
+      });
     nxS("sword");
   }
   function nxSwordLaunch(w, tg, it, id) {
@@ -24369,10 +25298,7 @@
       vx: Math.cos(a) * speed,
       vy: Math.sin(a) * speed,
       ang: a,
-      dmg:
-        s.dmg *
-        m.dmg *
-        (tr.p === "justice" ? (tr.t ? 1.5 : 1.3) : 1),
+      dmg: s.dmg * m.dmg * (tr.p === "justice" ? (tr.t ? 1.5 : 1.3) : 1),
       pierce: s.pierce + (tr.p === "pierce" ? (tr.t ? 4 : 2) : 0),
       hit: [],
       r: 4,
@@ -24384,7 +25310,9 @@
     });
   }
   /* ---------- Chicote de Cordas: chibatadas em linha e Expulsão ---------- */
-  const WT = FE_CONTENT.weaponTuning.whip; /* balanceamento em registry.js → weaponTuning.whip */
+  const WT =
+    FE_CONTENT.weaponTuning
+      .whip; /* balanceamento em registry.js → weaponTuning.whip */
   function nxWhip(w, dt, id = "whip") {
     const g = G,
       p = g.p,
@@ -24496,7 +25424,14 @@
       life: X.ring.life,
     });
     const K = WT.shock,
-      rr = f.tables === 2 ? K.tables2 : f.tables === 1 ? K.tables1 : f.nova ? K.supreme : 0;
+      rr =
+        f.tables === 2
+          ? K.tables2
+          : f.tables === 1
+            ? K.tables1
+            : f.nova
+              ? K.supreme
+              : 0;
     if (rr)
       forNear(e.x, e.y, rr, (o) => {
         if (o === e || o.dead) return;
@@ -24505,7 +25440,10 @@
           d = Math.hypot(dx, dy) || 1;
         hurtBy(f.wid, o, f.dmg * K.dmgMult, dx / d, dy / d, K.knock);
       });
-    if (f.tables && rng() < (f.tables === 2 ? WT.coin.tables2 : WT.coin.tables1))
+    if (
+      f.tables &&
+      rng() < (f.tables === 2 ? WT.coin.tables2 : WT.coin.tables1)
+    )
       drop(e.x + rnd(-WT.coin.jitter, WT.coin.jitter), e.y, "coin");
   }
   FXR.whip = (f, k, g) => {
@@ -24585,7 +25523,11 @@
     g.shake = JT.shake;
     g.flash = JT.flash;
     forNear(p.x, p.y, R, (e) => {
-      const st = e.boss ? JT.stun.boss : e.elite ? JT.stun.elite : JT.stun.normal;
+      const st = e.boss
+        ? JT.stun.boss
+        : e.elite
+          ? JT.stun.elite
+          : JT.stun.normal;
       e.slowT = Math.max(e.slowT || 0, st[0]);
       e.slowAmt = Math.max(e.slowAmt || 0, st[1]);
     });
@@ -24949,7 +25891,12 @@
             sz = f > 0.6 ? 2 : 1;
           ctx.globalAlpha = f * 0.75;
           ctx.fillStyle = f > 0.7 ? pal[2] : pal[1];
-          ctx.fillRect(Math.round(sx(t.x)) - 1, Math.round(sy(t.y)) - 1, sz, sz);
+          ctx.fillRect(
+            Math.round(sx(t.x)) - 1,
+            Math.round(sy(t.y)) - 1,
+            sz,
+            sz,
+          );
         }
         const x = Math.round(sx(b.x)),
           y = Math.round(sy(b.y)),
@@ -26065,6 +27012,7 @@
   const _nxRh = renderHeroes;
   renderHeroes = function (b) {
     _nxRh(b);
+    if (b.id === "prepH") return; /* seleção: sem Poder Heroico */
     const v = viewHero,
       SG = NX_SIG[v],
       det = b.querySelector(".hero-details");
@@ -28762,7 +29710,10 @@
         : null,
     net: (f) => ["weapon_seal", { rate: 0.85, gain: 0.8, delay: f.delay || 0 }],
     fwall: (f) => ["weapon_aura", { rate: 0.7, gain: 0.8, delay: f.wait || 0 }],
-    whip: (f) => ["weapon_cross", { rate: 1.3, gain: 0.8, delay: (f.wait || 0) + 0.04 }],
+    whip: (f) => [
+      "weapon_cross",
+      { rate: 1.3, gain: 0.8, delay: (f.wait || 0) + 0.04 },
+    ],
     nxp: (f) =>
       f.style === "swordwave"
         ? ["weapon_cross", { rate: 1.35, gain: 0.7 }]
@@ -29018,7 +29969,12 @@
           newRun: (h) => newRun(h),
           dayKey: () => dayKey(),
           yday: (k) => yday(k),
-          endRun: (w, r, q) => _erD(w, r, q), /* encerra direto (sem as animações de morte/amanhecer) */
+          endRun: (w, r, q) =>
+            _erD(
+              w,
+              r,
+              q,
+            ) /* encerra direto (sem as animações de morte/amanhecer) */,
           checkAch: () => checkAch(),
           snapPre: (g) => snapPre(g),
           doRevive: () => doRevive(),
@@ -29286,9 +30242,7 @@
     }
     function show(o) {
       const u = build();
-      u.step.textContent = o.step
-        ? "Dica " + o.step + "/" + TOTAL
-        : "";
+      u.step.textContent = o.step ? "Dica " + o.step + "/" + TOTAL : "";
       u.t.textContent = o.title;
       u.p.textContent = o.text;
       u.ok.textContent = o.btn;
@@ -29576,11 +30530,7 @@
             hide();
             g.need = 1e9;
             gameEl.classList.add("t-rack");
-            hint(
-              "Suas armas e dons ficam guardados aqui.",
-              5000,
-              "#rack",
-            );
+            hint("Suas armas e dons ficam guardados aqui.", 5000, "#rack");
             this.ph = "post";
             this.t0 = this.clock;
           }

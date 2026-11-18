@@ -203,7 +203,7 @@ button {
   left: auto;
   padding: 4px 8px;
   font-family: var(--f-title);
-  font-size: 10px;
+  font-size: 8px;
   letter-spacing: 0.04em;
   color: #c8e6c9;
   background: rgba(8, 12, 20, 0.72);
@@ -231,6 +231,7 @@ button {
 }
 
 #bossbar>div {
+  position: relative;
   height: 12px;
   margin-top: 4px;
   background: var(--blood-d);
@@ -1013,7 +1014,7 @@ span b {
   flex-wrap: wrap;
   gap: 6px 14px;
   font-family: var(--f-ui, var(--f-title));
-  font-size: 9px;
+  font-size: 5px;
   letter-spacing: 0.03em;
   color: var(--mute);
   opacity: 0.78;
@@ -1217,7 +1218,6 @@ span b {
   font-family: var(--f-title);
   font-size: 10px;
   padding: 10px 14px;
-  text-transform: uppercase;
   box-shadow:
     0 0 0 2px #05030c,
     inset 0 2px 0 #6f62b8,
@@ -1240,7 +1240,9 @@ span b {
   align-items: center;
   gap: 10px;
   background: var(--panel);
-  border: 2px solid var(--line);
+  border: 1px solid var(--gold);
+  border-radius:
+    4px;
   padding: 8px 10px;
   margin: 5px 0;
   text-align: left;
@@ -2118,7 +2120,8 @@ span b {
     right: 0;
     margin: 20px 20px;
     font-weight: 700;
-    font-size: 12px;
+    font-size: 10px;
+    border-radius: 4px;
   }
 }
 
@@ -2195,8 +2198,8 @@ span b {
 }
 
 .choice-tools .mb {
-  margin: 0;
-  min-width: 150px;
+  margin: 0 8px;
+  min-width: 100px;
 }
 
 .choice-tools button:disabled {
@@ -2419,6 +2422,7 @@ span b {
   padding: 8px 6px 6px;
   background: linear-gradient(180deg, #f6ebcf, #e6d3a2);
   border: 3px solid var(--cc, #a8741f);
+  border-radius: 4px;
   box-shadow:
     0 0 0 2px #000,
     inset 0 0 0 2px #fff3c9;
@@ -2552,7 +2556,7 @@ span b {
 .lc-top i {
   font-style: normal;
   background: var(--cc);
-  color: #150c26;
+  color: #0c0918;
   padding: 3px 4px;
   border: 2px solid #000;
 }
@@ -2804,7 +2808,7 @@ span b {
 
   .lc {
     min-height: 190px;
-    padding: 4px;
+    padding: 6px;
     gap: 4px;
   }
 
@@ -3720,7 +3724,7 @@ button:focus-visible {
   }
 
   #bossbar>div {
-    height: 8px;
+    height: 10px;
     border-width: 1px;
     margin-top: 3px;
   }
@@ -3763,8 +3767,8 @@ button:focus-visible {
   }
 
   .slot {
-    width: 38px;
-    height: 38px;
+    width: 28px;
+    height: 28px;
     border-width: 2px;
     border-radius: 4px;
   }
@@ -3816,7 +3820,7 @@ button:focus-visible {
     top: calc(var(--sat) + 88px);
     font-size: 9px;
     width: max-content;
-    max-width: 34vw;
+    max-width: 50vw;
     white-space: normal;
     text-align: center;
   }
@@ -3867,7 +3871,7 @@ button:focus-visible {
   /*telas*/
   .ov {
     padding: calc(8px + var(--sat)) calc(12px + var(--sar)) calc(8px + var(--sab)) calc(12px + var(--sal));
-    background: rgba(7, 5, 15, 0.80);
+    background: rgba(7, 5, 15, 0.8);
   }
 
   .ov h1 {
@@ -3899,9 +3903,9 @@ button:focus-visible {
   }
 
   .btn {
-    padding: 0px 18px 0px;
+    padding: 0 12px;
     min-height: 32px;
-    font-size: 12px;
+    font-size: 8px;
     font-weight: 800;
     border-bottom-width: 4px;
     box-shadow: 0 0 0 2px #000;
@@ -3909,7 +3913,7 @@ button:focus-visible {
 
   #playBtn {
     min-width: 120px;
-    font-size: 12px;
+    font-size: 10px;
     padding: 0 12px;
     font-weight: 800;
     line-height: 3;
@@ -3948,9 +3952,8 @@ button:focus-visible {
   .rw {
     padding: 7px 10px;
     margin: 4px 0;
-    font-size: 13px;
+    font-size: 10px;
     gap: 8px;
-    border-width: 2px;
   }
 
   .rw small {
@@ -3990,7 +3993,7 @@ button:focus-visible {
   }
 
   #prepH .rw {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .bar i {
@@ -4247,7 +4250,8 @@ button:focus-visible {
   }
 
   #stPanel h4 {
-    font-size: 8px;
+    font-size: 12px;
+    font-weight: 800;
     margin-bottom: 10px;
   }
 
@@ -5491,7 +5495,7 @@ button:focus-visible {
 
 .hero-stat-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 8px;
   margin: 4px 0;
@@ -5519,7 +5523,7 @@ button:focus-visible {
   font-family: var(--f-title);
   font-size: 8px;
   color: var(--mute);
-  margin: 7px 0 4px;
+  margin: 16px 0 4px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 3px;
 }
@@ -5532,7 +5536,7 @@ button:focus-visible {
 
 .hero-detail-name {
   font-family: var(--f-title);
-  font-size: 22px;
+  font-size: 16px;
   color: var(--gold);
 }
 
@@ -5560,12 +5564,12 @@ button:focus-visible {
 }
 
 .hero-bonus {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--gold);
 }
 
 .hero-weapon-icon {
-  width: 20px;
+  width: 40px;
   vertical-align: middle;
   image-rendering: pixelated;
 }
@@ -6494,7 +6498,7 @@ html.sysfont #dawnTxt h2 {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(250px, 40%) minmax(0, 1fr);
   gap: 8px;
   align-items: stretch;
   margin-top: 6px;
@@ -6502,16 +6506,18 @@ html.sysfont #dawnTxt h2 {
 
 .subscreen-panel.wide-prep #prepH .hero-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  align-content: start;
+  align-content: space-evenly;
   justify-content: stretch;
   flex-wrap: initial;
   min-height: 0;
   margin: 0;
-  padding: 2px 14px 2px 2px;
+  padding: 0 6px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
 }
 
 .subscreen-panel.wide-prep #prepH .hero-list .hero {
@@ -6519,6 +6525,7 @@ html.sysfont #dawnTxt h2 {
   min-width: 0;
   padding: 6px 3px;
   gap: 2px;
+  border-radius: 4px;
 }
 
 .subscreen-panel.wide-prep #prepH .hero h3 {
@@ -6543,7 +6550,9 @@ html.sysfont #dawnTxt h2 {
   margin: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  font-size: 8px;
+  font-size: 10px;
+  padding: 12px;
+  border-radius: 4px;
 }
 
 /* Escolha o modo: modos e mundos na mesma tela, sem rolagem. */
@@ -7519,7 +7528,7 @@ html.sysfont #dawnTxt h2 {
 
 .buy-card p {
   margin: 0 0 14px;
-  font-size: 14px;
+  font-size: 10px;
   line-height: 1.4;
   color: var(--parch-d);
 }
@@ -8070,7 +8079,8 @@ html.sysfont #dawnTxt h2 {
   gap: 3px;
   padding: 8px 9px;
   background: var(--panel);
-  border: 2px solid var(--line);
+  border: 2px solid var(--gold);
+  border-radius: 4px;
 }
 
 .pf-tile .l {
@@ -8751,7 +8761,6 @@ button.pf-trk:not(.lk):not(.cur):hover {
   padding: 0 12px;
 }
 
-
 /* ===================================================================
    Pausa: status à esquerda; botões Continuar / Menu / Configurações / Evoluções
    =================================================================== */
@@ -8824,7 +8833,8 @@ button.pf-trk:not(.lk):not(.cur):hover {
   gap: 8px 16px;
   padding: 10px 12px;
   background: var(--panel);
-  border: 2px solid var(--line);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
   box-shadow: 0 3px 0 #000;
 }
 
@@ -9033,14 +9043,12 @@ button.pf-trk:not(.lk):not(.cur):hover {
   }
 }
 
-
 /* Dados de Balanceamento: botões em duas colunas na tela completa */
 .balance-export-actions.balance-export-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
-
 
 /*===== Testemunhos: ícone hexagonal (estrutura em index.html #achRowTpl, lógica em game.js > renderAch) =====
    O ícone é um hexágono em SVG com glifo desenhado por código; se existir assets/icons/ach/<id>.png a imagem
@@ -9108,7 +9116,12 @@ button.pf-trk:not(.lk):not(.cur):hover {
   image-rendering: pixelated;
   pointer-events: none;
   user-select: none;
-  clip-path: polygon(50% 0, 100% 23.68%, 100% 76.32%, 50% 100%, 0 76.32%, 0 23.68%);
+  clip-path: polygon(50% 0,
+      100% 23.68%,
+      100% 76.32%,
+      50% 100%,
+      0 76.32%,
+      0 23.68%);
 }
 
 .ach-hex.has-img .ach-img {
@@ -9588,7 +9601,9 @@ body::-webkit-scrollbar,
   display: grid;
   place-items: center;
   padding: 2px 4px;
-  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.35));
+  background: radial-gradient(circle at 50% 40%,
+      rgba(255, 255, 255, 0.1),
+      rgba(0, 0, 0, 0.35));
   border: 2px solid rgba(0, 0, 0, 0.55);
 }
 
@@ -9646,7 +9661,9 @@ body::-webkit-scrollbar,
   overflow: auto;
   background: linear-gradient(#2a2040, #120c22);
   border: 3px solid var(--gold);
-  box-shadow: 0 0 0 3px #000, 0 0 28px rgba(242, 193, 78, 0.35);
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 28px rgba(242, 193, 78, 0.35);
   animation: ovInPanel 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
 
@@ -9687,12 +9704,16 @@ body::-webkit-scrollbar,
 
 .skin-card.epic {
   border-color: var(--gold);
-  box-shadow: 0 0 0 2px #000, 0 0 12px rgba(242, 193, 78, 0.3);
+  box-shadow:
+    0 0 0 2px #000,
+    0 0 12px rgba(242, 193, 78, 0.3);
 }
 
 .skin-card.legendary {
   border-color: #ff8a3a;
-  box-shadow: 0 0 0 2px #000, 0 0 14px rgba(255, 138, 58, 0.45);
+  box-shadow:
+    0 0 0 2px #000,
+    0 0 14px rgba(255, 138, 58, 0.45);
 }
 
 .skin-card.on {
@@ -9709,7 +9730,9 @@ body::-webkit-scrollbar,
   min-height: 100px;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.4));
+  background: radial-gradient(circle at 50% 40%,
+      rgba(255, 255, 255, 0.1),
+      rgba(0, 0, 0, 0.4));
   border: 2px solid rgba(0, 0, 0, 0.55);
 }
 
@@ -9730,14 +9753,14 @@ body::-webkit-scrollbar,
 .skin-cta {
   width: 100%;
   min-height: 32px;
-  font-size: 7px;
+  font-size: 6px;
   padding: 0 12px;
 }
 
 .skin-close {
   width: fit-content;
   min-height: 32px;
-  font-size: 10px;
+  font-size: 8px;
   padding: 0 12px;
 }
 
@@ -9750,7 +9773,9 @@ body::-webkit-scrollbar,
 .shop-item.skinx.legendary {
   border-color: #ff8a3a;
   background: linear-gradient(#4a2a14, #20120a);
-  box-shadow: 0 0 0 2px #000, 0 0 14px rgba(255, 138, 58, 0.4);
+  box-shadow:
+    0 0 0 2px #000,
+    0 0 14px rgba(255, 138, 58, 0.4);
 }
 
 .skin-art {
@@ -9867,7 +9892,9 @@ body::-webkit-scrollbar,
   text-align: left;
   background: linear-gradient(#2a2040, #120c22);
   border: 3px solid var(--gold);
-  box-shadow: 0 0 0 3px #000, 0 0 28px rgba(242, 193, 78, 0.35);
+  box-shadow:
+    0 0 0 3px #000,
+    0 0 28px rgba(242, 193, 78, 0.35);
   animation: ovInPanel 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
 
@@ -9917,7 +9944,7 @@ body::-webkit-scrollbar,
   align-self: center;
   min-width: fit-content;
   min-height: 32px;
-  font-size: 10px;
+  font-size: 8px;
   padding: 0 12px;
 }
 
@@ -9931,4 +9958,98 @@ body::-webkit-scrollbar,
     font-size: 12px;
     line-height: 1.45;
   }
+}
+
+.hero-attr-ico {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: -3px;
+  image-rendering: pixelated;
+}
+
+/* Preparar a jornada: arma inicial e graça lado a lado */
+.hero-pans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hero-pan {
+  min-width: 0;
+  padding: 6px 8px 8px;
+  background: rgba(20, 12, 40, 0.55);
+  border: 1px solid #5a3f8a;
+  box-shadow: inset 0 0 0 1px rgba(242, 193, 78, 0.12);
+}
+
+.hero-pan-title {
+  font-size: clamp(8px, 0.9vw, 10px);
+  letter-spacing: 0.08em;
+  color: var(--mute);
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #4a3470;
+  font-family: var(--f-title);
+}
+
+.hero-pan-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hero-pan-ico {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  image-rendering: pixelated;
+}
+
+.hero-pan-txt {
+  min-width: 0;
+}
+
+.hero-pan-name {
+  display: block;
+  color: #f2c14e;
+  font-size: clamp(9px, 2vw, 12px);
+  line-height: 1.25;
+}
+
+.hero-pan-desc {
+  display: block;
+  color: #b9b0d4;
+  font-size: clamp(8px, 0.9vw, 10px);
+  line-height: 1.3;
+}
+
+/* ===== Fundos das telas com imagens de assets/loading ===== */
+.subscreen {
+  background:
+    linear-gradient(rgba(7, 5, 15, 0.7), rgba(7, 5, 15, 0.82)),
+    var(--scr-bg, none) center / cover no-repeat;
+}
+
+#menu {
+  background:
+    linear-gradient(rgba(7, 5, 15, 0.55), rgba(7, 5, 15, 0.75)),
+    var(--menu-bg, none) center / cover no-repeat;
+}
+
+/* vida do chefe escrita dentro da barra */
+#bosstxt {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--f-title);
+  font-size: 7px;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  white-space: nowrap;
 }
