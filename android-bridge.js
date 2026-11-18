@@ -100,7 +100,7 @@
   const errTxt = (e) =>
     String(
       (e && e.code != null ? e.code + ": " : "") +
-        ((e && e.message) || e || "erro"),
+      ((e && e.message) || e || "erro"),
     ).slice(0, 100);
 
   /* ---- Vibração/hápticos nativos (requer @capacitor/haptics instalado e sincronizado) ---- */
@@ -180,8 +180,8 @@
   const code = (e) =>
     e && (e.code != null || e.message)
       ? " (" +
-        [e.code, e.message].filter((x) => x != null && x !== "").join(": ") +
-        ")"
+      [e.code, e.message].filter((x) => x != null && x !== "").join(": ") +
+      ")"
       : "";
 
   /* Anúncio premiado. Emula a API do CrazyGames que o jogo usa. adError recebe o motivo. */
@@ -204,7 +204,7 @@
       hs.forEach((h) => {
         try {
           h.remove();
-        } catch (e) {}
+        } catch (e) { }
       });
       ok ? cb.adFinished && cb.adFinished() : cb.adError && cb.adError(why);
     };
@@ -241,8 +241,8 @@
         end(
           false,
           "Sem anúncio disponível agora" +
-            code(e) +
-            ". Tente de novo em instantes.",
+          code(e) +
+          ". Tente de novo em instantes.",
         );
       });
       await on("onRewardedVideoAdFailedToShow", (e) => {
@@ -278,7 +278,7 @@
       hs.forEach((h) => {
         try {
           h.remove();
-        } catch (e) {}
+        } catch (e) { }
       });
       ok ? cb.adFinished && cb.adFinished() : cb.adError && cb.adError();
     };
@@ -351,8 +351,8 @@
     const run = () => T(fn(), ms, tag);
     const r = npq.then(run, run);
     npq = r.then(
-      () => {},
-      () => {},
+      () => { },
+      () => { },
     );
     return r;
   };
@@ -508,7 +508,10 @@
     },
     async show(key) {
       const id = CFG.pgs.leaderboards[key];
-      if (!id) return false;
+      if (!id) {
+        FePGS.lastError = "ranking sem ID configurado: " + key;
+        return false;
+      }
       if (!FePGS.signed && !(await FePGS.signIn())) return false;
       try {
         await T(
@@ -599,8 +602,8 @@
             .slice(0, 40),
           params: p,
         }),
-      ).catch(() => {});
-    } catch (e) {}
+      ).catch(() => { });
+    } catch (e) { }
   };
 
   /* ---- Botão voltar do Android (protegido: se o plugin App não existir, o resto da ponte continua funcionando) ---- */
@@ -627,7 +630,7 @@
   /* ---- Tela sempre ligada durante o jogo ---- */
   try {
     P("KeepAwake").keepAwake();
-  } catch (e) {}
+  } catch (e) { }
   /* ---- Bloqueia zoom por gesto ---- */
   document.addEventListener("gesturestart", (e) => e.preventDefault());
 })();

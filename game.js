@@ -226,7 +226,7 @@
   /* ===== VERSÃO DO JOGO (manual) =====
      Altere APP_VER abaixo para atualizar a versão na tela inicial e nas Configurações.
      (Ponto único de verdade — não fica no HTML.) */
-  const APP_VER = "0.67"; // Perfil do jogador: títulos, molduras e boas-vindas (anterior: 0.64)
+  const APP_VER = "0.68"; // Skins de heróis (heroes_skins.js): tela de herói, Loja e save (anterior: 0.67 Perfil do jogador)
   /* ===== NOTÍCIAS / NOTAS DA VERSÃO =====
      Como atualizar em cada release:
        1) Suba APP_VER (ex.: '0.48').
@@ -6945,17 +6945,97 @@
     if (k === "statue") k = hash(cx, cy, 11) < 0.5 ? "angel" : "gargoyle";
     return { k, px, py };
   }
-  function spr(s, x, y, sc, flash, flip, syy, alpha, sxx) {
+  /* v0.66: contorno claro (rim) para separar inimigos e herói do chão escuro. O sprite já tem 1 px de contorno
+     escuro; o rim é uma silhueta 1 px maior, em cor clara, desenhada por baixo (efeito "adesivo"). Gerado uma vez
+     por sprite/cor e guardado em cache (WeakMap: some junto com o sprite). Desligue com RIM_ON = false. */
+  const RIM_ON = true,
+    RIM_FOE = "rgba(255,224,140,.8)",
+    RIM_HERO = "rgba(190,236,255,.9)";
+  const RIMC = new WeakMap();
+  function rimOf(s, col) {
+    let m = RIMC.get(s.c);
+    if (!m) RIMC.set(s.c, (m = {}));
+    if (m[col]) return m[col];
+    const cw = s.c.width,
+      ch = s.c.height,
+      sil = mk(cw, ch, (g) => {
+        g.drawImage(s.c, 0, 0);
+        g.globalCompositeOperation = "source-in";
+        g.fillStyle = col;
+        g.fillRect(0, 0, cw, ch);
+      });
+    return (m[col] = mk(cw + 2, ch + 2, (g) => {
+      for (const d of [
+        [0, 1],
+        [2, 1],
+        [1, 0],
+        [1, 2],
+      ])
+        g.drawImage(sil, d[0], d[1]);
+    }));
+  }
+  /* v0.66: cenário "calmo": props estáticos (lápides, pedras, estacas...) ganham um tom escuro por cima para
+     ficarem atrás de ameaças e itens. Ajuste CALM_TINT (mais alfa = mais apagado). */
+  const CALM_TINT = "rgba(22,15,38,.44)";
+  const CALMC = new WeakMap();
+  function calmOf(im) {
+    let c = CALMC.get(im);
+    if (c) return c;
+    c = mk(im.width, im.height, (g) => {
+      g.drawImage(im, 0, 0);
+      g.globalCompositeOperation = "source-atop";
+      g.fillStyle = CALM_TINT;
+      g.fillRect(0, 0, im.width, im.height);
+    });
+    CALMC.set(im, c);
+    return c;
+  }
+  function spr(s, x, y, sc, flash, flip, syy, alpha, sxx, rim) {
     ctx.save();
     ctx.translate(sx(x), sy(y));
     if (alpha !== undefined && alpha < 1) ctx.globalAlpha = alpha;
     ctx.scale((flip ? -1 : 1) * sc * (sxx || 1), sc * (syy || 1));
+    if (rim && RIM_ON && s.c)
+      ctx.drawImage(rimOf(s, rim), -s.w / 2 - 1, -s.h / 2 - 1, s.w + 2, s.h + 2);
     ctx.drawImage(flash ? s.f : s.c, -s.w / 2, -s.h / 2);
     ctx.restore();
   }
   function shadow(x, y, w) {
     ctx.fillStyle = "rgba(0,0,0,.3)";
     ctx.fillRect(sx(x - w / 2), sy(y), Math.round(w), 2);
+  }
+  /* v0.66: mini barra de vida sob os pés do herói: dá para ver o risco sem tirar o olho do centro da ação.
+     Sutil quando a vida está cheia (alfa .4); some no tutorial até a barra de Salvação ser apresentada. */
+  function drawMiniHp(g) {
+    const p = g.p,
+      mh = g.mods && g.mods.maxhp;
+    if (!p || !(mh > 0) || p.hp <= 0 || g.fallY > 0) return;
+    if (gameEl.classList.contains("tutor") && !gameEl.classList.contains("t-hp"))
+      return;
+    const k = clamp(p.hp / mh, 0, 1),
+      hv2 = HFR[g.hk] && HFR[g.hk].v2,
+      W = 20,
+      x = sx(p.x) - (W >> 1),
+      y = sy(p.y) + (hv2 ? 15 : 14),
+      fw = k > 0 ? Math.max(1, Math.round(W * k)) : 0;
+    ctx.save();
+    ctx.globalAlpha = k >= 0.999 ? 0.4 : 1;
+    ctx.fillStyle = "#07050f";
+    ctx.fillRect(x - 1, y - 1, W + 2, 5);
+    ctx.fillStyle = "#3a1220";
+    ctx.fillRect(x, y, W, 3);
+    ctx.fillStyle =
+      k < 0.3
+        ? Math.floor(g.t * 6) % 2
+          ? "#ff5a6e"
+          : "#ffa0ab"
+        : k < 0.6
+          ? "#f2c14e"
+          : "#6fdc7a";
+    ctx.fillRect(x, y, fw, 3);
+    ctx.fillStyle = "rgba(255,255,255,.35)";
+    ctx.fillRect(x, y, fw, 1);
+    ctx.restore();
   }
   function drawText(s, x, y, col) {
     ctx.font = "9px " + CF.body;
@@ -7079,12 +7159,15 @@
         p.face < 0,
         1,
         blink ? 0.4 : 1,
+        1,
+        RIM_HERO,
       );
       if (frozen) drawGoldGlint(g, p, bob);
       heroExtra(g, p);
       if (p.sh > 0 && !frozen) drawDome(g, p);
     }
     flushDecor(1e9);
+    drawMiniHp(g);
     // escudos
     for (const [weaponId, weaponRun] of Object.entries(g.W || {})) {
       const behavior = WEAPONS[weaponId] && WEAPONS[weaponId].behavior;
@@ -9174,10 +9257,12 @@
       const id = p[1],
         i = +p[2];
       if (!S.hero || !S.hero[id]) return;
+      skBeforeAsset(id); /* v0.68: devolve os sprites clássicos antes de trocar (a skin é refeita abaixo) */
       const F = HERO_FILE[id] || (HERO_FILE[id] = [0, 0]);
       S.hero[id][i] = sp;
       F[i] = 1;
       if (!F[1 - i]) S.hero[id][1 - i] = sp;
+      skAfterAsset(id);
     } else if (p[0] === "dove") {
       const i = +p[1];
       S.dove[i] = sp;
@@ -9573,6 +9658,13 @@
     p.className = "rw hero-details";
     p.innerHTML = o;
     b.appendChild(p);
+    /* v0.68: aparência (skin) do herói — mesma tela serve ao menu de heróis e à "Preparar a jornada" */
+    if (!X.locked && skList(v).length) {
+      const sk = skHeroRow(v, () => renderHeroes(b)),
+        hdr = p.querySelector(".hero-detail-header");
+      if (hdr) hdr.after(sk);
+      else p.prepend(sk);
+    }
   }
   /* Static CSS moved to style.css. */
   $("#heroes").hidden = true;
@@ -12215,12 +12307,18 @@
     LIBD.innerHTML =
       '<div class="ld-wrap' +
       (e.g === "h" ? " ld-wrap-hero" : "") +
-      '"><button type="button" class="lc ld-card g-' +
+      '">' +
+      (e.g === "h" ? '<div class="ld-left">' : "") +
+      '<button type="button" class="lc ld-card g-' +
       e.g +
       (e.locked ? " lc-locked" : "") +
       '" tabindex="-1">' +
       libCard(e) +
-      '</button><div class="ld-info"><h3>' +
+      "</button>" +
+      (e.g === "h"
+        ? '<div class="ld-acts"><button type="button" class="mb ld-act" data-act="story">História</button><button type="button" class="mb ld-act" data-act="skins">Aparências</button></div></div>'
+        : "") +
+      '<div class="ld-info"><h3>' +
       e.name +
       (e.ref ? "<small>" + e.ref + "</small>" : "") +
       '</h3><div class="ld-sub">' +
@@ -12238,6 +12336,15 @@
       '<button type="button" class="mb ld-nav ld-prev" data-d="-1" aria-label="Anterior"><span class="uic i-left"></span></button><button type="button" class="mb ld-nav ld-next" data-d="1" aria-label="Próximo"><span class="uic i-right"></span></button><button type="button" class="mb ld-x ld-closed" aria-label="Fechar"><span class="uic i-close"></span></button><div class="ld-close">Toque fora da carta para fechar</div>';
     bindLibDetailNavigation();
     mountLibArt(e);
+    /* v0.70: botões "História" e "Aparências" embaixo da carta do herói */
+    if (e.g === "h")
+      LIBD.querySelectorAll(".ld-act").forEach((b) => {
+        b.onclick = (ev) => {
+          ev.stopPropagation();
+          if (b.dataset.act === "story") storyModal(e.id);
+          else skModal(e.id, () => openLibDet(libIdx), "lib");
+        };
+      });
   }
   function openTreeDet(i) {
     libDetailMode = "tree";
@@ -12383,7 +12490,7 @@
   addEventListener(
     "keydown",
     (ev) => {
-      if (LIBD.hidden) return;
+      if (LIBD.hidden || document.querySelector(".skin-ov, .story-ov")) return;
       const k = ev.key;
       if (k === "Escape" || k === "Enter") closeLibDet();
       else if (k === "ArrowLeft") {
@@ -15928,21 +16035,58 @@
     if (shopSec === "skins") {
       head(
         "Skins de heróis",
-        "Em breve: a primeira skin de cada herói será gratuita.",
+        "Cada skin custa " +
+        n(SK_PRICE_DEFAULT) +
+        " moedas e traz um ícone de perfil exclusivo. Equipe aqui ou na tela de herói.",
       );
       const r = rail();
       Object.keys(HX).forEach((k) => {
         const X = HX[k];
         if (!X) return;
-        r.appendChild(
-          item({
-            cls: "skin",
-            art: ico("star"),
-            artCls: "skin-art",
-            title: X.name,
-            sub: "Skin 1 | em breve",
-          }),
-        );
+        skList(k).forEach((d) => {
+          const own = skOwned(k, d.id),
+            eq = skEquipped(k) === d.id,
+            price = skPrice(d);
+          let bt;
+          if (X.locked)
+            bt = cta(
+              '<span class="uic i-lock"></span> Requer ' + X.name,
+              true,
+              () => { },
+            );
+          else if (eq) bt = cta("Em uso", true, () => { });
+          else if (own)
+            bt = cta("Equipar", false, () => {
+              skEquip(k, d.id);
+              SFX.play("pick");
+              notify("Skin equipada: " + d.name, "ok");
+              refresh();
+            });
+          else {
+            const lbl =
+              '<span class="uic i-lock"></span> Comprar | ' +
+              n(price) +
+              " moedas";
+            bt = cta(lbl, save.coins < price ? "dim" : false, () =>
+              skBuy(k, d.id, bt, lbl, refresh),
+            );
+          }
+          const art = document.createElement("div");
+          art.className = "skin-store-art";
+          art.appendChild(skPreview(k, d.id, 64));
+          r.appendChild(
+            item({
+              cls: "skinx " + (d.rarity || "") + (own ? " owned" : ""),
+              art,
+              artCls: "skin-art",
+              badge: price === 0 ? "Grátis" : SK_RARITY[d.rarity] || "",
+              hot: price === 0,
+              title: d.name,
+              sub: X.name + " | " + (d.tag || ""),
+              cta: bt,
+            }),
+          );
+        });
       });
     }
 
@@ -15989,7 +16133,7 @@
         });
       head(
         "Ícones de perfil",
-        "Compre ícones de demônios e chefes para usar no seu Perfil. Os ícones dos heróis são liberados junto com cada herói.",
+        "Compre ícones de demônios e chefes para usar no seu Perfil. Os ícones dos heróis são liberados com cada herói e o ícone de cada skin vem junto com a skin (aba Skins).",
       );
       head("Demônios", "Todos custam " + n(ECO.ICON_COST.demon) + " moedas.");
       add(
@@ -16585,6 +16729,16 @@
   function profIconList() {
     const L = [];
     for (const k in HX) L.push({ id: k, name: HX[k].name || k, cat: "hero" });
+    for (const k in HX)
+      skList(k).forEach((d) =>
+        L.push({
+          id: k + "_" + d.id,
+          name: d.name,
+          cat: "hero",
+          hero: k,
+          skin: d.id,
+        }),
+      ); /* v0.69: um ícone por skin, liberado ao comprar a skin */
     for (const [id, name] of PROF_FOES) L.push({ id, name, cat: "demon" });
     for (const [id, name] of PROF_BOSSES) L.push({ id, name, cat: "boss" });
     return L;
@@ -16594,18 +16748,57 @@
   function profIconLocked(id) {
     const i = profIconInfo(id);
     if (!i) return true;
+    if (i.skin)
+      return !(
+        skOwned(i.hero, i.skin) &&
+        !(PROF.LOCK_HERO_ICONS && HX[i.hero] && HX[i.hero].locked)
+      );
     if (i.cat === "hero")
       return !!(PROF.LOCK_HERO_ICONS && HX[id] && HX[id].locked);
     return !(save.icons && save.icons[id]);
   }
   const profIconCost = (id) => {
     const i = profIconInfo(id);
+    if (i && i.skin) return skPrice(skDef(i.hero, i.skin)); /* preço da skin, que já traz o ícone */
     return !i || i.cat === "hero"
       ? 0
       : ECO.ICON_COST[id] || ECO.ICON_COST.demon;
   };
   /* ---------- avatar: PNG se existir, senão o rosto desenhado a partir do sprite ---------- */
-  function profPaintAvatar(el, id) {
+  /* v0.69: os ícones de PERFIL não mudam com a skin equipada: o herói usa sempre o sprite clássico, e cada skin tem o seu
+     próprio ícone (id "herói_skin", ex.: davi_rei). Só o busto da HUD durante a partida (live=true) mostra a skin equipada. */
+  function profFace(sp, base) {
+    /* recorta só a parte de cima (rosto + adereços da cabeça); base = sprite sem preenchimento */
+    const pad = sp.pad || { x: 0, y: 0 },
+      w0 = sp.w - pad.x * 2,
+      h0 = sp.h - pad.y * 2,
+      ch = pad.y + Math.min(h0, Math.max(8, Math.round(w0 * 1.05)));
+    return { cw: sp.w, ch: Math.min(sp.h, ch), x0: 0 };
+  }
+  /* recorte do ícone de uma SKIN: sprites largos (arco, corneta, asas) são centrados na cabeça para o rosto não encolher */
+  function profFaceSkin(sp) {
+    const pad = sp.pad || { x: 0, y: 0 },
+      w0 = sp.w - pad.x * 2,
+      h0 = sp.h - pad.y * 2,
+      ch = Math.min(
+        sp.h,
+        pad.y +
+        Math.min(h0, Math.max(8, Math.round(Math.min(w0, h0 * 0.55) * 1.05))),
+      );
+    if (w0 <= ch * 1.1) return { cw: sp.w, ch, x0: 0 };
+    let cx = sp.w >> 1;
+    try {
+      const A = skDetect(skFromSprite(sp));
+      if (A) cx = A.hx;
+    } catch (e) { }
+    const cw = Math.min(sp.w, Math.round(ch * 1.15));
+    return {
+      cw,
+      ch,
+      x0: Math.max(0, Math.min(sp.w - cw, Math.round(cx - cw / 2))),
+    };
+  }
+  function profPaintAvatar(el, id, live) {
     el.textContent = "";
     if (PROF_IMG[id]) {
       const im = document.createElement("img");
@@ -16615,26 +16808,36 @@
       el.appendChild(im);
       return;
     }
-    const isHero = !!(HX[id] && S.hero && S.hero[id]),
-      sp = isHero ? S.hero[id][0] : S[id];
+    const info = profIconInfo(id);
+    let sp = null,
+      isHero = false,
+      fc = null;
+    if (info && info.skin) {
+      const b = skBuild(info.hero, info.skin);
+      sp = b ? b.s[0] : null;
+      isHero = true;
+      if (sp && sp.c) fc = profFaceSkin(sp);
+    } else if (HX[id] && S.hero && S.hero[id]) {
+      isHero = true;
+      const O = SKORIG[id];
+      sp = live || !O ? S.hero[id][0] : O.s[0];
+    } else sp = S[id];
     if (sp && sp.c && sp.w && sp.h) {
-      const cw = sp.w,
-        ch = isHero
-          ? Math.min(sp.h, Math.max(8, Math.round(sp.w * 1.05)))
-          : sp.h; /* herói: só a parte de cima (rosto) */
+      const F = fc || (isHero ? profFace(sp) : { cw: sp.w, ch: sp.h, x0: 0 }),
+        cw = F.cw,
+        ch = F.ch; /* herói: só a parte de cima (rosto) */
       const c = document.createElement("canvas");
       c.width = cw;
       c.height = ch;
       c.className = "prof-av-cv";
       const g = c.getContext("2d");
       g.imageSmoothingEnabled = false;
-      g.drawImage(sp.c, 0, 0, cw, ch, 0, 0, cw, ch);
+      g.drawImage(sp.c, F.x0, 0, cw, ch, 0, 0, cw, ch);
       el.appendChild(c);
       return;
     }
-    const i = profIconInfo(id);
     el.classList.add("is-ph");
-    el.textContent = ((i && i.name) || "?").charAt(0).toUpperCase();
+    el.textContent = ((info && info.name) || "?").charAt(0).toUpperCase();
   }
 
   /* HUD: busto do herói ao lado da barra de Salvação (reaproveita o avatar do perfil) */
@@ -16643,7 +16846,7 @@
     if (!el || !G) return;
     el.className = "prof-av";
     el.dataset.icon = G.hk;
-    profPaintAvatar(el, G.hk);
+    profPaintAvatar(el, G.hk, true);
   }
 
   function profAvatar(id, px) {
@@ -17020,7 +17223,7 @@
     p.ov.querySelector(".pf-pick-shop").hidden = p.tab === "hero";
     p.ov.querySelector(".sub").textContent =
       p.tab === "hero"
-        ? "Os ícones dos heróis são liberados junto com o herói."
+        ? "Os ícones dos heróis saem com o herói; o ícone de cada skin sai ao comprar a skin na Loja."
         : "Ícones bloqueados podem ser comprados na Loja.";
     for (const [c, label] of CATS) {
       const bt = document.createElement("button");
@@ -17068,9 +17271,11 @@
         if (lk)
           return deny(
             bt,
-            it.cat === "hero"
-              ? "Libere o herói " + it.name + " para usar este ícone."
-              : "Compre este ícone na Loja por " + n(cost) + " moedas.",
+            it.skin
+              ? "Compre a skin " + it.name + " na Loja (" + n(cost) + " moedas) para usar este ícone."
+              : it.cat === "hero"
+                ? "Libere o herói " + it.name + " para usar este ícone."
+                : "Compre este ícone na Loja por " + n(cost) + " moedas.",
           );
         P.icon = it.id;
         persist();
@@ -17846,7 +18051,7 @@
           "warn",
         );
     };
-    add("Ranking: Vigília Eterna - melhor tempo", () => FePGS.show("time").then(gpFail));
+    add("Ranking: Vigília Eterna - melhor tempo", () => FePGS.show("timeInf").then(gpFail));
     add("Ranking: Amanhecer - mais abates", () => FePGS.show("kills").then(gpFail));
     add("Ranking: Amanhecer - maior nível", () => FePGS.show("level").then(gpFail));
     add("Conquistas", () => FePGS.showAch().then(gpFail));
@@ -18175,7 +18380,8 @@
     const l = document.createElement("div");
     l.id = "stLine";
     $("#cards").insertAdjacentElement("beforebegin", l);
-    /* HUD: vida no topo; objetivo, moedas e espaços de habilidade agrupados no canto inferior esquerdo */
+    /* HUD: vida, moedas e espaços de armas/dons agrupados no canto superior esquerdo (v0.66: o rack saiu do canto
+       inferior esquerdo, onde ficava sob o polegar do joystick; a parte de baixo da tela fica livre de HUD) */
     const hud = $("#hud"),
       mkc = (id, ...k) => {
         const d = document.createElement("div");
@@ -18190,7 +18396,7 @@
     hav.className = "prof-av";
     tl.prepend(hav);
     mkc("tccol", $("#timer"), $("#obj"), $("#bossbar"));
-    mkc("blcol", $("#rack"));
+    tl.appendChild($("#rack")); /* v0.66: rack dentro de #tlcol (antes: mkc("blcol", $("#rack")) no canto inferior) */
   })();
 
   /* ================= entrada ================= */
@@ -18346,6 +18552,9 @@
     $("#muteBtn").textContent = "Som: " + (SFX.on ? "ligado" : "desligado");
   });
   addEventListener("resize", resize);
+  /* v0.66: rotação e barras dinâmicas do navegador (visualViewport) também recalculam o canvas */
+  addEventListener("orientationchange", () => setTimeout(resize, 150));
+  if (window.visualViewport) visualViewport.addEventListener("resize", resize);
   gameEl.addEventListener("contextmenu", (e) => e.preventDefault());
 
   /* v0.18 removido: substituído pelo bloco v0.26 (injetado por último, abaixo). */
@@ -20480,7 +20689,7 @@
   let DQ = [],
     DQI = 0;
   function drawDI(o) {
-    const im = o.im,
+    const im = calmOf(o.im),
       k = o.k,
       x = o.x,
       y = o.y,
@@ -20639,7 +20848,7 @@
       syy *= ty / hh;
       sxx = tx / ww;
     }
-    spr(s, e.x, yy, e.sc, e.flash > 0, e.face < 0, syy, al, sxx);
+    spr(s, e.x, yy, e.sc, e.flash > 0, e.face < 0, syy, al, sxx, RIM_FOE);
   }
 
   /* ---------- efeitos: utilidades ---------- */
@@ -21912,6 +22121,708 @@
     if (A2 && A2.hero)
       for (const k in A2.hero)
         if (!HFR[k] && S.hero[k]) a2Hero(k);
+  }
+
+  /*SKIN-ENGINE-BEGIN*/
+  /* ================= v0.67: motor de skins de heróis (núcleo puro, sem DOM) =================
+     Uma skin é DADO (heroes_skins.js): troca de cores por hex ("remap") + peças de pixel art ("parts") ancoradas
+     na cabeça ou nos pés do quadro. O motor trabalha sobre os sprites já prontos (qualquer origem: código, PNG, art_v2),
+     então a mesma skin vale para todos os quadros (parado, andando, ação, dano, investida).
+     Grade = { w, h, d: Uint8ClampedArray RGBA }. */
+  const SK_OUT = [20, 11, 34]; /* cor do contorno de 1 px que buildSprite() desenha */
+  function skRGB(hex) {
+    let h = String(hex || "#000").replace("#", "");
+    if (h.length === 3) h = h.replace(/./g, "$&$&");
+    return [
+      parseInt(h.slice(0, 2), 16) || 0,
+      parseInt(h.slice(2, 4), 16) || 0,
+      parseInt(h.slice(4, 6), 16) || 0,
+    ];
+  }
+  function skGrid(w, h) {
+    return { w, h, d: new Uint8ClampedArray(w * h * 4) };
+  }
+  function skIsOut(d, i) {
+    return (
+      d[i + 3] > 0 &&
+      Math.abs(d[i] - SK_OUT[0]) +
+      Math.abs(d[i + 1] - SK_OUT[1]) +
+      Math.abs(d[i + 2] - SK_OUT[2]) <=
+      18
+    );
+  }
+  /* acha cabeça (topo do cabelo e centro) e pés; "unit" = espessura do contorno = tamanho do pixel de arte */
+  function skDetect(g) {
+    const { w, h, d } = g;
+    let top = -1;
+    for (let y = 0; y < h && top < 0; y++)
+      for (let x = 0; x < w; x++)
+        if (d[(y * w + x) * 4 + 3] > 0) {
+          top = y;
+          break;
+        }
+    if (top < 0) return null;
+    /* unit: quantas linhas de contorno há de cima para baixo na primeira coluna opaca da linha de topo */
+    let unit = 1;
+    {
+      let x0 = 0;
+      for (let x = 0; x < w; x++)
+        if (d[(top * w + x) * 4 + 3] > 0) {
+          x0 = x;
+          break;
+        }
+      let t = 0;
+      for (let y = top; y < h && skIsOut(d, (y * w + x0) * 4); y++) t++;
+      unit = Math.max(1, Math.min(8, t));
+    }
+    const minRun = 4 * unit;
+    const runsOf = (y) => {
+      const r = [];
+      let s = -1;
+      for (let x = 0; x <= w; x++) {
+        const i = (y * w + x) * 4;
+        const ok = x < w && d[i + 3] > 0 && !skIsOut(d, i);
+        if (ok && s < 0) s = x;
+        if (!ok && s >= 0) {
+          r.push([s, x - 1]);
+          s = -1;
+        }
+      }
+      return r;
+    };
+    let hy = -1;
+    for (let y = top; y < h && hy < 0; y++)
+      if (runsOf(y).some((r) => r[1] - r[0] + 1 >= minRun)) hy = y;
+    if (hy < 0) hy = top;
+    let best = null;
+    for (let y = hy; y < Math.min(h, hy + 4 * unit); y++)
+      for (const r of runsOf(y)) {
+        const len = r[1] - r[0] + 1;
+        if (!best || len > best.len) best = { len, s: r[0], e: r[1] };
+      }
+    const hx = best ? Math.round((best.s + best.e) / 2) : (w >> 1);
+    let bottom = top;
+    for (let y = h - 1; y >= 0; y--) {
+      let any = false;
+      for (let x = 0; x < w; x++)
+        if (d[(y * w + x) * 4 + 3] > 0) {
+          any = true;
+          break;
+        }
+      if (any) {
+        bottom = y;
+        break;
+      }
+    }
+    let fs = -1,
+      fe = -1;
+    for (let x = 0; x < w; x++)
+      if (d[(bottom * w + x) * 4 + 3] > 0) {
+        if (fs < 0) fs = x;
+        fe = x;
+      }
+    return {
+      unit,
+      top,
+      hy,
+      hx,
+      bottom,
+      fx: fs < 0 ? hx : Math.round((fs + fe) / 2),
+    };
+  }
+  /* troca de cores: { "#origem": "#destino" } ou { "#origem": ["#destino", tolerância] }.
+     Pixels a até "tolerância" (soma dos canais) da origem são recoloridos MANTENDO a variação de tom em relação à origem,
+     então uma regra pega toda a família de sombras de uma cor, mesmo em arte suavizada. Tolerância padrão: 7. */
+  function skRemap(g, map) {
+    const rules = [];
+    for (const k in map || {}) {
+      const v = map[k],
+        to = Array.isArray(v) ? v[0] : v,
+        tol = Array.isArray(v) && v[1] ? v[1] : 7;
+      rules.push([skRGB(k), skRGB(to), tol]);
+    }
+    if (!rules.length) return g;
+    const o = skGrid(g.w, g.h);
+    o.d.set(g.d);
+    const d = o.d;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3] || skIsOut(d, i)) continue;
+      let hit = null,
+        bd = 1e9;
+      for (const r of rules) {
+        const dist =
+          Math.abs(d[i] - r[0][0]) +
+          Math.abs(d[i + 1] - r[0][1]) +
+          Math.abs(d[i + 2] - r[0][2]);
+        if (dist < r[2] && dist < bd) {
+          bd = dist;
+          hit = r;
+        }
+      }
+      if (hit) {
+        d[i] = Math.max(0, Math.min(255, hit[1][0] + d[i] - hit[0][0]));
+        d[i + 1] = Math.max(0, Math.min(255, hit[1][1] + d[i + 1] - hit[0][1]));
+        d[i + 2] = Math.max(0, Math.min(255, hit[1][2] + d[i + 2] - hit[0][2]));
+      }
+    }
+    return o;
+  }
+  /* retângulo de cada peça em coordenadas do quadro base (já multiplicado pelo tamanho do pixel de arte) */
+  function skPartRect(p, A) {
+    const u = A.unit,
+      rows = p.px,
+      pw = rows.reduce((m, r) => Math.max(m, r.length), 0),
+      ph = rows.length,
+      at = p.at === "feet" ? { x: A.fx, y: A.bottom } : { x: A.hx, y: A.hy };
+    const x0 = at.x + ((p.ox || 0) - (p.ax || 0)) * u,
+      y0 = at.y + ((p.oy || 0) - (p.ay || 0)) * u;
+    return { x0, y0, x1: x0 + pw * u, y1: y0 + ph * u };
+  }
+  /* preenchimento (em pixels) que as peças exigem neste quadro */
+  function skNeed(base, skin) {
+    const A = skDetect(base);
+    if (!A) return { x: 0, y: 0 };
+    let x = 0,
+      y = 0;
+    for (const p of skin.parts || []) {
+      if (!p || !p.px || !p.px.length) continue;
+      const r = skPartRect(p, A);
+      x = Math.max(x, -r.x0, r.x1 - base.w);
+      y = Math.max(y, -r.y0, r.y1 - base.h);
+    }
+    return { x: x > 0 ? x + A.unit : 0, y: y > 0 ? y + A.unit : 0 };
+  }
+  /* aplica a skin em UM quadro. "min" = preenchimento mínimo { x, y } (o maior entre todos os quadros do herói, para
+     todos ficarem do mesmo tamanho). Devolve { g, padX, padY }; o preenchimento é simétrico: o centro do sprite não anda. */
+  function skApply(base, skin, min) {
+    const A = skDetect(base);
+    if (!A) return { g: base, padX: 0, padY: 0 };
+    const src = skRemap(base, skin.remap),
+      parts = (skin.parts || []).filter((p) => p && p.px && p.px.length),
+      need = skNeed(base, skin);
+    const padX = Math.max(need.x, (min && min.x) || 0),
+      padY = Math.max(need.y, (min && min.y) || 0),
+      u = A.unit;
+    const W = base.w + padX * 2,
+      H = base.h + padY * 2,
+      out = skGrid(W, H),
+      pm = new Uint8Array(W * H); /* 1 = pixel vindo de peça (ganha contorno) */
+    const D = out.d;
+    const put = (x, y, c, mode, mark) => {
+      if (x < 0 || y < 0 || x >= W || y >= H) return;
+      const i = (y * W + x) * 4;
+      if (mode === "under" && D[i + 3] > 0) return;
+      if (mode === "clip" && !(D[i + 3] > 0 && !skIsOut(D, i))) return;
+      D[i] = c[0];
+      D[i + 1] = c[1];
+      D[i + 2] = c[2];
+      D[i + 3] = 255;
+      if (mark) pm[y * W + x] = 1;
+    };
+    const paint = (p, mode) => {
+      const r = skPartRect(p, A),
+        pal = {};
+      for (const k in p.pal || {}) pal[k] = skRGB(p.pal[k]);
+      p.px.forEach((row, py) => {
+        for (let px = 0; px < row.length; px++) {
+          const c = pal[row[px]];
+          if (!c) continue;
+          for (let dy = 0; dy < u; dy++)
+            for (let dx = 0; dx < u; dx++)
+              put(
+                padX + r.x0 + px * u + dx,
+                padY + r.y0 + py * u + dy,
+                c,
+                mode,
+                mode !== "clip",
+              );
+        }
+      });
+    };
+    /* 1) peças "under" (atrás do corpo) */
+    for (const p of parts) if (p.z === "under") paint(p, "over");
+    /* 2) corpo (já com as cores trocadas) por cima das peças de trás */
+    for (let y = 0; y < base.h; y++)
+      for (let x = 0; x < base.w; x++) {
+        const si = (y * base.w + x) * 4;
+        if (!src.d[si + 3]) continue;
+        const di = ((y + padY) * W + (x + padX)) * 4;
+        D[di] = src.d[si];
+        D[di + 1] = src.d[si + 1];
+        D[di + 2] = src.d[si + 2];
+        D[di + 3] = src.d[si + 3];
+        pm[(y + padY) * W + (x + padX)] = 0;
+      }
+    /* 2b) o contorno antigo, que ficou atrás de peças "under", continua valendo (já é o próprio corpo) */
+    /* 3) peças "over" e "clip" */
+    for (const p of parts)
+      if (p.z !== "under") paint(p, p.z === "clip" ? "clip" : "over");
+    /* 4) contorno novo ao redor de tudo o que veio de peças */
+    const nb = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ];
+    const add = [];
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        if (!pm[y * W + x]) continue;
+        for (let t = 1; t <= u; t++)
+          for (const n of nb) {
+            const nx = x + n[0] * t,
+              ny = y + n[1] * t;
+            if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+            if (D[(ny * W + nx) * 4 + 3] === 0) add.push(ny * W + nx);
+          }
+      }
+    for (const k of add) {
+      const i = k * 4;
+      if (D[i + 3] === 0) {
+        D[i] = SK_OUT[0];
+        D[i + 1] = SK_OUT[1];
+        D[i + 2] = SK_OUT[2];
+        D[i + 3] = 255;
+      }
+    }
+    return { g: out, padX, padY };
+  }
+  /*SKIN-ENGINE-END*/
+  /* ---- dados e estado (conteúdo em heroes_skins.js → window.FE_HERO_SKINS) ---- */
+  const SKD = (typeof window !== "undefined" && window.FE_HERO_SKINS) || {
+    classic: { id: "classic", name: "Clássica", tag: "Visual original" },
+    heroes: {},
+  };
+  if (!SKD.classic)
+    SKD.classic = { id: "classic", name: "Clássica", tag: "Visual original" };
+  const SK_RARITY = { rare: "Rara", epic: "Épica", legendary: "Lendária" };
+  const SK_PRICE_DEFAULT = 200; /* preço de referência exibido na Loja; o valor real de cada skin vem de "price" em heroes_skins.js */
+  const SKORIG = {}; /* herói → sprites clássicos { s: [parado, andando], hfr } */
+  const SKCACHE = {}; /* "herói:skin" → sprites já recoloridos */
+  /* save.skin = { eq: { davi: "rei" }, own: { "davi:rei": 1 } } (own só guarda skins pagas já compradas) */
+  function skStore() {
+    const s =
+      save.skin && typeof save.skin === "object" ? save.skin : (save.skin = {});
+    if (!s.eq || typeof s.eq !== "object") s.eq = {};
+    if (!s.own || typeof s.own !== "object") s.own = {};
+    return s;
+  }
+  function skList(h) {
+    const l = SKD.heroes && SKD.heroes[h];
+    return Array.isArray(l) ? l.filter((x) => x && x.id) : [];
+  }
+  function skDef(h, id) {
+    return id === "classic"
+      ? SKD.classic
+      : skList(h).find((x) => x.id === id) || null;
+  }
+  const skPrice = (d) => Math.max(0, Math.floor(Number(d && d.price) || 0));
+  function skOwned(h, id) {
+    if (id === "classic") return true;
+    const d = skDef(h, id);
+    return !!d && (skPrice(d) === 0 || !!skStore().own[h + ":" + id]);
+  }
+  function skEquipped(h) {
+    const id = skStore().eq[h];
+    return id && id !== "classic" && skDef(h, id) && skOwned(h, id)
+      ? id
+      : "classic";
+  }
+  /* ---- sprite ⇄ grade ---- */
+  function skFromSprite(sp) {
+    const w = sp.c.width,
+      h = sp.c.height;
+    return { w, h, d: sp.c.getContext("2d").getImageData(0, 0, w, h).data };
+  }
+  function skToSprite(gr, src) {
+    const c = mk(gr.w, gr.h, (g) => {
+      const im = g.createImageData(gr.w, gr.h);
+      im.data.set(gr.d);
+      g.putImageData(im, 0, 0);
+    });
+    const f = mk(gr.w, gr.h, (g) => {
+      g.drawImage(c, 0, 0);
+      g.globalCompositeOperation = "source-in";
+      g.fillStyle = "#fff";
+      g.fillRect(0, 0, gr.w, gr.h);
+    });
+    const sp = { c, f, w: gr.w, h: gr.h };
+    if (src && src.w) sp.pad = { x: (gr.w - src.w) >> 1, y: (gr.h - src.h) >> 1 };
+    if (src && src.hd) sp.hd = true;
+    if (src && src.asset) sp.asset = true;
+    return sp;
+  }
+  /* guarda os sprites clássicos do herói (uma vez; setSprite() atualiza se um arquivo PNG chegar depois) */
+  function skCapture(h) {
+    if (!SKORIG[h] && S.hero && S.hero[h])
+      SKORIG[h] = { s: [S.hero[h][0], S.hero[h][1]], hfr: HFR[h] || null };
+    return SKORIG[h] || null;
+  }
+  /* recolore TODOS os sprites do herói (quadros de HFR + os 2 de S.hero) com o mesmo preenchimento */
+  function skBuild(h, id) {
+    const key = h + ":" + id;
+    if (SKCACHE[key]) return SKCACHE[key];
+    const O = skCapture(h),
+      skin = skDef(h, id);
+    if (!O || !skin || id === "classic") return null;
+    const list = [],
+      add = (sp) => {
+        if (sp && sp.c && list.indexOf(sp) < 0) list.push(sp);
+      };
+    O.s.forEach(add);
+    if (O.hfr)
+      for (const k in O.hfr) {
+        const v = O.hfr[k];
+        if (Array.isArray(v)) v.forEach(add);
+        else add(v);
+      }
+    const grids = new Map(),
+      min = { x: 0, y: 0 };
+    try {
+      for (const sp of list) {
+        const g = skFromSprite(sp),
+          n = skNeed(g, skin);
+        grids.set(sp, g);
+        min.x = Math.max(min.x, n.x);
+        min.y = Math.max(min.y, n.y);
+      }
+      const memo = new Map(),
+        f = (sp) => {
+          if (!sp || !sp.c) return sp;
+          if (!memo.has(sp))
+            memo.set(sp, skToSprite(skApply(grids.get(sp), skin, min).g, sp));
+          return memo.get(sp);
+        };
+      const out = { s: [f(O.s[0]), f(O.s[1])], hfr: null };
+      if (O.hfr) {
+        const N = {};
+        for (const k in O.hfr) {
+          const v = O.hfr[k];
+          N[k] = Array.isArray(v) ? v.map(f) : v && v.c ? f(v) : v;
+        }
+        out.hfr = N;
+      }
+      return (SKCACHE[key] = out);
+    } catch (e) {
+      console.warn("[skins] não foi possível aplicar", key, e);
+      return null;
+    }
+  }
+  /* coloca no jogo a skin equipada do herói (ou volta ao clássico) */
+  function skApplyHero(h) {
+    const O = skCapture(h);
+    if (!O) return;
+    const id = skEquipped(h),
+      b = id === "classic" ? null : skBuild(h, id);
+    const s = b ? b.s : O.s,
+      hfr = b ? b.hfr : O.hfr;
+    S.hero[h][0] = s[0];
+    S.hero[h][1] = s[1];
+    if (hfr) HFR[h] = hfr;
+    else delete HFR[h];
+  }
+  function skApplyAll() {
+    for (const h in S.hero) {
+      try {
+        skApplyHero(h);
+      } catch (e) {
+        console.warn("[skins]", h, e);
+      }
+    }
+  }
+  /* um PNG de herói chegou depois do boot: o sprite novo vira o "clássico" e a skin é refeita por cima */
+  function skBeforeAsset(h) {
+    const O = SKORIG[h];
+    if (!O) return;
+    S.hero[h][0] = O.s[0];
+    S.hero[h][1] = O.s[1];
+    if (O.hfr) HFR[h] = O.hfr;
+  }
+  function skAfterAsset(h) {
+    if (!SKORIG[h]) return;
+    delete SKORIG[h];
+    for (const k in SKCACHE) if (k.indexOf(h + ":") === 0) delete SKCACHE[k];
+    skCapture(h);
+    skApplyHero(h);
+  }
+  function skEquip(h, id) {
+    if (!skOwned(h, id)) return false;
+    const st = skStore();
+    if (id === "classic") delete st.eq[h];
+    else st.eq[h] = id;
+    persist();
+    skApplyHero(h);
+    return true;
+  }
+  function skBuy(h, id, bt, lbl, done) {
+    const d = skDef(h, id),
+      cost = skPrice(d);
+    if (save.coins < cost)
+      return deny(
+        bt,
+        "Faltam " +
+        (cost - save.coins).toLocaleString("pt-BR") +
+        " moedas para a skin " +
+        d.name +
+        ".",
+      );
+    if (!bt.dataset.c) {
+      bt.dataset.c = 1;
+      bt.textContent = "Confirmar compra? (" + cost.toLocaleString("pt-BR") + ")";
+      setTimeout(() => {
+        if (bt.isConnected) {
+          delete bt.dataset.c;
+          bt.innerHTML = lbl;
+        }
+      }, 3000);
+      return;
+    }
+    save.coins -= cost;
+    skStore().own[h + ":" + id] = 1;
+    skEquip(h, id);
+    persist();
+    refreshMeta();
+    SFX.play("coin");
+    buyPop(
+      "Skin desbloqueada",
+      d.name + " já está equipada em " + HX[h].name + ". O ícone de perfil da skin também foi liberado.",
+      "star",
+    );
+    done && done();
+  }
+  /* ---- pré-visualização animada (canvas pequeno, pixel perfeito) ---- */
+  function skFrames(h, id) {
+    const O = skCapture(h);
+    if (!O) return [];
+    const b = id === "classic" ? O : skBuild(h, id) || O,
+      s = b.s,
+      H = b.hfr;
+    if (H && H.idle && s[0] === H.base0)
+      return H.v2 ? H.idle.slice() : [H.idle[0], H.idle[1] || H.idle[0]];
+    return [s[0], s[1] || s[0]];
+  }
+  function skPreview(h, id, maxH) {
+    const fr = skFrames(h, id).filter((x) => x && x.c),
+      c = document.createElement("canvas");
+    c.className = "skin-pv";
+    if (!fr.length) return c;
+    const W = Math.max(...fr.map((x) => x.w)),
+      H = Math.max(...fr.map((x) => x.h)),
+      z = Math.max(1, Math.floor((maxH || 64) / H));
+    c.width = W;
+    c.height = H;
+    c.style.width = W * z + "px";
+    c.style.height = H * z + "px";
+    c._fr = fr;
+    c.dataset.skpv = h + ":" + id;
+    skDraw(c, 0);
+    return c;
+  }
+  function skDraw(c, t) {
+    const fr = c._fr;
+    if (!fr || !fr.length) return;
+    const sp = fr[t % fr.length],
+      x = c.getContext("2d");
+    x.imageSmoothingEnabled = false;
+    x.clearRect(0, 0, c.width, c.height);
+    x.drawImage(
+      sp.c,
+      Math.round((c.width - sp.w) / 2),
+      Math.round((c.height - sp.h) / 2),
+    );
+  }
+  let skT = 0;
+  setInterval(() => {
+    skT++;
+    document.querySelectorAll("canvas[data-skpv]").forEach((c) => skDraw(c, skT));
+  }, 300);
+  /* ---- Biblioteca > Heróis > "História": modal com título, resumo e referência (conteúdo em heroes_stories.js) ---- */
+  const STORIES = (typeof window !== "undefined" && window.FE_HERO_STORIES) || {};
+  function storyModal(h) {
+    const X = HX[h] || { name: h },
+      st = STORIES[h],
+      ov = document.createElement("div"),
+      pan = document.createElement("div");
+    ov.className = "ov story-ov";
+    ov.setAttribute("role", "dialog");
+    ov.setAttribute("aria-modal", "true");
+    pan.className = "story-panel";
+    ov.appendChild(pan);
+    const onKey = (ev) => {
+      if (ev.key === "Escape" || ev.key === "Enter") {
+        ev.stopImmediatePropagation();
+        close();
+      }
+    };
+    const close = () => {
+      removeEventListener("keydown", onKey, true);
+      ov.remove();
+    };
+    addEventListener("keydown", onKey, true);
+    const nm = document.createElement("small");
+    nm.className = "story-hero";
+    nm.textContent = "HISTÓRIA DE " + String(X.name).toUpperCase();
+    const t = document.createElement("h2");
+    t.className = "story-title";
+    t.textContent = st ? st.title : X.name;
+    const p = document.createElement("p");
+    p.className = "story-text";
+    p.textContent = st ? st.text : "A história deste herói chega em breve.";
+    pan.append(nm, t, p);
+    if (st && st.ref) {
+      const r = document.createElement("div");
+      r.className = "story-ref";
+      r.innerHTML = "<span>Referência</span><b></b>";
+      r.querySelector("b").textContent = st.ref;
+      pan.appendChild(r);
+    }
+    const ok = document.createElement("button");
+    ok.type = "button";
+    ok.className = "btn story-close";
+    ok.textContent = "Fechar";
+    ok.onclick = close;
+    pan.appendChild(ok);
+    ov.onclick = (e) => {
+      if (e.target === ov) close();
+    };
+    gameEl.appendChild(ov);
+  }
+  /* ---- tela de herói / preparação: linha "Aparência" + modal de escolha ---- */
+  function skHeroRow(h, redo) {
+    const d = skDef(h, skEquipped(h)),
+      row = document.createElement("div");
+    row.className = "skin-row";
+    const pv = document.createElement("div");
+    pv.className = "skin-row-pv";
+    pv.appendChild(skPreview(h, skEquipped(h), 72));
+    const tx = document.createElement("div");
+    tx.className = "skin-row-tx";
+    tx.innerHTML = "<small>APARÊNCIA</small><b></b><span></span>";
+    tx.querySelector("b").textContent = d.name;
+    tx.querySelector("span").textContent = d.tag || "";
+    const bt = document.createElement("button");
+    bt.type = "button";
+    bt.className = "mb skin-row-btn";
+    bt.textContent = "Trocar";
+    bt.onclick = () => skModal(h, redo);
+    row.appendChild(pv);
+    row.appendChild(tx);
+    row.appendChild(bt);
+    return row;
+  }
+  function skModal(h, after, mode) {
+    const lib = mode === "lib",
+      X = HX[h],
+      ov = document.createElement("div"),
+      pan = document.createElement("div");
+    ov.className = "ov skin-ov";
+    ov.setAttribute("role", "dialog");
+    ov.setAttribute("aria-modal", "true");
+    pan.className = "skin-panel";
+    ov.appendChild(pan);
+    const onKey = (ev) => {
+      if (ev.key === "Escape") {
+        ev.stopImmediatePropagation();
+        close();
+      }
+    };
+    const close = () => {
+      removeEventListener("keydown", onKey, true);
+      ov.remove();
+      after && after();
+    };
+    addEventListener("keydown", onKey, true);
+    const draw = () => {
+      pan.innerHTML = "";
+      const t = document.createElement("h2");
+      t.className = "skin-title";
+      t.textContent = (lib ? "Aparências de " : "Aparência de ") + X.name;
+      pan.appendChild(t);
+      if (!lib) {
+        const wl = document.createElement("div");
+        wl.className = "skin-coins";
+        wl.innerHTML = '<span class="uic i-coin"></span> <b></b>';
+        wl.querySelector("b").textContent = save.coins.toLocaleString("pt-BR");
+        pan.appendChild(wl);
+      }
+      const grid = document.createElement("div");
+      grid.className = "skin-grid";
+      pan.appendChild(grid);
+      const eq = skEquipped(h);
+      ["classic"].concat(skList(h).map((x) => x.id)).forEach((id) => {
+        const d = skDef(h, id),
+          own = skOwned(h, id),
+          card = document.createElement("div");
+        card.className =
+          "skin-card" +
+          (id === eq ? " on" : "") +
+          (d.rarity ? " " + d.rarity : "") +
+          (own ? "" : " locked");
+        const art = document.createElement("div");
+        art.className = "skin-card-art";
+        art.appendChild(skPreview(h, id, 96));
+        card.appendChild(art);
+        const nm = document.createElement("b");
+        nm.className = "skin-card-n";
+        nm.textContent = d.name;
+        card.appendChild(nm);
+        const tg = document.createElement("small");
+        tg.className = "skin-card-t";
+        tg.textContent = d.tag || "";
+        card.appendChild(tg);
+        let bt;
+        if (id === eq) {
+          bt = document.createElement("button");
+          bt.className = "btn dim skin-cta";
+          bt.disabled = true;
+          bt.innerHTML = '<span class="uic i-check"></span> Equipada';
+        } else if (lib && !(own && !X.locked)) {
+          /* Biblioteca: skin ainda não disponível (não comprada ou herói bloqueado) → leva à Loja */
+          bt = document.createElement("button");
+          bt.className = "btn alt skin-cta";
+          bt.innerHTML = '<span class="uic i-store"></span> LOJA';
+          bt.onclick = () => {
+            removeEventListener("keydown", onKey, true);
+            ov.remove();
+            closeLibDet();
+            shopSec = "skins";
+            scr("Loja", renderStore);
+          };
+        } else if (own) {
+          bt = document.createElement("button");
+          bt.className = "btn skin-cta";
+          bt.textContent = "Equipar";
+          bt.onclick = () => {
+            skEquip(h, id);
+            SFX.play("pick");
+            draw();
+          };
+        } else {
+          const lbl =
+            '<span class="uic i-lock"></span> ' +
+            skPrice(d).toLocaleString("pt-BR") +
+            " moedas";
+          bt = document.createElement("button");
+          bt.className = "btn skin-cta" + (save.coins < skPrice(d) ? " dim" : "");
+          bt.innerHTML = lbl;
+          bt.onclick = () => skBuy(h, id, bt, lbl, draw);
+        }
+        bt.type = "button";
+        card.appendChild(bt);
+        grid.appendChild(card);
+      });
+      const ok = document.createElement("button");
+      ok.type = "button";
+      ok.className = "btn skin-close";
+      ok.textContent = "Pronto";
+      ok.onclick = close;
+      pan.appendChild(ok);
+    };
+    ov.onclick = (e) => {
+      if (e.target === ov) close();
+    };
+    gameEl.appendChild(ov);
+    draw();
   }
 
   /* ================= Tela final: sprite do herói feliz (vitória) ou triste (derrota) =================
@@ -28045,6 +28956,7 @@
   buildBossArt();
   buildEnemyArt();
   buildHeroArt();
+  skApplyAll(); /* v0.68: aplica a skin equipada de cada herói */
   initIcons();
   resize();
   buildMenu();
