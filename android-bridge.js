@@ -576,36 +576,7 @@
       : "não logado (" + FePGS.lastError + ")";
     return r;
   };
-
-  /* ---- Analytics (v0.39). Usa @capacitor-firebase/analytics se instalado; senão não faz nada. ----
-     Nomes: letras, números e _ (máx. 40). Valores: número, booleano ou texto curto. */
-  window.FeTrack = (name, params) => {
-    try {
-      const FA =
-        P(
-          "FirebaseAnalytics",
-        ); /* registra o plugin no JS (sem bundler, ninguém faz isso automaticamente) */
-      if (!FA || typeof FA.logEvent !== "function") return;
-      const p = {};
-      for (const k in params || {}) {
-        const v = params[k];
-        if (v == null) continue;
-        p[k] =
-          typeof v === "number" || typeof v === "boolean"
-            ? v
-            : String(v).slice(0, 100);
-      }
-      Promise.resolve(
-        FA.logEvent({
-          name: String(name)
-            .replace(/[^a-zA-Z0-9_]/g, "_")
-            .slice(0, 40),
-          params: p,
-        }),
-      ).catch(() => { });
-    } catch (e) { }
-  };
-
+  
   /* ---- Botão voltar do Android (protegido: se o plugin App não existir, o resto da ponte continua funcionando) ---- */
   try {
     P("App").addListener("backButton", () => {

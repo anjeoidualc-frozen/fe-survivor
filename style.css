@@ -7070,45 +7070,6 @@ html.sysfont #dawnTxt h2 {
   color: #9d93b8;
 }
 
-/* Balance Lab telemetry export panel (local-only, opt-in export). */
-.balance-export {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px solid var(--line, rgba(255, 255, 255, 0.14));
-  border-radius: 2px;
-  background: rgba(10, 13, 24, 0.5);
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 12px;
-}
-
-.balance-export p {
-  margin: 0 0 8px;
-  line-height: 1.4;
-}
-
-.balance-export p small,
-.balance-export>small {
-  display: block;
-  margin-top: 5px;
-  opacity: 0.72;
-  line-height: 1.45;
-}
-
-.balance-export-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.balance-export-actions .mb {
-  width: 100%;
-  min-height: 32px;
-  font-size: 8px;
-  margin: 0 auto;
-}
-
 /* ===================================================================
    LOJA (v0.67) — CSS restaurado e melhorado
    Classes usadas por renderStore() em game.js:
@@ -9042,14 +9003,6 @@ button.pf-trk:not(.lk):not(.cur):hover {
     text-align: center;
   }
 }
-
-/* Dados de Balanceamento: botões em duas colunas na tela completa */
-.balance-export-actions.balance-export-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
 /*===== Testemunhos: ícone hexagonal (estrutura em index.html #achRowTpl, lógica em game.js > renderAch) =====
    O ícone é um hexágono em SVG com glifo desenhado por código; se existir assets/icons/ach/<id>.png a imagem
    substitui o glifo (recortada no hexágono interno). Bloqueado = cinza (filtro aplicado ao conjunto). */

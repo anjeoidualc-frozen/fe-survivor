@@ -84,7 +84,7 @@
           refreshHomeVerseOnReturn();
         });
         if (listener && typeof listener.catch === "function")
-          listener.catch(() => { });
+          listener.catch(() => {});
       }
     }
   } catch (e) {
@@ -139,7 +139,7 @@
     if (newsBtn) newsBtn.focus({ preventScroll: true });
     try {
       profWelcomeMaybe();
-    } catch (e) { }
+    } catch (e) {}
   }
   if (newsBtn) newsBtn.addEventListener("click", openNewsModal);
   const newsBackBtn = document.getElementById("newsBack");
@@ -164,8 +164,8 @@
   }; /* partida de introdução: o módulo completo fica no fim do arquivo */
   /* v0.27: RNG separado. _rg = jogabilidade (spawns, drops, cartas, chefes); _rf = só efeitos visuais.
      Assim a mesma semente dá a mesma partida, com efeitos ligados ou não. __dbg.seed(n) fixa os dois. */
-  let _balanceDebugSeed = null,
-    _rg = Math.random,
+  let damageSrc = null;
+  let _rg = Math.random,
     _rf = Math.random;
   const rng = () => _rg(),
     rngFx = () => _rf();
@@ -224,7 +224,7 @@
   /* ===== VERSÃO DO JOGO (manual) =====
      Altere APP_VER abaixo para atualizar a versão na tela inicial e nas Configurações.
      (Ponto único de verdade — não fica no HTML.) */
-  const APP_VER = "0.68"; // Skins de heróis (heroes_skins.js): tela de herói, Loja e save (anterior: 0.67 Perfil do jogador)
+  const APP_VER = "0.69"; // Desempenho e estabilidade: sprites em 1 chamada, chão/sombras/chamas em cache, qualidade adaptativa, telemetria e áudio seguros (anterior: 0.68 Skins)
   /* ===== NOTÍCIAS / NOTAS DA VERSÃO =====
      Como atualizar em cada release:
        1) Suba APP_VER (ex.: '0.48').
@@ -279,13 +279,13 @@
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (s) save = Object.assign(save, s);
-  } catch (e) { }
+  } catch (e) {}
   function persist() {
     if (window.__wiping || TUT.on) return;
     if (save.paid > save.coins) save.paid = save.coins;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-    } catch (e) { }
+    } catch (e) {}
   }
   /* ID numérico único por dispositivo (12 dígitos), gerado na 1ª abertura e persistido em save.pid */
   function ensurePlayerId() {
@@ -347,12 +347,43 @@
         try {
           const A = window.AudioContext || window.webkitAudioContext;
           this.ctx = new A();
-        } catch (e) { }
+        } catch (e) {}
       }
-      if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+      if (this.ctx && this.ctx.state !== "running") this.wake();
+      if (this.ctx && !this._sc) {
+        this._sc = true;
+        /* v0.69: quando o áudio volta a rodar (ex.: depois de um anúncio), zera os contadores de vozes que ficaram presos */
+        this.ctx.onstatechange = () => {
+          if (this.ctx.state === "running") sfxReset();
+        };
+      }
     },
+    /* v0.69: o Android deixa o AudioContext "suspended"/"interrupted" durante anúncios e chamadas. Antes, tone()/noise
+       continuavam criando osciladores que nunca terminavam (o relógio do áudio parava) e as vozes do NXA ficavam presas
+       no limite: memória crescente, travadinhas e sons que sumiam. Agora nada é criado enquanto o áudio não roda. */
+    wake() {
+      const c = this.ctx;
+      if (!c || c.state === "running") return;
+      const n = performance.now();
+      if (n - (this._wk || 0) < 400) return;
+      this._wk = n;
+      try {
+        const p = c.resume();
+        if (p && p.catch) p.catch(() => {});
+      } catch (e) {}
+    },
+    live() {
+      const c = this.ctx;
+      if (!c) return false;
+      if (c.state !== "running") {
+        this.wake();
+        return false;
+      }
+      return true;
+    },
+    _nv: 0,
     tone(f, d, type, v, slide, delay) {
-      if (!this.ctx || !this.on) return;
+      if (!this.ctx || !this.on || !this.live() || this._nv >= 40) return;
       /* Game feel: pitch aleatório por disparo (só sons repetitivos, ver SFX_JITTER).
          Escala frequência e deslize juntos para manter o contorno do som. */
       const pj = this._pj || 1;
@@ -373,11 +404,15 @@
       g.gain.exponentialRampToValueAtTime(0.0001, t + d);
       o.connect(g);
       g.connect(this.mg());
+      this._nv++;
+      o.onended = () => {
+        this._nv = Math.max(0, this._nv - 1);
+      };
       o.start(t);
       o.stop(t + d + 0.03);
     },
     play(n) {
-      if (!this.ctx || !this.on) return;
+      if (!this.ctx || !this.on || !this.live()) return;
       const now = performance.now(),
         gap =
           { hit: 60, kill: 50, pick: 40, coin: 50, sling: 90, hurt: 150 }[n] ||
@@ -477,10 +512,15 @@
             t0 = c.currentTime,
             dest = this.mg();
           const mkN = (dur) => {
+            if (this._thN && this._thN.sr === c.sampleRate) return this._thN.b;
             const n = Math.max(1, Math.floor(c.sampleRate * dur)),
               buf = c.createBuffer(1, n, c.sampleRate),
               d = buf.getChannelData(0);
             for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+            this._thN = {
+              b: buf,
+              sr: c.sampleRate,
+            }; /* v0.69: gerado uma vez */
             return buf;
           };
           const src = c.createBufferSource();
@@ -1680,10 +1720,10 @@
     const badge = mastery
       ? '<path d="M25 21L27 24L30 24L28 27L29 30L25 28L22 30L23 27L21 24L24 24Z" fill="#fff0a3" stroke="#f2c14e" stroke-width=".7"/>'
       : '<rect x="22" y="22" width="7" height="7" fill="#171027" stroke="' +
-      accent +
-      '" stroke-width="1"/><path d="M23 25.5H28M25.5 23V28" stroke="' +
-      accent +
-      '" stroke-width="1"/>';
+        accent +
+        '" stroke-width="1"/><path d="M23 25.5H28M25.5 23V28" stroke="' +
+        accent +
+        '" stroke-width="1"/>';
     const border = mastery ? "#ffe08a" : accent;
     const svg =
       '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="#05030b"/><rect x="2" y="2" width="28" height="28" fill="' +
@@ -1840,7 +1880,7 @@
     if (sys && document.fonts && document.fonts.load) {
       try {
         document.fonts.load("16px Inter");
-      } catch (e) { }
+      } catch (e) {}
     }
     CF.body = sys ? SYS_STACK : '"Pixelify Sans",monospace';
     CF.title = sys ? SYS_STACK : '"Press Start 2P","Pixelify Sans",monospace';
@@ -1867,2385 +1907,6 @@
     const ev = selectedEvolution(id, group);
     return ev ? evolutionIconURL(id, ev.path, !!ev.tier) : iconURL(id);
   }
-
-  /* ================= Balance Lab: telemetria local, sem envio de rede =================
-     Guarda apenas dados da partida para análise de balanceamento. Nada é enviado automaticamente.
-     O jogador exporta os arquivos manualmente pelo menu ou pela tela de fim de partida. */
-  const BALANCE_STORE_KEY = "fe-survivor-balance-runs-v1";
-  const BALANCE_SCHEMA_VERSION = 2,
-    BALANCE_TELEMETRY_VERSION = 6,
-    BALANCE_MAX_RUNS = 100,
-    BALANCE_MAX_EVENTS = 600,
-    BALANCE_MAX_CHOICES = 300,
-    BALANCE_MAX_SNAPSHOTS = 120,
-    BALANCE_MAX_MINUTE_BUCKETS = 600;
-  function balanceEnsureRun(run) {
-    if (!run || typeof run !== "object") return run;
-    if (run.schemaVersion && run.schemaVersion < BALANCE_SCHEMA_VERSION) {
-      run.sourceSchemaVersion = run.schemaVersion;
-      run.schemaVersion = BALANCE_SCHEMA_VERSION;
-    }
-    if (!run.truncation)
-      run.truncation = {
-        any: false,
-        discarded: { events: 0, choices: 0, snapshots: 0, minuteBuckets: 0 },
-        storageFailures: 0,
-      };
-    if (!run.truncation.discarded)
-      run.truncation.discarded = {
-        events: 0,
-        choices: 0,
-        snapshots: 0,
-        minuteBuckets: 0,
-      };
-    for (const section of ["events", "choices", "snapshots", "minuteBuckets"])
-      run.truncation.discarded[section] =
-        Number(run.truncation.discarded[section]) || 0;
-    run.truncation.storageFailures =
-      Number(run.truncation.storageFailures) || 0;
-    if (run.truncation.any == null)
-      run.truncation.any = Object.values(run.truncation.discarded).some(
-        (count) => count > 0,
-      );
-    run.metrics = run.metrics || {};
-    run.metrics.drops = run.metrics.drops || {
-      generated: 0,
-      placed: 0,
-      collected: 0,
-      expired: 0,
-      convertedToXp: 0,
-      expiredByReason: {},
-      byType: {},
-    };
-    run.metrics.drops.expiredByReason = run.metrics.drops.expiredByReason || {};
-    run.metrics.drops.byType = run.metrics.drops.byType || {};
-    run.choiceTools = run.choiceTools || {
-      upgrades: {},
-      adBonus: false,
-      banish: { max: 0, used: 0, remaining: 0 },
-      skip: { max: 0, used: 0, remaining: 0 },
-      rerolls: 0,
-    };
-    run.minuteBuckets = Array.isArray(run.minuteBuckets)
-      ? run.minuteBuckets
-      : [];
-    run.choices = Array.isArray(run.choices) ? run.choices : [];
-    run.events = Array.isArray(run.events) ? run.events : [];
-    run.snapshots = Array.isArray(run.snapshots) ? run.snapshots : [];
-    return run;
-  }
-  function balanceReadStore() {
-    try {
-      const raw = JSON.parse(localStorage.getItem(BALANCE_STORE_KEY) || "null");
-      if (!raw || !Array.isArray(raw.runs)) {
-        if (raw != null)
-          console.warn(
-            "[balance] histórico local inválido; gravação bloqueada para evitar sobrescrita.",
-          );
-        return {
-          schemaVersion: BALANCE_SCHEMA_VERSION,
-          runs: [],
-          active: null,
-          historyDiscardedRuns: 0,
-          readOnly: raw != null,
-        };
-      }
-      if (raw.schemaVersion > BALANCE_SCHEMA_VERSION) {
-        console.warn(
-          "[balance] schema de histórico mais novo que o jogo; dados carregados em modo leitura.",
-          raw.schemaVersion,
-        );
-        return { ...raw, readOnly: true };
-      }
-      const store = {
-        ...raw,
-        schemaVersion: BALANCE_SCHEMA_VERSION,
-        runs: raw.runs.map(balanceEnsureRun),
-        active: balanceEnsureRun(raw.active),
-        historyDiscardedRuns: Number(raw.historyDiscardedRuns) || 0,
-      };
-      if (raw.schemaVersion !== BALANCE_SCHEMA_VERSION)
-        console.info("[balance] histórico migrado aditivamente para schema 2.");
-      return store;
-    } catch (e) {
-      console.warn("[balance] não foi possível ler o histórico local.", e);
-      return {
-        schemaVersion: BALANCE_SCHEMA_VERSION,
-        runs: [],
-        active: null,
-        historyDiscardedRuns: 0,
-        readOnly: true,
-      };
-    }
-  }
-  const BTL = {
-    data: balanceReadStore(),
-    current: null,
-    lastPersistGameT: 0,
-    nextSampleAt: 0,
-    nextAliveSampleAt: 1,
-    aliveSampleCount: 0,
-    activeChoiceSessionId: null,
-    pendingRerollFrom: null,
-    minuteBucketCache: null,
-    lastDiscardedMinute: null,
-    storageFull: false,
-    safeNum(v) {
-      return Number.isFinite(Number(v)) ? Number(v) : 0;
-    },
-    clone(v) {
-      try {
-        return JSON.parse(JSON.stringify(v));
-      } catch (e) {
-        return null;
-      }
-    },
-    mode(g) {
-      return g && g.inf
-        ? "infinite"
-        : RUN.daily
-          ? "daily"
-          : RUN.mode || "standard";
-    },
-    selectedRunes() {
-      return this.clone(save.rt || {});
-    },
-    primitiveModifiers(mods) {
-      const out = {};
-      for (const [key, value] of Object.entries(mods || {}))
-        if (
-          typeof value === "boolean" ||
-          typeof value === "string" ||
-          (typeof value === "number" && Number.isFinite(value))
-        )
-          out[key] = value;
-      return out;
-    },
-    minuteBucket(time) {
-      const r = this.current;
-      if (!r) return null;
-      const minute = Math.floor(Math.max(0, this.safeNum(time)) / 60);
-      if (
-        this.minuteBucketCache &&
-        this.minuteBucketCache.run === r &&
-        this.minuteBucketCache.minute === minute
-      )
-        return this.minuteBucketCache.bucket;
-      let bucket = r.minuteBuckets.find((item) => item.minute === minute);
-      if (bucket) {
-        this.minuteBucketCache = { run: r, minute, bucket };
-        return bucket;
-      }
-      if (minute >= BALANCE_MAX_MINUTE_BUCKETS) {
-        r.truncation.any = true;
-        if (this.lastDiscardedMinute !== minute) {
-          r.truncation.discarded.minuteBuckets++;
-          this.lastDiscardedMinute = minute;
-        }
-        return null;
-      }
-      bucket = {
-        minute,
-        activeSeconds: 0,
-        enemyAliveSeconds: 0,
-        averageEnemiesAlive: 0,
-        hpRatioSeconds: 0,
-        averageHpRatio: 0,
-        mitigatedDamage: 0,
-        enemySpawnsByType: {},
-        killsByType: {},
-        damageBySource: {},
-        drops: {
-          generated: 0,
-          placed: 0,
-          collected: 0,
-          expired: 0,
-          convertedToXp: 0,
-          expiredByReason: {},
-          byType: {},
-        },
-        damageDealt: 0,
-        damageToBosses: 0,
-        damageToElites: 0,
-        damageTaken: 0,
-        hitsTaken: 0,
-        blockedHits: 0,
-        healingReceived: 0,
-        xpRaw: 0,
-        xpEffective: 0,
-        coinsCollected: 0,
-        bossesSpawned: 0,
-        bossesDefeated: 0,
-        eliteKills: 0,
-        activeUses: {},
-        levelsGained: 0,
-        choicesMade: 0,
-      };
-      r.minuteBuckets.push(bucket);
-      this.minuteBucketCache = { run: r, minute, bucket };
-      return bucket;
-    },
-    addCount(map, key, amount) {
-      if (!map) return;
-      const id = key || "unknown";
-      map[id] = (map[id] || 0) + (amount == null ? 1 : amount);
-    },
-    syncChoiceTools() {
-      const r = this.current,
-        tools = G && G.choiceTools;
-      if (!r || !tools) return;
-      const used = {
-        banish: tools.banishUsed || 0,
-        skip: tools.skipUsed || 0,
-      };
-      r.choiceTools = {
-        upgrades: this.clone(save.choiceToolUpgrades || {}),
-        adBonus: !!tools.adBonus,
-        banish: {
-          max: (tools.max && tools.max.banish) || 0,
-          used: used.banish,
-          remaining: Math.max(0, (tools.max && tools.max.banish) - used.banish),
-        },
-        skip: {
-          max: (tools.max && tools.max.skip) || 0,
-          used: used.skip,
-          remaining: Math.max(0, (tools.max && tools.max.skip) - used.skip),
-        },
-        rerolls: r.choiceTools ? r.choiceTools.rerolls || 0 : 0,
-      };
-    },
-    persist() {
-      if (this.data.readOnly) {
-        this.storageFull = true;
-        if (this.current) {
-          this.current.truncation.any = true;
-          this.current.truncation.storageFailures++;
-        }
-        if (!this.readOnlyWarned) {
-          console.warn(
-            "[balance] persistência bloqueada para preservar um histórico de schema mais novo.",
-          );
-          this.readOnlyWarned = true;
-        }
-        return false;
-      }
-      try {
-        this.data.active =
-          this.current && this.current.status === "in_progress"
-            ? this.current
-            : null;
-        const excess = Math.max(0, this.data.runs.length - BALANCE_MAX_RUNS);
-        if (excess) {
-          this.data.historyDiscardedRuns =
-            (this.data.historyDiscardedRuns || 0) + excess;
-          this.data.runs = this.data.runs.slice(-BALANCE_MAX_RUNS);
-        }
-        localStorage.setItem(BALANCE_STORE_KEY, JSON.stringify(this.data));
-        this.storageFull = false;
-        return true;
-      } catch (e) {
-        // Armazenamento cheio: descarta partidas antigas de forma contabilizada, sem interromper o jogo.
-        this.storageFull = true;
-        this.data.storagePressureEvents =
-          (this.data.storagePressureEvents || 0) + 1;
-        console.warn(
-          "[balance] armazenamento local cheio; tentando reduzir o histórico antigo.",
-          e,
-        );
-        try {
-          while (this.data.runs.length > 1) {
-            this.data.runs.shift();
-            this.data.historyDiscardedRuns =
-              (this.data.historyDiscardedRuns || 0) + 1;
-            try {
-              localStorage.setItem(
-                BALANCE_STORE_KEY,
-                JSON.stringify(this.data),
-              );
-              this.storageFull = false;
-              return true;
-            } catch (e2) {
-              e = e2;
-            }
-          }
-        } catch (e3) {
-          e = e3;
-        }
-        const affected =
-          this.current || this.data.runs[this.data.runs.length - 1];
-        if (affected) {
-          affected.truncation.any = true;
-          affected.truncation.storageFailures++;
-        }
-        console.warn("[balance] falha ao persistir telemetria local.", e);
-        return false;
-      }
-    },
-    event(type, payload) {
-      const r = this.current;
-      if (!r) return;
-      if (r.events.length >= BALANCE_MAX_EVENTS) {
-        r.eventTruncated = true;
-        r.truncation.any = true;
-        r.truncation.discarded.events++;
-        return;
-      }
-      r.events.push(
-        Object.assign(payload || {}, {
-          type,
-          t: Math.round(((G && G.t) || 0) * 10) / 10,
-        }),
-      );
-    },
-    start(g) {
-      // O tutorial é roteirizado e o jogo promete que ele não conta como partida nem salva progresso.
-      if (TUT.on) return;
-      if (this.data.active && this.data.active.status === "in_progress") {
-        this.markInterrupted(this.data.active, "page_reload_or_new_run");
-        this.data.runs.push(this.data.active);
-      }
-      const H = g.hero || {};
-      const attempt = Math.max(
-        Number(this.data.nextAttempt) || 1,
-        ...this.data.runs.map((run) => (Number(run.attempt) || 0) + 1),
-      );
-      this.data.nextAttempt = attempt + 1;
-      const worldIndex = RUN.world ? WORLDS.indexOf(RUN.world) : -1,
-        world = worldIndex >= 0 ? RUN.world : null,
-        modeId = this.mode(g),
-        content = window.FE_SURVIVOR_CONTENT || {};
-      this.current = {
-        schemaVersion: BALANCE_SCHEMA_VERSION,
-        telemetryVersion: BALANCE_TELEMETRY_VERSION,
-        attempt,
-        id:
-          "fs-" +
-          Date.now().toString(36) +
-          "-" +
-          Math.random().toString(36).slice(2, 8),
-        gameVersion: APP_VER,
-        telemetryStartedAt: new Date().toISOString(),
-        patch: "Balance Lab Patch 0.5",
-        status: "in_progress",
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        truncation: {
-          any: false,
-          discarded: {
-            events: 0,
-            choices: 0,
-            snapshots: 0,
-            minuteBuckets: 0,
-          },
-          storageFailures: 0,
-        },
-        limits: {
-          events: BALANCE_MAX_EVENTS,
-          choices: BALANCE_MAX_CHOICES,
-          snapshots: BALANCE_MAX_SNAPSHOTS,
-          minuteBuckets: BALANCE_MAX_MINUTE_BUCKETS,
-          historyRuns: BALANCE_MAX_RUNS,
-        },
-        config: {
-          mode: modeId,
-          modeLabel:
-            {
-              infinite: "Vigília Eterna",
-              daily: "Desafio Diário",
-              std: "Amanhecer",
-              standard: "Amanhecer",
-            }[modeId] || modeId,
-          world: world ? world.key || "world" + worldIndex : null,
-          worldIndex: world ? worldIndex : null,
-          worldName: world ? world.n : null,
-          worldModifiers: world
-            ? {
-              hp: world.hp || 1,
-              speed: world.spd || 1,
-              spawn: world.spawn || 1,
-              coin: world.coin || 1,
-            }
-            : null,
-          runModifiers: {
-            ...this.primitiveModifiers(RUN),
-            effectiveSpawn: world ? world.spawn || 1 : 1,
-            effectiveCoin: world ? world.coin || 1 : 1,
-          },
-          dailyChallenge: RUN.daily ? RUN.daily.k || true : false,
-          rng: {
-            seed:
-              RUN.daily && Number.isFinite(RUN.daily.seed)
-                ? RUN.daily.seed
-                : Number.isFinite(_balanceDebugSeed)
-                  ? _balanceDebugSeed
-                  : null,
-            source: RUN.daily
-              ? "daily"
-              : Number.isFinite(_balanceDebugSeed)
-                ? "debug"
-                : null,
-          },
-          dailySeed:
-            RUN.daily && Number.isFinite(RUN.daily.seed)
-              ? RUN.daily.seed
-              : null,
-          tutorial: !!TUT.on,
-          hero: {
-            id: g.hk,
-            name: H.name || g.hk,
-            hp: H.hp,
-            spd: H.spd,
-            dmg: H.dmg,
-            attackSpeed: H.attackSpeed || 1,
-            attackRange: HRNG[g.hk] || null,
-            xp: H.xp,
-            pickup: H.pickup,
-            crit: H.crit || 0,
-            luck: H.luck || 0,
-            startWeapon: H.start,
-            startWeaponLevel: H.startLvl || 1,
-          },
-          hpScale: HPS,
-          slots: {
-            weapons: SLOT_W,
-            passives: SLOT_P,
-            actives: Number.isFinite(activeSkillLimit(g))
-              ? activeSkillLimit(g)
-              : null,
-          },
-          contentFingerprint: this.contentFingerprint(),
-          permanentRunes: this.selectedRunes(),
-          permanentMeta: {
-            purchasedRunes: Object.values(save.rt || {}).reduce(
-              (n, cat) => n + Object.keys(cat || {}).length,
-              0,
-            ),
-            runCountBeforeThisRun: save.runs || 0,
-          },
-          registry: {
-            schemaVersion: content.schemaVersion || null,
-            heroIds: Object.keys(content.heroes || {}),
-            weaponIds: Object.keys(content.weapons || {}),
-            passiveIds: Object.keys(content.passives || {}),
-            activeIds: Object.keys(content.actives || {}),
-            demonIds: Object.keys(content.demons || {}),
-            bossIds: (content.bossDefinitions || []).map(
-              (boss, index) => boss.id || boss.key || "boss" + index,
-            ),
-          },
-        },
-        result: null,
-        metrics: {
-          kills: 0,
-          killsByType: {},
-          damageByWeapon: {},
-          enemiesSpawned: 0,
-          enemiesSpawnedByType: {},
-          damageDealt: 0,
-          damageToBosses: 0,
-          damageToElites: 0,
-          damageTaken: 0,
-          hitsTaken: 0,
-          blockedHits: 0,
-          healingReceived: 0,
-          timeBelow30Hp: 0,
-          timeBelow15Hp: 0,
-          xpRaw: 0,
-          xpEffective: 0,
-          levelUps: 0,
-          choicesMade: 0,
-          choicesSkipped: 0,
-          banishedOptions: 0,
-          rerolls: 0,
-          bossesSpawned: 0,
-          bossesDefeated: 0,
-          eliteKills: 0,
-          coinsAtStart: save.coins || 0,
-          coinsCollected: 0,
-          coinsEarnedDuringRun: 0,
-          maxEnemiesAlive: 0,
-          maxLevel: g.lvl || 1,
-          drops: {
-            generated: 0,
-            placed: 0,
-            collected: 0,
-            expired: 0,
-            convertedToXp: 0,
-            expiredByReason: {},
-            byType: {},
-          },
-          enemyAliveSeconds: 0,
-          activeSeconds: 0,
-          averageEnemiesAlive: 0,
-        },
-        bossFights: [],
-        choices: [],
-        snapshots: [],
-        minuteBuckets: [],
-        events: [],
-        eventTruncated: false,
-      };
-      // newRun() cria sete inimigos iniciais antes da coleta começar; contabilizamos esse estado inicial.
-      for (const e of g.enemies || []) this.spawn(e, true);
-      this.current.metrics.maxEnemiesAlive = (g.enemies || []).filter(
-        (e) => !e.dead,
-      ).length;
-      this.lastPersistGameT = 0;
-      this.nextSampleAt = 15;
-      this.nextAliveSampleAt = 1;
-      this.aliveSampleCount = this.current.metrics.maxEnemiesAlive;
-      this.lastTickGameT = 0;
-      this.activeChoiceSessionId = null;
-      this.pendingRerollFrom = null;
-      this.minuteBucketCache = null;
-      this.lastDiscardedMinute = null;
-      this.lastTreesJson = null;
-      this.recentHits = [];
-      this.syncChoiceTools();
-      BTL.src = null;
-      this.event("run_start", { initialEnemies: (g.enemies || []).length });
-      this.snapshot(g, true);
-      this.persist();
-    },
-    spawn(e, initial) {
-      const r = this.current;
-      if (!r || !e) return;
-      const type = e.boss ? "boss" : e.t || "unknown";
-      r.metrics.enemiesSpawnedByType[type] =
-        (r.metrics.enemiesSpawnedByType[type] || 0) + 1;
-      r.metrics.enemiesSpawned++;
-      e._bornT = G ? G.t : 0;
-      const ssAll = (r.metrics.spawnStats = r.metrics.spawnStats || {});
-      const ss = (ssAll[type] = ssAll[type] || { n: 0, hp: 0, dmg: 0, spd: 0 });
-      ss.n++;
-      ss.hp += this.safeNum(e.mhp);
-      ss.dmg += this.safeNum(e.dmg);
-      ss.spd += this.safeNum(e.spd);
-      if (e.elite && !initial)
-        r.metrics.elitesSpawned = (r.metrics.elitesSpawned || 0) + 1;
-      this.addCount(this.minuteBucket(G && G.t)?.enemySpawnsByType, type);
-    },
-    bossSpawn(e, def) {
-      const r = this.current;
-      if (!r) return;
-      r.metrics.bossesSpawned++;
-      r.metrics.enemiesSpawned++;
-      r.metrics.enemiesSpawnedByType.boss =
-        (r.metrics.enemiesSpawnedByType.boss || 0) + 1;
-      const fight = {
-        name: (def && def.name) || "Boss " + (e.idx + 1),
-        index: e.idx,
-        cycle: Math.floor((G.bossIdx || 0) / Math.max(1, BOSSES.length)),
-        spawnedAt: G.t,
-        hpMax: e.mhp,
-        playerLevelAtSpawn: G.lvl,
-        killsAtSpawn: G.kills,
-        playerHpRatioAtSpawn:
-          G.mods && G.mods.maxhp
-            ? Math.round((G.p.hp / G.mods.maxhp) * 1000) / 1000
-            : null,
-        playerMaxHpAtSpawn: G.mods ? G.mods.maxhp : null,
-        enemyDmg: this.safeNum(e.dmg),
-        enemySpeed: this.safeNum(e.spd),
-        damageToPlayer: 0,
-        hitsOnPlayer: 0,
-        patterns: {},
-        damageDealt: 0,
-        defeated: false,
-        defeatedAt: null,
-        secondsAlive: null,
-      };
-      r.bossFights.push(fight);
-      e._balanceFightIndex = r.bossFights.length - 1;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.bossesSpawned++;
-        this.addCount(bucket.enemySpawnsByType, "boss");
-      }
-      this.event("boss_spawn", {
-        name: fight.name,
-        index: fight.index,
-        hpMax: fight.hpMax,
-        playerLevel: G.lvl,
-        world: r.config.world,
-      });
-    },
-    bossPattern(e, name) {
-      const r = this.current;
-      if (!r || !e) return;
-      const f =
-        e._balanceFightIndex != null
-          ? r.bossFights[e._balanceFightIndex]
-          : null;
-      if (f) {
-        f.patterns = f.patterns || {};
-        f.patterns[name] = (f.patterns[name] || 0) + 1;
-      }
-    },
-    bossKill(e) {
-      const r = this.current;
-      if (!r) return;
-      r.metrics.bossesDefeated++;
-      const ix = e && e._balanceFightIndex,
-        fight = ix != null ? r.bossFights[ix] : null;
-      if (fight) {
-        fight.defeated = true;
-        fight.defeatedAt = G.t;
-        fight.secondsAlive = Math.round((G.t - fight.spawnedAt) * 10) / 10;
-        fight.playerLevelAtKill = G.lvl;
-        fight.playerHpRatioAtEnd =
-          G.mods && G.mods.maxhp
-            ? Math.round((G.p.hp / G.mods.maxhp) * 1000) / 1000
-            : null;
-        fight.playerDps = fight.secondsAlive
-          ? Math.round((fight.damageDealt / fight.secondsAlive) * 10) / 10
-          : null;
-      }
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) bucket.bossesDefeated++;
-      this.event("boss_defeated", {
-        name: (fight && fight.name) || "boss",
-        secondsAlive: fight ? fight.secondsAlive : null,
-        playerLevel: G.lvl,
-      });
-    },
-    damage(amount, e, source, extra) {
-      const r = this.current;
-      if (!r || !(amount > 0)) return;
-      const d = amount,
-        m = r.metrics,
-        ttype = e ? (e.boss ? "boss" : e.t || "unknown") : "unknown";
-      m.damageDealt += d;
-      m.damageByTargetType = m.damageByTargetType || {};
-      m.damageByTargetType[ttype] = (m.damageByTargetType[ttype] || 0) + d;
-      m.hitsByWeapon = m.hitsByWeapon || {};
-      m.hitsByWeapon[source || "other"] =
-        (m.hitsByWeapon[source || "other"] || 0) + 1;
-      if (extra) {
-        if (extra.crit) {
-          m.crits = (m.crits || 0) + 1;
-          m.critDamage = (m.critDamage || 0) + d;
-          m.critsByWeapon = m.critsByWeapon || {};
-          m.critsByWeapon[source || "other"] =
-            (m.critsByWeapon[source || "other"] || 0) + 1;
-        }
-        if (extra.overkill > 0)
-          m.overkillDamage = (m.overkillDamage || 0) + extra.overkill;
-      }
-      if (e && e.boss) {
-        r.metrics.damageToBosses += d;
-        const ix = e._balanceFightIndex,
-          fight = ix != null ? r.bossFights[ix] : null;
-        if (fight) fight.damageDealt += d;
-      }
-      if (e && e.elite) r.metrics.damageToElites += d;
-      const key = source || "other",
-        dbw = (r.metrics.damageByWeapon = r.metrics.damageByWeapon || {});
-      dbw[key] = (dbw[key] || 0) + d;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.damageDealt += d;
-        this.addCount(bucket.damageBySource, key, d);
-        if (e && e.boss) bucket.damageToBosses += d;
-        if (e && e.elite) bucket.damageToElites += d;
-      }
-      if (source === "execution")
-        r.metrics.executionDamage = (r.metrics.executionDamage || 0) + d;
-    },
-    killed(e) {
-      const r = this.current;
-      if (!r || !e) return;
-      r.metrics.kills++;
-      const type = e.boss ? "boss" : e.t || "unknown";
-      r.metrics.killsByType[type] = (r.metrics.killsByType[type] || 0) + 1;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        this.addCount(bucket.killsByType, type);
-        if (e.elite) bucket.eliteKills++;
-      }
-      if (e.elite) r.metrics.eliteKills++;
-      const m = r.metrics,
-        kw = BTL.src || "other";
-      m.killsByWeapon = m.killsByWeapon || {};
-      m.killsByWeapon[kw] = (m.killsByWeapon[kw] || 0) + 1;
-      if (e._bornT != null && G) {
-        const life = Math.max(0, G.t - e._bornT);
-        m.lifetimeByType = m.lifetimeByType || {};
-        const lf = (m.lifetimeByType[type] = m.lifetimeByType[type] || {
-          n: 0,
-          sum: 0,
-          max: 0,
-        });
-        lf.n++;
-        lf.sum += life;
-        lf.max = Math.max(lf.max, life);
-      }
-      if (e.boss) this.bossKill(e);
-    },
-    playerDamage(amount, source, raw) {
-      const r = this.current;
-      if (!r || !(amount > 0)) return;
-      const m = r.metrics,
-        rawHit = this.safeNum(raw) || amount,
-        name = srcName(source) || String((source && source.t) || "unknown");
-      m.damageTaken += amount;
-      m.hitsTaken++;
-      m.rawDamageTaken = (m.rawDamageTaken || 0) + rawHit;
-      m.mitigatedDamage =
-        (m.mitigatedDamage || 0) + Math.max(0, rawHit - amount);
-      m.maxHit = Math.max(m.maxHit || 0, amount);
-      m.damageSources = m.damageSources || {};
-      m.damageSources[name] = (m.damageSources[name] || 0) + amount;
-      m.hitsBySource = m.hitsBySource || {};
-      m.hitsBySource[name] = (m.hitsBySource[name] || 0) + 1;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.damageTaken += amount;
-        bucket.hitsTaken++;
-        bucket.mitigatedDamage =
-          (bucket.mitigatedDamage || 0) + Math.max(0, rawHit - amount);
-      }
-      /* causa da morte: últimos golpes recebidos */
-      this.recentHits = this.recentHits || [];
-      this.recentHits.push({
-        t: Math.round(((G && G.t) || 0) * 10) / 10,
-        source: name,
-        damage: Math.round(amount * 10) / 10,
-        raw: Math.round(rawHit * 10) / 10,
-        hpAfter: Math.round(((G && G.p && G.p.hp) || 0) * 10) / 10,
-      });
-      if (this.recentHits.length > 8) this.recentHits.shift();
-      /* dano causado por chefe ao herói, por luta */
-      const bs =
-        source &&
-        (source.boss
-          ? source
-          : source.src && source.src.boss
-            ? source.src
-            : null);
-      if (bs && bs._balanceFightIndex != null) {
-        const f = r.bossFights[bs._balanceFightIndex];
-        if (f) {
-          f.damageToPlayer = (f.damageToPlayer || 0) + amount;
-          f.hitsOnPlayer = (f.hitsOnPlayer || 0) + 1;
-        }
-      }
-    },
-    blockedHit(raw) {
-      if (this.current) {
-        this.current.metrics.blockedHits++;
-        this.current.metrics.blockedDamage =
-          (this.current.metrics.blockedDamage || 0) + this.safeNum(raw);
-        const bucket = this.minuteBucket(G && G.t);
-        if (bucket) bucket.blockedHits++;
-      }
-    },
-    heal(amount, requested) {
-      const r = this.current;
-      if (!r) return;
-      const m = r.metrics;
-      if (typeof requested === "number" && requested > amount)
-        m.overhealing = (m.overhealing || 0) + (requested - amount);
-      if (!(amount > 0)) return;
-      m.healingReceived = (m.healingReceived || 0) + amount;
-      const reason =
-        typeof requested === "string" ? requested : "pickup_or_skill";
-      m.healingBySource = m.healingBySource || {};
-      m.healingBySource[reason] = (m.healingBySource[reason] || 0) + amount;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) bucket.healingReceived += amount;
-    },
-    xp(raw, effective) {
-      const r = this.current;
-      if (!r) return;
-      r.metrics.xpRaw += this.safeNum(raw);
-      r.metrics.xpEffective += this.safeNum(effective);
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.xpRaw += this.safeNum(raw);
-        bucket.xpEffective += this.safeNum(effective);
-      }
-    },
-    collect(item) {
-      const r = this.current;
-      if (!r || !item) return;
-      if (item._balanceCollected) return;
-      item._balanceCollected = true;
-      const type = item.type || "unknown";
-      r.metrics.pickupsByType = r.metrics.pickupsByType || {};
-      r.metrics.pickupsByType[type] = (r.metrics.pickupsByType[type] || 0) + 1;
-      const drops = r.metrics.drops,
-        typeCount = (drops.byType[type] = drops.byType[type] || {});
-      drops.collected++;
-      typeCount.collected = (typeCount.collected || 0) + 1;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.drops.collected++;
-        const minuteType = (bucket.drops.byType[type] =
-          bucket.drops.byType[type] || {});
-        minuteType.collected = (minuteType.collected || 0) + 1;
-        if (type === "coin") bucket.coinsCollected++;
-      }
-      if (type === "coin") r.metrics.coinsCollected++;
-    },
-    pickupGenerated(type, item, convertedToXp) {
-      const r = this.current;
-      if (!r) return;
-      const id = type || "unknown",
-        drops = r.metrics.drops,
-        typeCount = (drops.byType[id] = drops.byType[id] || {});
-      drops.generated++;
-      typeCount.generated = (typeCount.generated || 0) + 1;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.drops.generated++;
-        const minuteType = (bucket.drops.byType[id] =
-          bucket.drops.byType[id] || {});
-        minuteType.generated = (minuteType.generated || 0) + 1;
-      }
-      if (convertedToXp) {
-        drops.convertedToXp++;
-        typeCount.convertedToXp = (typeCount.convertedToXp || 0) + 1;
-        if (bucket) {
-          bucket.drops.convertedToXp++;
-          const minuteType = bucket.drops.byType[id];
-          minuteType.convertedToXp = (minuteType.convertedToXp || 0) + 1;
-        }
-        return;
-      }
-      if (item) this.pickupPlaced(item);
-    },
-    pickupPlaced(item) {
-      const r = this.current;
-      if (!r || !item || item._balancePlaced) return;
-      item._balancePlaced = true;
-      const type = item.type || "unknown",
-        drops = r.metrics.drops,
-        typeCount = (drops.byType[type] = drops.byType[type] || {});
-      drops.placed++;
-      typeCount.placed = (typeCount.placed || 0) + 1;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.drops.placed++;
-        const minuteType = (bucket.drops.byType[type] =
-          bucket.drops.byType[type] || {});
-        minuteType.placed = (minuteType.placed || 0) + 1;
-      }
-    },
-    pickupExpired(item, reason) {
-      const r = this.current;
-      if (!r || !item || item._balanceExpired || item._balanceCollected) return;
-      item._balanceExpired = true;
-      const type = item.type || "unknown",
-        cause = reason || "unknown",
-        drops = r.metrics.drops,
-        typeCount = (drops.byType[type] = drops.byType[type] || {});
-      drops.expired++;
-      typeCount.expired = (typeCount.expired || 0) + 1;
-      this.addCount(drops.expiredByReason, cause);
-      typeCount.expiredByReason = typeCount.expiredByReason || {};
-      this.addCount(typeCount.expiredByReason, cause);
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) {
-        bucket.drops.expired++;
-        this.addCount(bucket.drops.expiredByReason, cause);
-        const minuteType = (bucket.drops.byType[type] =
-          bucket.drops.byType[type] || {});
-        minuteType.expired = (minuteType.expired || 0) + 1;
-        minuteType.expiredByReason = minuteType.expiredByReason || {};
-        this.addCount(minuteType.expiredByReason, cause);
-      }
-    },
-    activeUse(id) {
-      const r = this.current;
-      if (!r) return;
-      r.metrics.activeUses = r.metrics.activeUses || {};
-      r.metrics.activeUses[id] = (r.metrics.activeUses[id] || 0) + 1;
-      this.addCount(this.minuteBucket(G && G.t)?.activeUses, id);
-    },
-    levelUp(level) {
-      if (!this.current) return;
-      this.current.metrics.levelUps++;
-      this.current.metrics.maxLevel = Math.max(
-        this.current.metrics.maxLevel,
-        level || 1,
-      );
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) bucket.levelsGained++;
-      this.event("level_up", { level });
-    },
-    choiceCard(c) {
-      if (!c) return null;
-      const def = c.id && (WEAPONS[c.id] || PASSIVES[c.id] || ACT[c.id]),
-        ownerDef =
-          c.ownerId &&
-          (WEAPONS[c.ownerId] || PASSIVES[c.ownerId] || ACT[c.ownerId]);
-      let choiceDef = null;
-      if (c.kind === "weaponBranch" || c.kind === "weaponNode")
-        choiceDef =
-          EVOLUTION_TREES.weapon[c.ownerId] &&
-          EVOLUTION_TREES.weapon[c.ownerId].paths[c.id];
-      else if (c.kind === "passiveBranch" || c.kind === "passiveNode")
-        choiceDef =
-          EVOLUTION_TREES.passive[c.ownerId] &&
-          EVOLUTION_TREES.passive[c.ownerId].paths[c.id];
-      else if (c.kind === "activeBranch" || c.kind === "activeNode")
-        choiceDef =
-          EVOLUTION_TREES.active[c.ownerId] &&
-          EVOLUTION_TREES.active[c.ownerId].paths[c.id];
-      else if (c.kind === "slingBranch" || c.kind === "slingNode")
-        choiceDef = SLING_TREE[c.id];
-      else if (c.kind === "evo") choiceDef = NX_EVO[c.id];
-      return {
-        kind: c.kind || null,
-        id: c.id || null,
-        ownerId: c.ownerId || null,
-        ownerName: ownerDef ? ownerDef.name || ownerDef.n || c.ownerId : null,
-        rarity: c.r == null ? null : c.r,
-        rarityName:
-          c.r == null ? null : (RAR[c.r] && RAR[c.r].n) || String(c.r),
-        name:
-          (choiceDef && (choiceDef.name || choiceDef.n)) ||
-          (def && (def.name || def.n)) ||
-          (c.kind === "heal" ? "Bênção do Pão" : null) ||
-          (c.kind === "coins" ? "Oferta" : null) ||
-          c.id ||
-          c.kind ||
-          null,
-      };
-    },
-    openChoiceSession(pending, choices) {
-      const r = this.current;
-      if (!r) return;
-      const prior =
-        this.activeChoiceSessionId &&
-        r.choices.find(
-          (session) => session.sessionId === this.activeChoiceSessionId,
-        );
-      if (prior && prior.status === "open") {
-        prior.status = "ended_unselected";
-        prior.endedReason = "replaced_without_selection";
-      }
-      r.choiceSequence = (r.choiceSequence || 0) + 1;
-      const session = {
-        sessionId: r.choiceSequence,
-        t: Math.round(((G && G.t) || 0) * 10) / 10,
-        level: (G && G.lvl) || null,
-        pending: pending ? this.clone(pending) : null,
-        status: "open",
-        rerolledFromSessionId: this.pendingRerollFrom,
-        originalOptions: (choices || []).map((card) => this.choiceCard(card)),
-        visibleOptions: (choices || []).map((card) => this.choiceCard(card)),
-        removedOptions: [],
-        selected: null,
-        skipReward: 0,
-      };
-      this.pendingRerollFrom = null;
-      this.activeChoiceSessionId = session.sessionId;
-      if (r.choices.length < BALANCE_MAX_CHOICES) r.choices.push(session);
-      else {
-        r.truncation.any = true;
-        r.truncation.discarded.choices++;
-        session._discarded = true;
-      }
-      this.event("choice_session_opened", {
-        sessionId: session.sessionId,
-        level: session.level,
-        pendingKind: pending && pending.kind,
-      });
-    },
-    banishOption(option, remaining) {
-      const r = this.current;
-      if (!r || !option) return;
-      const session = r.choices.find(
-        (item) => item.sessionId === this.activeChoiceSessionId,
-      );
-      if (!session) return;
-      const removed = this.choiceCard(option);
-      session.removedOptions.push({
-        option: removed,
-        remainingOptions: (remaining || []).map((card) =>
-          this.choiceCard(card),
-        ),
-        t: Math.round(((G && G.t) || 0) * 10) / 10,
-      });
-      session.visibleOptions = (remaining || []).map((card) =>
-        this.choiceCard(card),
-      );
-      r.metrics.banishedOptions = (r.metrics.banishedOptions || 0) + 1;
-      this.syncChoiceTools();
-      this.event("choice_banished", {
-        sessionId: session.sessionId,
-        option: removed,
-        visibleOptions: session.visibleOptions,
-      });
-    },
-    skipChoice(reward, xp) {
-      const r = this.current;
-      if (!r) return;
-      const session = r.choices.find(
-        (item) => item.sessionId === this.activeChoiceSessionId,
-      );
-      if (session) {
-        session.status = "skipped";
-        session.endedReason = "skip";
-        session.skipReward = this.safeNum(reward); // moedas (sempre 0 desde a v1.0)
-        session.skipXp = this.safeNum(xp);
-        session.endedAt = Math.round(((G && G.t) || 0) * 10) / 10;
-      }
-      r.metrics.choicesSkipped = (r.metrics.choicesSkipped || 0) + 1;
-      this.syncChoiceTools();
-      this.event("choice_skipped", {
-        sessionId: this.activeChoiceSessionId,
-        visibleOptions: session ? session.visibleOptions : [],
-        reward: this.safeNum(reward), // moedas (sempre 0 desde a v1.0)
-        xp: this.safeNum(xp),
-      });
-      this.activeChoiceSessionId = null;
-    },
-    rerollChoice(source) {
-      const r = this.current;
-      if (!r) return;
-      const session = r.choices.find(
-        (item) => item.sessionId === this.activeChoiceSessionId,
-      );
-      if (session) {
-        session.status = "rerolled";
-        session.endedReason = "reroll";
-        session.endedAt = Math.round(((G && G.t) || 0) * 10) / 10;
-        this.pendingRerollFrom = session.sessionId;
-      }
-      r.choiceTools.rerolls = (r.choiceTools.rerolls || 0) + 1;
-      r.metrics.rerolls = (r.metrics.rerolls || 0) + 1;
-      this.syncChoiceTools();
-      this.event("choice_rerolled", {
-        sessionId: this.activeChoiceSessionId,
-        rerollCount: r.choiceTools.rerolls,
-        source: source || "unknown",
-      });
-    },
-    choice(selected, choices) {
-      const r = this.current;
-      if (!r) return;
-      const session = r.choices.find(
-        (item) => item.sessionId === this.activeChoiceSessionId,
-      );
-      if (session) {
-        session.status = "selected";
-        session.selected = this.choiceCard(selected);
-        session.visibleOptions = (choices || []).map((card) =>
-          this.choiceCard(card),
-        );
-        session.endedAt = Math.round(((G && G.t) || 0) * 10) / 10;
-      }
-      this.syncChoiceTools();
-      r.metrics.choicesMade++;
-      const bucket = this.minuteBucket(G && G.t);
-      if (bucket) bucket.choicesMade++;
-      this.event("choice_selected", {
-        sessionId: this.activeChoiceSessionId,
-        selected: this.choiceCard(selected),
-      });
-      this.activeChoiceSessionId = null;
-    },
-    snapshot(g, force) {
-      const r = this.current;
-      if (!r || !g) return;
-      const alive = (g.enemies || []).filter((e) => !e.dead),
-        byType = {};
-      for (const e of alive) {
-        const k = e.boss ? "boss" : e.t || "unknown";
-        byType[k] = (byType[k] || 0) + 1;
-      }
-      const weapons = Object.keys(g.W || {}).map((id) => {
-        const w = g.W[id] || {};
-        const s = w.s || {};
-        return {
-          id,
-          level: w.lvl || 1,
-          damage: this.safeNum(s.dmg),
-          cooldown: this.safeNum(s.cd),
-          count: this.safeNum(s.count),
-          pierce: this.safeNum(s.pierce),
-          range: this.safeNum(s.range),
-          radius: this.safeNum(s.radius),
-          evolved: !!(g.evo && g.evo[id]),
-          stats:
-            this.primitiveModifiers(
-              s,
-            ) /* todos os atributos da arma (alcance, anéis, orbes, lentidão...) */,
-        };
-      });
-      const passives = Object.keys(g.P || {}).map((id) => ({
-        id,
-        level: g.P[id],
-      }));
-      const active = Object.keys(g.al || {}).map((id) => ({
-        id,
-        level: g.al[id],
-      }));
-      const trees = {
-        sling: g.slingTree,
-        weapons: g.weaponTrees || {},
-        passives: g.passiveTrees || {},
-        active: g.activeTrees || {},
-      };
-      const treesJson = JSON.stringify(trees),
-        treesChanged = treesJson !== this.lastTreesJson;
-      this.lastTreesJson = treesJson; /* árvores só são gravadas quando mudam */
-      const mods = g.mods || {};
-      const effectiveStats = {
-        currentHp: this.safeNum(g.p && g.p.hp),
-        maxHp: this.safeNum(mods.maxhp),
-        damage: this.safeNum(mods.dmg),
-        attackInterval: this.safeNum(mods.cd),
-        attackSpeedMultiplier: mods.cd ? 1 / mods.cd : null,
-        projectileSpeed: this.safeNum(mods.pspd),
-        movementSpeed: this.safeNum(mods.spd),
-        attackRange: this.safeNum(mods.rng),
-        pickupRange: this.safeNum(mods.pickup),
-        blockChance: this.safeNum(mods.block),
-        flatDamageReduction: this.safeNum(mods.dr),
-        regeneration: this.safeNum(mods.regen),
-        area: this.safeNum(mods.area),
-        duration: this.safeNum(mods.duration),
-        extraUnits: this.safeNum(mods.amount),
-        luck: this.safeNum(mods.luck),
-        greed: this.safeNum(mods.greed),
-        experienceMultiplier: this.safeNum(mods.xp),
-        criticalChance: this.safeNum(mods.crit),
-        criticalMultiplier: this.safeNum(mods.critMul),
-        knockbackMultiplier: this.safeNum(mods.kbm),
-        knockbackBonus: this.safeNum(mods.kbBonus),
-        effectiveKnockbackMultiplier:
-          (mods.kbm == null ? 1 : this.safeNum(mods.kbm)) *
-          (mods.kbBonus == null ? 1 : this.safeNum(mods.kbBonus)),
-        enemyHealthCurse: this.safeNum(mods.curse),
-        enemySpawnFrequencyCurse: this.safeNum(mods.curse),
-        enemySpeedCurse: this.safeNum(mods.curseSpd),
-        resurrectionsAvailable: g.P && g.P.manto > 0 && !g.reviveUsed ? 1 : 0,
-        resurrectionsUsed: g.reviveUsed ? 1 : 0,
-      };
-      r.snapshots.push({
-        t: Math.round(g.t * 10) / 10,
-        level: g.lvl,
-        xp: Math.round(g.xp * 100) / 100,
-        xpNeeded: g.need,
-        hp: Math.round(g.p.hp * 100) / 100,
-        maxHp: mods.maxhp,
-        hpRatio: mods.maxhp
-          ? Math.round((g.p.hp / mods.maxhp) * 1000) / 1000
-          : null,
-        kills: g.kills,
-        coins: g.coins,
-        enemyAlive: alive.length,
-        enemiesByType: byType,
-        eliteAlive: alive.filter((e) => e.elite).length,
-        difficulty: {
-          enemyHpScale: Math.round(enemyHpScale(g.t) * 1000) / 1000,
-          spawnPerSecond: Math.round(spawnRateNow(g) * 1000) / 1000,
-          enemyCap: ENEMY_CAP,
-          bossActive: !!g.boss,
-          enemyThreatHp: Math.round(alive.reduce((s, e) => s + (e.hp || 0), 0)),
-          enemyThreatDps: Math.round(
-            alive.reduce((s, e) => s + (e.boss ? 0 : e.dmg || 0), 0),
-          ),
-        },
-        boss: g.boss
-          ? {
-            name: (BOSSES[g.boss.idx] && BOSSES[g.boss.idx].name) || "boss",
-            hp: Math.round(g.boss.hp * 10) / 10,
-            maxHp: g.boss.mhp,
-            hpRatio: g.boss.mhp
-              ? Math.round((g.boss.hp / g.boss.mhp) * 1000) / 1000
-              : null,
-          }
-          : null,
-        cumulativeDamageDealt: Math.round(r.metrics.damageDealt * 10) / 10,
-        cumulativeDamageTaken: Math.round(r.metrics.damageTaken * 10) / 10,
-        stats: {
-          ...effectiveStats,
-        },
-        effectiveStats,
-        effectiveModifiers: this.primitiveModifiers(mods),
-        weapons,
-        passives,
-        active,
-        evolutions: treesChanged ? this.clone(trees) : undefined,
-      });
-      if (r.snapshots.length > BALANCE_MAX_SNAPSHOTS) {
-        r.snapshots.splice(1, 1); /* mantém o snapshot inicial */
-        r.truncation.any = true;
-        r.truncation.discarded.snapshots++;
-      }
-      r.metrics.maxEnemiesAlive = Math.max(
-        r.metrics.maxEnemiesAlive || 0,
-        alive.length,
-      );
-      r.metrics.maxLevel = Math.max(r.metrics.maxLevel || 1, g.lvl || 1);
-    },
-    integrateActiveTo(time) {
-      const r = this.current,
-        endT = Math.max(0, this.safeNum(time)),
-        startT = Math.max(0, Math.min(endT, this.lastTickGameT));
-      let cursor = startT;
-      while (cursor < endT) {
-        const minuteEnd = (Math.floor(cursor / 60) + 1) * 60,
-          sampleEnd =
-            this.nextAliveSampleAt > cursor
-              ? this.nextAliveSampleAt
-              : cursor + 1,
-          next = Math.min(endT, minuteEnd, sampleEnd),
-          elapsed = Math.max(0, next - cursor),
-          bucket = this.minuteBucket(cursor);
-        if (elapsed > 0) {
-          r.metrics.activeSeconds += elapsed;
-          r.metrics.enemyAliveSeconds += this.aliveSampleCount * elapsed;
-          if (bucket) {
-            bucket.activeSeconds += elapsed;
-            bucket.enemyAliveSeconds += this.aliveSampleCount * elapsed;
-            bucket.averageEnemiesAlive = bucket.activeSeconds
-              ? bucket.enemyAliveSeconds / bucket.activeSeconds
-              : 0;
-            if (G && G.p && G.mods && G.mods.maxhp > 0) {
-              bucket.hpRatioSeconds =
-                (bucket.hpRatioSeconds || 0) +
-                Math.max(0, Math.min(1, G.p.hp / G.mods.maxhp)) * elapsed;
-              bucket.averageHpRatio = bucket.activeSeconds
-                ? bucket.hpRatioSeconds / bucket.activeSeconds
-                : 0;
-            }
-          }
-        }
-        cursor = next;
-        if (cursor >= this.nextAliveSampleAt) {
-          this.aliveSampleCount = (G.enemies || []).reduce(
-            (count, enemy) => count + (!enemy.dead ? 1 : 0),
-            0,
-          );
-          this.nextAliveSampleAt = cursor + 1;
-        }
-      }
-      this.lastTickGameT = endT;
-      r.metrics.averageEnemiesAlive = r.metrics.activeSeconds
-        ? r.metrics.enemyAliveSeconds / r.metrics.activeSeconds
-        : 0;
-    },
-    tick(dt) {
-      const r = this.current;
-      if (!r || !G || G.over || state !== "play" || G.resumeT > 0) return;
-      this.integrateActiveTo(G.t);
-      if (G.mods && G.mods.maxhp > 0) {
-        const ratio = G.p.hp / G.mods.maxhp;
-        if (ratio <= 0.3)
-          r.metrics.timeBelow30Hp = (r.metrics.timeBelow30Hp || 0) + dt;
-        if (ratio <= 0.15)
-          r.metrics.timeBelow15Hp = (r.metrics.timeBelow15Hp || 0) + dt;
-      }
-      r.lastT = Math.round(G.t * 10) / 10;
-      if (G.t >= this.nextSampleAt) {
-        this.snapshot(G, false);
-        this.nextSampleAt = G.t + 15;
-      }
-      if (G.t - this.lastPersistGameT >= 30) {
-        this.lastPersistGameT = G.t;
-        this.persist();
-      }
-    },
-    markInterrupted(run, reason) {
-      run.status = "interrupted";
-      run.endReason = reason;
-      run.endedAt = new Date().toISOString();
-      const openSession = (run.choices || []).find(
-        (session) => session.status === "open",
-      );
-      if (openSession) {
-        openSession.status = "ended_unselected";
-        openSession.endedReason = reason;
-      }
-      const m = run.metrics || {};
-      run.result = {
-        won: false,
-        returnedToMenu: false,
-        endReason: reason,
-        durationSeconds: run.lastT == null ? null : run.lastT,
-        level: m.maxLevel || null,
-        kills: m.kills || 0,
-        hpRemaining: null,
-        maxHp: null,
-        hitBy: null,
-        coinsEarned: null,
-        xpRemaining: null,
-        build: null,
-      };
-    },
-    buildSnapshot(g) {
-      const weapons = {},
-        passives = {},
-        active = {};
-      for (const id of Object.keys(g.W || {}))
-        weapons[id] = (g.W[id] && g.W[id].lvl) || 1;
-      for (const id of Object.keys(g.P || {})) passives[id] = g.P[id];
-      for (const id of Object.keys(g.al || {})) active[id] = g.al[id];
-      const txt = (o) =>
-        Object.keys(o)
-          .map((k) => k + ":" + o[k])
-          .join("|");
-      return {
-        weapons,
-        passives,
-        active,
-        text:
-          "W[" +
-          txt(weapons) +
-          "] P[" +
-          txt(passives) +
-          "] A[" +
-          txt(active) +
-          "]",
-        sling: this.clone(g.slingTree),
-        evolutions: {
-          weapon: this.clone(g.weaponTrees || {}),
-          passive: this.clone(g.passiveTrees || {}),
-          active: this.clone(g.activeTrees || {}),
-        },
-      };
-    },
-    finish(won, ret) {
-      const r = this.current;
-      if (!r || r.status !== "in_progress" || !G) return;
-      this.integrateActiveTo(G.t);
-      this.syncChoiceTools();
-      const openSession = r.choices.find(
-        (session) =>
-          session.sessionId === this.activeChoiceSessionId &&
-          session.status === "open",
-      );
-      if (openSession) {
-        openSession.status = "ended_unselected";
-        openSession.endedReason = "run_ended_without_selection";
-        openSession.endedAt = Math.round(G.t * 10) / 10;
-      }
-      this.activeChoiceSessionId = null;
-      this.snapshot(G, true);
-      r.status = "completed";
-      r.endedAt = new Date().toISOString();
-      r.metrics.averageEnemiesAlive = r.metrics.activeSeconds
-        ? r.metrics.enemyAliveSeconds / r.metrics.activeSeconds
-        : 0;
-      r.result = {
-        won: !!won,
-        returnedToMenu: !!ret,
-        endReason: ret ? "interrupted_by_player" : won ? "victory" : "defeat",
-        durationSeconds: Math.round(G.t * 10) / 10,
-        activeSeconds: Math.round(r.metrics.activeSeconds * 10) / 10,
-        averageEnemiesAlive: r.metrics.averageEnemiesAlive,
-        level: G.lvl,
-        kills: G.kills,
-        hpRemaining: Math.round(G.p.hp * 100) / 100,
-        maxHp: G.mods.maxhp,
-        hitBy: G.hitBy || null,
-        lastHits: this.clone(this.recentHits || []),
-        coinsCollectedRaw: Math.round((G.coins || 0) * 1000) / 1000,
-        coinMultiplier: Math.round(runCoinMul() * 1000) / 1000,
-        coinsEarned: runCoins(G),
-        economy: ecoReport(G),
-        xpRemaining: Math.round((G.xp || 0) * 100) / 100,
-        build: this.buildSnapshot(G),
-      };
-      this.event("run_end", this.clone(r.result));
-      this.data.runs.push(r);
-      this.lastRun = r;
-      const excess = Math.max(0, this.data.runs.length - BALANCE_MAX_RUNS);
-      if (excess) {
-        this.data.historyDiscardedRuns =
-          (this.data.historyDiscardedRuns || 0) + excess;
-        this.data.runs = this.data.runs.slice(-BALANCE_MAX_RUNS);
-      }
-      this.current = null;
-      this.data.active = null;
-      this.pendingRerollFrom = null;
-      this.persist();
-    },
-    /* completa result.economy depois do fim da partida (bônus do Desafio do Dia, anúncio de moedas) */
-    patchEconomy(patch) {
-      const r = this.lastRun;
-      if (!r || !r.result || !patch) return;
-      const e = (r.result.economy = Object.assign(
-        r.result.economy || {},
-        patch,
-      ));
-      e.totalGranted =
-        this.safeNum(e.coinsCredited) +
-        this.safeNum(e.adCoins) +
-        this.safeNum(e.dailyBonus);
-      this.persist();
-    },
-    recoverInterrupted() {
-      const old = this.data.active;
-      if (old && old.status === "in_progress") {
-        this.markInterrupted(old, "page_reload_or_tab_closed");
-        this.data.runs.push(old);
-        const excess = Math.max(0, this.data.runs.length - BALANCE_MAX_RUNS);
-        if (excess) {
-          this.data.historyDiscardedRuns =
-            (this.data.historyDiscardedRuns || 0) + excess;
-          this.data.runs = this.data.runs.slice(-BALANCE_MAX_RUNS);
-        }
-        this.data.active = null;
-        this.persist();
-      }
-    },
-    allData() {
-      return {
-        schemaVersion: this.data.schemaVersion || BALANCE_SCHEMA_VERSION,
-        exportedAt: new Date().toISOString(),
-        telemetryVersion: BALANCE_TELEMETRY_VERSION,
-        game: "Fé Survivor",
-        storage: {
-          key: BALANCE_STORE_KEY,
-          localOnly: true,
-          storageFull: !!this.storageFull,
-          persistenceFailed: !!this.storageFull,
-          historyDiscardedRuns: this.data.historyDiscardedRuns || 0,
-          storagePressureEvents: this.data.storagePressureEvents || 0,
-          limits: {
-            runs: BALANCE_MAX_RUNS,
-            eventsPerRun: BALANCE_MAX_EVENTS,
-            choicesPerRun: BALANCE_MAX_CHOICES,
-            snapshotsPerRun: BALANCE_MAX_SNAPSHOTS,
-            minuteBucketsPerRun: BALANCE_MAX_MINUTE_BUCKETS,
-          },
-        },
-        contentFingerprint: this.contentFingerprint(),
-        balanceTables: this.balanceTables(),
-        runs: this.data.runs,
-        active: this.current || this.data.active || null,
-      };
-    },
-    /* identifica a versão dos números de balanceamento usada na partida */
-    contentFingerprint() {
-      if (this._fp) return this._fp;
-      let h = 2166136261;
-      const s = JSON.stringify(this.balanceTables());
-      for (let i = 0; i < s.length; i++) {
-        h ^= s.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-      }
-      return (this._fp = (h >>> 0).toString(16).padStart(8, "0"));
-    },
-    /* tabelas de balanceamento atuais (o que o jogo está usando agora) */
-    balanceTables() {
-      const content = window.FE_SURVIVOR_CONTENT || {},
-        prim = (o) => this.primitiveModifiers(o),
-        pick = (table) =>
-          Object.fromEntries(
-            Object.entries(table || {}).map(([id, v]) => [id, prim(v)]),
-          );
-      const weapons = {};
-      for (const [id, w] of Object.entries(content.weapons || {}))
-        weapons[id] = {
-          name: w.name,
-          behavior: w.behavior,
-          base: this.clone(w.base),
-          upgrades: (w.up || []).map((u) => u.d),
-        };
-      return {
-        hpScale: HPS,
-        rules: {
-          winTimeSeconds: typeof WIN_T === "number" ? WIN_T : null,
-          standardSlots: {
-            weapons: 4,
-            passives: 4,
-            actives: MAX_ACTIVE_STANDARD,
-          },
-          infiniteSlots: {
-            weapons: INF_SLOTS_W,
-            passives: INF_SLOTS_P,
-            actives: INF_ACTIVES,
-          },
-          maxWeaponLevel: MAXW,
-          maxPassiveLevel: MAXP,
-          enemyCap: ENEMY_CAP,
-          stackCaps: STACK_CAPS,
-          domLevelForEvolution: typeof NXV !== "undefined" ? NXV.domLv : null,
-        },
-        heroes: Object.fromEntries(
-          Object.entries(content.heroes || {}).map(([id, h]) => [
-            id,
-            { ...prim(h), attackRange: HRNG[id] || null },
-          ]),
-        ),
-        weapons,
-        passives: pick(content.passives),
-        actives: pick(content.actives),
-        enemies: pick(ET),
-        bosses: (BOSSES || []).map((b) => prim(b)),
-        worlds: (WORLDS || []).map((w) => prim(w)),
-      };
-    },
-    csvTable(fields, rows) {
-      return (
-        "\ufeff" +
-        [fields.join(",")]
-          .concat(
-            rows.map((o) => fields.map((k) => this.csvEscape(o[k])).join(",")),
-          )
-          .join("\r\n")
-      );
-    },
-    runHead(r) {
-      const c = r.config || {},
-        h = c.hero || {},
-        res = r.result || {};
-      return {
-        runId: r.id,
-        attempt: r.attempt,
-        status: r.status,
-        gameVersion: r.gameVersion,
-        fingerprint: c.contentFingerprint || "",
-        mode: c.mode,
-        world: c.world,
-        heroId: h.id,
-        won: res.won,
-        durationSeconds:
-          res.durationSeconds != null ? res.durationSeconds : r.lastT,
-      };
-    },
-    allRuns() {
-      return this.data.runs.concat(this.current ? [this.current] : []);
-    },
-    toCSVMinutes() {
-      const fields = [
-        "runId",
-        "attempt",
-        "status",
-        "gameVersion",
-        "fingerprint",
-        "mode",
-        "world",
-        "heroId",
-        "won",
-        "durationSeconds",
-        "minute",
-        "activeSeconds",
-        "averageEnemiesAlive",
-        "averageHpRatio",
-        "spawns",
-        "kills",
-        "eliteKills",
-        "bossesSpawned",
-        "bossesDefeated",
-        "damageDealt",
-        "damageToBosses",
-        "damageToElites",
-        "damageTaken",
-        "mitigatedDamage",
-        "hitsTaken",
-        "blockedHits",
-        "healingReceived",
-        "xpRaw",
-        "xpEffective",
-        "coinsCollected",
-        "levelsGained",
-        "choicesMade",
-        "dropsGenerated",
-        "dropsCollected",
-        "dropsExpired",
-        "topDamageSource",
-        "damageBySource",
-        "killsByType",
-        "enemySpawnsByType",
-        "activeUses",
-      ];
-      const rows = [];
-      const sum = (o) => Object.values(o || {}).reduce((a, b) => a + b, 0);
-      for (const r of this.allRuns())
-        for (const b of r.minuteBuckets || []) {
-          const top = Object.entries(b.damageBySource || {}).sort(
-            (x, y) => y[1] - x[1],
-          )[0];
-          rows.push({
-            ...this.runHead(r),
-            minute: b.minute,
-            activeSeconds: Math.round((b.activeSeconds || 0) * 10) / 10,
-            averageEnemiesAlive:
-              Math.round((b.averageEnemiesAlive || 0) * 10) / 10,
-            averageHpRatio: Math.round((b.averageHpRatio || 0) * 1000) / 1000,
-            spawns: sum(b.enemySpawnsByType),
-            kills: sum(b.killsByType),
-            eliteKills: b.eliteKills,
-            bossesSpawned: b.bossesSpawned,
-            bossesDefeated: b.bossesDefeated,
-            damageDealt: Math.round(b.damageDealt || 0),
-            damageToBosses: Math.round(b.damageToBosses || 0),
-            damageToElites: Math.round(b.damageToElites || 0),
-            damageTaken: Math.round(b.damageTaken || 0),
-            mitigatedDamage: Math.round(b.mitigatedDamage || 0),
-            hitsTaken: b.hitsTaken,
-            blockedHits: b.blockedHits,
-            healingReceived: Math.round(b.healingReceived || 0),
-            xpRaw: Math.round(b.xpRaw || 0),
-            xpEffective: Math.round(b.xpEffective || 0),
-            coinsCollected: b.coinsCollected,
-            levelsGained: b.levelsGained,
-            choicesMade: b.choicesMade,
-            dropsGenerated: b.drops && b.drops.generated,
-            dropsCollected: b.drops && b.drops.collected,
-            dropsExpired: b.drops && b.drops.expired,
-            topDamageSource: top ? top[0] + ":" + Math.round(top[1]) : "",
-            damageBySource: Object.fromEntries(
-              Object.entries(b.damageBySource || {}).map(([k, v]) => [
-                k,
-                Math.round(v),
-              ]),
-            ),
-            killsByType: b.killsByType,
-            enemySpawnsByType: b.enemySpawnsByType,
-            activeUses: b.activeUses,
-          });
-        }
-      return this.csvTable(fields, rows);
-    },
-    toCSVWeapons() {
-      const fields = [
-        "runId",
-        "attempt",
-        "status",
-        "gameVersion",
-        "fingerprint",
-        "mode",
-        "world",
-        "heroId",
-        "won",
-        "durationSeconds",
-        "source",
-        "kind",
-        "finalLevel",
-        "evolved",
-        "damage",
-        "damageShare",
-        "dps",
-        "hits",
-        "avgHit",
-        "kills",
-        "killShare",
-        "crits",
-        "critRate",
-        "finalStats",
-      ];
-      const rows = [];
-      for (const r of this.allRuns()) {
-        const m = r.metrics || {},
-          dbw = m.damageByWeapon || {},
-          kbw = m.killsByWeapon || {},
-          hbw = m.hitsByWeapon || {},
-          cbw = m.critsByWeapon || {},
-          snaps = r.snapshots || [],
-          last = snaps[snaps.length - 1] || {},
-          lw = Object.fromEntries((last.weapons || []).map((w) => [w.id, w])),
-          totalDmg = Object.values(dbw).reduce((a, b) => a + b, 0) || 1,
-          totalKills = Object.values(kbw).reduce((a, b) => a + b, 0) || 1,
-          dur = (r.result && r.result.durationSeconds) || r.lastT || 1,
-          ids = new Set([
-            ...Object.keys(dbw),
-            ...Object.keys(kbw),
-            ...Object.keys(lw),
-          ]);
-        for (const id of ids) {
-          const w = lw[id],
-            isWeapon = !!WEAPONS[id],
-            dmg = dbw[id] || 0,
-            hits = hbw[id] || 0;
-          rows.push({
-            ...this.runHead(r),
-            source: id,
-            kind: isWeapon ? "arma" : PASSIVES[id] ? "dom" : "efeito/outro",
-            finalLevel: w ? w.level : "",
-            evolved: w ? w.evolved : "",
-            damage: Math.round(dmg),
-            damageShare: Math.round((dmg / totalDmg) * 1000) / 1000,
-            dps: Math.round((dmg / dur) * 10) / 10,
-            hits,
-            avgHit: hits ? Math.round((dmg / hits) * 10) / 10 : "",
-            kills: kbw[id] || 0,
-            killShare: Math.round(((kbw[id] || 0) / totalKills) * 1000) / 1000,
-            crits: cbw[id] || 0,
-            critRate: hits
-              ? Math.round(((cbw[id] || 0) / hits) * 1000) / 1000
-              : "",
-            finalStats: w ? w.stats : "",
-          });
-        }
-      }
-      return this.csvTable(fields, rows);
-    },
-    toCSVEnemies() {
-      const fields = [
-        "runId",
-        "attempt",
-        "status",
-        "gameVersion",
-        "fingerprint",
-        "mode",
-        "world",
-        "heroId",
-        "won",
-        "durationSeconds",
-        "type",
-        "name",
-        "spawned",
-        "killed",
-        "killRate",
-        "avgSpawnHp",
-        "avgSpawnDmg",
-        "avgSpawnSpeed",
-        "avgLifetimeSeconds",
-        "maxLifetimeSeconds",
-        "damageTakenFromPlayer",
-        "damageDealtToPlayer",
-        "hitsOnPlayer",
-        "dpsContribution",
-      ];
-      const rows = [];
-      for (const r of this.allRuns()) {
-        const m = r.metrics || {},
-          sp = m.enemiesSpawnedByType || {},
-          kb = m.killsByType || {},
-          ss = m.spawnStats || {},
-          lf = m.lifetimeByType || {},
-          dt = m.damageByTargetType || {},
-          ds = m.damageSources || {},
-          hs = m.hitsBySource || {},
-          dur = (r.result && r.result.durationSeconds) || r.lastT || 1;
-        for (const type of Object.keys(sp)) {
-          const nm = (DI[type] && DI[type][0]) || type,
-            s = ss[type],
-            l = lf[type];
-          rows.push({
-            ...this.runHead(r),
-            type,
-            name: nm,
-            spawned: sp[type],
-            killed: kb[type] || 0,
-            killRate: sp[type]
-              ? Math.round(((kb[type] || 0) / sp[type]) * 1000) / 1000
-              : "",
-            avgSpawnHp: s ? Math.round((s.hp / s.n) * 10) / 10 : "",
-            avgSpawnDmg: s ? Math.round((s.dmg / s.n) * 10) / 10 : "",
-            avgSpawnSpeed: s ? Math.round((s.spd / s.n) * 10) / 10 : "",
-            avgLifetimeSeconds: l ? Math.round((l.sum / l.n) * 10) / 10 : "",
-            maxLifetimeSeconds: l ? Math.round(l.max * 10) / 10 : "",
-            damageTakenFromPlayer: Math.round(dt[type] || 0),
-            damageDealtToPlayer: Math.round(ds[nm] || 0),
-            hitsOnPlayer: hs[nm] || 0,
-            dpsContribution: Math.round(((ds[nm] || 0) / dur) * 100) / 100,
-          });
-        }
-      }
-      return this.csvTable(fields, rows);
-    },
-    toCSVBosses() {
-      const fields = [
-        "runId",
-        "attempt",
-        "status",
-        "gameVersion",
-        "fingerprint",
-        "mode",
-        "world",
-        "heroId",
-        "won",
-        "durationSeconds",
-        "boss",
-        "index",
-        "cycle",
-        "spawnedAt",
-        "defeated",
-        "secondsAlive",
-        "hpMax",
-        "enemyDmg",
-        "enemySpeed",
-        "damageDealt",
-        "playerDps",
-        "playerLevelAtSpawn",
-        "playerLevelAtKill",
-        "playerMaxHpAtSpawn",
-        "playerHpRatioAtSpawn",
-        "playerHpRatioAtEnd",
-        "damageToPlayer",
-        "hitsOnPlayer",
-        "patterns",
-      ];
-      const rows = [];
-      for (const r of this.allRuns())
-        for (const f of r.bossFights || [])
-          rows.push({
-            ...this.runHead(r),
-            boss: f.name,
-            index: f.index,
-            cycle: f.cycle,
-            spawnedAt: Math.round((f.spawnedAt || 0) * 10) / 10,
-            defeated: f.defeated,
-            secondsAlive: f.secondsAlive,
-            hpMax: Math.round(f.hpMax || 0),
-            enemyDmg: f.enemyDmg,
-            enemySpeed:
-              f.enemySpeed != null ? Math.round(f.enemySpeed * 10) / 10 : "",
-            damageDealt: Math.round(f.damageDealt || 0),
-            playerDps: f.playerDps,
-            playerLevelAtSpawn: f.playerLevelAtSpawn,
-            playerLevelAtKill: f.playerLevelAtKill,
-            playerMaxHpAtSpawn: f.playerMaxHpAtSpawn,
-            playerHpRatioAtSpawn: f.playerHpRatioAtSpawn,
-            playerHpRatioAtEnd: f.playerHpRatioAtEnd,
-            damageToPlayer: Math.round(f.damageToPlayer || 0),
-            hitsOnPlayer: f.hitsOnPlayer,
-            patterns: f.patterns,
-          });
-      return this.csvTable(fields, rows);
-    },
-    /* ZIP simples (sem compressão) para baixar tudo de uma vez */
-    zipStore(files) {
-      const enc = new TextEncoder(),
-        crcT = (this._crcT =
-          this._crcT ||
-          Array.from({ length: 256 }, (_, n) => {
-            let c = n;
-            for (let k = 0; k < 8; k++)
-              c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-            return c >>> 0;
-          }));
-      const crc = (u8) => {
-        let c = 0xffffffff;
-        for (let i = 0; i < u8.length; i++)
-          c = crcT[(c ^ u8[i]) & 255] ^ (c >>> 8);
-        return (c ^ 0xffffffff) >>> 0;
-      };
-      const parts = [],
-        central = [];
-      let offset = 0;
-      const u16 = (v) => [v & 255, (v >>> 8) & 255],
-        u32 = (v) => [
-          v & 255,
-          (v >>> 8) & 255,
-          (v >>> 16) & 255,
-          (v >>> 24) & 255,
-        ];
-      const dosTime = 0,
-        dosDate = ((2026 - 1980) << 9) | (1 << 5) | 1;
-      for (const [name, text] of files) {
-        const nameB = enc.encode(name),
-          data = enc.encode(text),
-          c = crc(data),
-          local = new Uint8Array([
-            ...u32(0x04034b50),
-            ...u16(20),
-            ...u16(0x0800),
-            ...u16(0),
-            ...u16(dosTime),
-            ...u16(dosDate),
-            ...u32(c),
-            ...u32(data.length),
-            ...u32(data.length),
-            ...u16(nameB.length),
-            ...u16(0),
-          ]);
-        parts.push(local, nameB, data);
-        central.push(
-          new Uint8Array([
-            ...u32(0x02014b50),
-            ...u16(20),
-            ...u16(20),
-            ...u16(0x0800),
-            ...u16(0),
-            ...u16(dosTime),
-            ...u16(dosDate),
-            ...u32(c),
-            ...u32(data.length),
-            ...u32(data.length),
-            ...u16(nameB.length),
-            ...u16(0),
-            ...u16(0),
-            ...u16(0),
-            ...u16(0),
-            ...u32(0),
-            ...u32(offset),
-          ]),
-          nameB,
-        );
-        offset += local.length + nameB.length + data.length;
-      }
-      const cdSize = central.reduce((n, p) => n + p.length, 0),
-        end = new Uint8Array([
-          ...u32(0x06054b50),
-          ...u16(0),
-          ...u16(0),
-          ...u16(files.length),
-          ...u16(files.length),
-          ...u32(cdSize),
-          ...u32(offset),
-          ...u16(0),
-        ]);
-      return new Uint8Array(
-        [...parts, ...central, end].reduce(
-          (a, p) => a.concat(Array.from(p)),
-          [],
-        ),
-      );
-    },
-    exportPackage() {
-      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-"),
-        json = JSON.stringify(this.allData(), null, 2),
-        files = [
-          ["01-partidas-resumo.csv", "\ufeff" + this.toCSV()],
-          ["02-por-minuto.csv", this.toCSVMinutes()],
-          ["03-por-arma.csv", this.toCSVWeapons()],
-          ["04-por-inimigo.csv", this.toCSVEnemies()],
-          ["05-por-chefe.csv", this.toCSVBosses()],
-          [
-            "06-tabelas-de-balanceamento.json",
-            JSON.stringify(this.balanceTables(), null, 2),
-          ],
-          ["07-telemetria-completa.json", json],
-        ];
-      let ok = false;
-      try {
-        const zip = this.zipStore(files);
-        ok = this.download(
-          "fe-survivor-balance-pacote-" + stamp + ".zip",
-          zip,
-          "application/zip",
-        );
-      } catch (e) {
-        ok = false;
-      }
-      this.status(
-        ok
-          ? "Pacote completo (ZIP) preparado: 5 CSVs + tabelas de balanceamento + JSON."
-          : "Não foi possível gerar o ZIP neste navegador. Use os botões JSON/CSV.",
-      );
-    },
-    csvEscape(value) {
-      const s =
-        value == null
-          ? ""
-          : typeof value === "object"
-            ? JSON.stringify(value)
-            : String(value);
-      return '"' + s.replace(/"/g, '""') + '"';
-    },
-    toCSV() {
-      const fields = [
-        "id",
-        "schemaVersion",
-        "telemetryVersion",
-        "gameVersion",
-        "status",
-        "startedAt",
-        "endedAt",
-        "mode",
-        "modeLabel",
-        "world",
-        "worldIndex",
-        "worldName",
-        "heroId",
-        "heroName",
-        "daily",
-        "rngSeed",
-        "rngSource",
-        "attempt",
-        "durationSeconds",
-        "activeSeconds",
-        "averageEnemiesAlive",
-        "won",
-        "endReason",
-        "level",
-        "kills",
-        "enemiesSpawned",
-        "maxEnemiesAlive",
-        "damageDealt",
-        "damageToBosses",
-        "damageToElites",
-        "damageTaken",
-        "hitsTaken",
-        "blockedHits",
-        "healingReceived",
-        "timeBelow30Hp",
-        "timeBelow15Hp",
-        "xpRaw",
-        "xpEffective",
-        "choicesMade",
-        "choicesSkipped",
-        "banishedOptions",
-        "rerolls",
-        "bossesSpawned",
-        "bossesDefeated",
-        "eliteKills",
-        "hpRemaining",
-        "maxHp",
-        "coinsEarned",
-        "coinsCollected",
-        "hitBy",
-        "buildText",
-        "contentFingerprint",
-        "hpScale",
-        "slotsWeapons",
-        "slotsPassives",
-        "slotsActives",
-        "heroHp",
-        "heroDmg",
-        "heroSpd",
-        "heroCrit",
-        "heroLuck",
-        "crits",
-        "critRate",
-        "overkillDamage",
-        "rawDamageTaken",
-        "mitigatedDamage",
-        "maxHit",
-        "blockedDamage",
-        "overhealing",
-        "damagePerSecond",
-        "damageTakenPerSecond",
-        "killsByWeapon",
-        "damageByTargetType",
-        "healingBySource",
-        "damageSources",
-        "lastHits",
-        "damageByWeapon",
-        "pickupsByType",
-        "activeUses",
-        "runModifiers",
-        "bossFights",
-        "dropsGenerated",
-        "dropsPlaced",
-        "dropsCollected",
-        "dropsExpired",
-        "dropsConvertedToXp",
-        "dropsByType",
-        "dropsExpiredByReason",
-        "choiceTools",
-        "choiceSessions",
-        "truncationAny",
-        "truncatedEvents",
-        "truncatedChoices",
-        "truncatedSnapshots",
-        "truncatedMinuteBuckets",
-        "storageFailures",
-        "storagePersistenceFailed",
-        "storagePressureEvents",
-        "historyDiscardedRuns",
-        "limitEvents",
-        "limitChoices",
-        "limitSnapshots",
-        "limitMinuteBuckets",
-        "limitHistoryRuns",
-      ];
-      const rows = [fields.join(",")];
-      const runs = this.data.runs.concat(this.current ? [this.current] : []);
-      for (const r of runs) {
-        const c = r.config || {},
-          h = c.hero || {},
-          m = r.metrics || {},
-          res = r.result || {},
-          b = res.build || null;
-        const dbw = m.damageByWeapon
-          ? Object.fromEntries(
-            Object.entries(m.damageByWeapon).map(([k, v]) => [
-              k,
-              Math.round(v),
-            ]),
-          )
-          : null;
-        const obj = {
-          id: r.id,
-          schemaVersion: r.schemaVersion,
-          telemetryVersion: r.telemetryVersion || 1,
-          gameVersion: r.gameVersion,
-          status: r.status,
-          startedAt: r.startedAt,
-          endedAt: r.endedAt,
-          mode: c.mode,
-          modeLabel: c.modeLabel,
-          world: c.world,
-          worldIndex: c.worldIndex,
-          worldName: c.worldName,
-          heroId: h.id,
-          heroName: h.name,
-          daily: c.dailyChallenge
-            ? c.dailySeed == null
-              ? "sim"
-              : c.dailySeed
-            : false,
-          rngSeed: c.rng && c.rng.seed != null ? c.rng.seed : c.dailySeed,
-          rngSource: c.rng && c.rng.source,
-          attempt: r.attempt,
-          durationSeconds:
-            res.durationSeconds != null ? res.durationSeconds : r.lastT,
-          activeSeconds: m.activeSeconds,
-          averageEnemiesAlive: m.averageEnemiesAlive,
-          won: res.won,
-          endReason: res.endReason,
-          level: res.level || m.maxLevel,
-          kills: res.kills == null ? m.kills : res.kills,
-          enemiesSpawned: m.enemiesSpawned,
-          maxEnemiesAlive: m.maxEnemiesAlive,
-          damageDealt: Math.round(m.damageDealt || 0),
-          damageToBosses: Math.round(m.damageToBosses || 0),
-          damageToElites: Math.round(m.damageToElites || 0),
-          damageTaken: Math.round(m.damageTaken || 0),
-          hitsTaken: m.hitsTaken,
-          blockedHits: m.blockedHits,
-          healingReceived: Math.round(m.healingReceived || 0),
-          timeBelow30Hp: Math.round(m.timeBelow30Hp || 0),
-          timeBelow15Hp: Math.round(m.timeBelow15Hp || 0),
-          xpRaw: Math.round(m.xpRaw || 0),
-          xpEffective: Math.round(m.xpEffective || 0),
-          choicesMade: m.choicesMade,
-          choicesSkipped: m.choicesSkipped,
-          banishedOptions: m.banishedOptions,
-          rerolls: m.rerolls,
-          bossesSpawned: m.bossesSpawned,
-          bossesDefeated: m.bossesDefeated,
-          eliteKills: m.eliteKills,
-          hpRemaining: res.hpRemaining,
-          maxHp: res.maxHp,
-          coinsEarned: res.coinsEarned,
-          coinsCollected: m.coinsCollected,
-          hitBy: res.hitBy,
-          buildText: b ? b.text : null,
-          contentFingerprint: c.contentFingerprint,
-          hpScale: c.hpScale,
-          slotsWeapons: c.slots && c.slots.weapons,
-          slotsPassives: c.slots && c.slots.passives,
-          slotsActives: c.slots && c.slots.actives,
-          heroHp: h.hp,
-          heroDmg: h.dmg,
-          heroSpd: h.spd,
-          heroCrit: h.crit,
-          heroLuck: h.luck,
-          crits: m.crits || 0,
-          critRate: m.hitsByWeapon
-            ? Math.round(
-              ((m.crits || 0) /
-                Math.max(
-                  1,
-                  Object.values(m.hitsByWeapon).reduce((a, b) => a + b, 0),
-                )) *
-              1000,
-            ) / 1000
-            : "",
-          overkillDamage: Math.round(m.overkillDamage || 0),
-          rawDamageTaken: Math.round(m.rawDamageTaken || 0),
-          mitigatedDamage: Math.round(m.mitigatedDamage || 0),
-          maxHit: m.maxHit,
-          blockedDamage: Math.round(m.blockedDamage || 0),
-          overhealing: Math.round(m.overhealing || 0),
-          damagePerSecond:
-            Math.round(
-              ((m.damageDealt || 0) /
-                Math.max(1, res.durationSeconds || r.lastT || 1)) *
-              10,
-            ) / 10,
-          damageTakenPerSecond:
-            Math.round(
-              ((m.damageTaken || 0) /
-                Math.max(1, res.durationSeconds || r.lastT || 1)) *
-              100,
-            ) / 100,
-          killsByWeapon: m.killsByWeapon,
-          damageByTargetType: m.damageByTargetType
-            ? Object.fromEntries(
-              Object.entries(m.damageByTargetType).map(([k, v]) => [
-                k,
-                Math.round(v),
-              ]),
-            )
-            : null,
-          healingBySource: m.healingBySource
-            ? Object.fromEntries(
-              Object.entries(m.healingBySource).map(([k, v]) => [
-                k,
-                Math.round(v),
-              ]),
-            )
-            : null,
-          damageSources: m.damageSources
-            ? Object.fromEntries(
-              Object.entries(m.damageSources).map(([k, v]) => [
-                k,
-                Math.round(v),
-              ]),
-            )
-            : null,
-          lastHits: res.lastHits,
-          damageByWeapon: dbw,
-          pickupsByType: m.pickupsByType,
-          activeUses: m.activeUses,
-          runModifiers: c.runModifiers,
-          bossFights: r.bossFights,
-          dropsGenerated: m.drops && m.drops.generated,
-          dropsPlaced: m.drops && m.drops.placed,
-          dropsCollected: m.drops && m.drops.collected,
-          dropsExpired: m.drops && m.drops.expired,
-          dropsConvertedToXp: m.drops && m.drops.convertedToXp,
-          dropsByType: m.drops && m.drops.byType,
-          dropsExpiredByReason: m.drops && m.drops.expiredByReason,
-          choiceTools: r.choiceTools,
-          choiceSessions: r.choices && r.choices.length,
-          truncationAny: !!(r.truncation && r.truncation.any),
-          truncatedEvents: r.truncation && r.truncation.discarded.events,
-          truncatedChoices: r.truncation && r.truncation.discarded.choices,
-          truncatedSnapshots: r.truncation && r.truncation.discarded.snapshots,
-          truncatedMinuteBuckets:
-            r.truncation && r.truncation.discarded.minuteBuckets,
-          storageFailures: r.truncation && r.truncation.storageFailures,
-          storagePersistenceFailed: !!(
-            r.truncation && r.truncation.storageFailures
-          ),
-          storagePressureEvents: this.data.storagePressureEvents || 0,
-          historyDiscardedRuns: this.data.historyDiscardedRuns || 0,
-          limitEvents: r.limits && r.limits.events,
-          limitChoices: r.limits && r.limits.choices,
-          limitSnapshots: r.limits && r.limits.snapshots,
-          limitMinuteBuckets: r.limits && r.limits.minuteBuckets,
-          limitHistoryRuns: r.limits && r.limits.historyRuns,
-        };
-        rows.push(fields.map((k) => this.csvEscape(obj[k])).join(","));
-      }
-      return rows.join("\r\n");
-    },
-    download(filename, data, mime) {
-      try {
-        const blob = new Blob([data], { type: mime + ";charset=utf-8" }),
-          url = URL.createObjectURL(blob),
-          a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.style.display = "none";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-        return true;
-      } catch (e) {
-        return false;
-      }
-    },
-    exportJSON(lastOnly) {
-      const data = this.allData();
-      if (lastOnly) data.runs = data.runs.slice(-1);
-      const ok = this.download(
-        lastOnly
-          ? "fe-survivor-ultima-partida.json"
-          : "fe-survivor-balance-telemetry.json",
-        JSON.stringify(data, null, 2),
-        "application/json",
-      );
-      this.status(
-        ok
-          ? "Exportação JSON iniciada."
-          : "Não foi possível baixar o JSON neste navegador.",
-      );
-    },
-    exportCSV(kind) {
-      const gen = {
-        resumo: [
-          "fe-survivor-balance-resumo.csv",
-          () => "\ufeff" + this.toCSV(),
-        ],
-        minutos: [
-          "fe-survivor-balance-por-minuto.csv",
-          () => this.toCSVMinutes(),
-        ],
-        armas: [
-          "fe-survivor-balance-por-arma.csv",
-          () => this.toCSVWeapons(),
-        ],
-        inimigos: [
-          "fe-survivor-balance-por-inimigo.csv",
-          () => this.toCSVEnemies(),
-        ],
-        chefes: [
-          "fe-survivor-balance-por-chefe.csv",
-          () => this.toCSVBosses(),
-        ],
-      }[kind || "resumo"],
-        ok = this.download(gen[0], gen[1](), "text/csv");
-      this.status(
-        ok
-          ? "Exportação CSV iniciada."
-          : "Não foi possível baixar o CSV neste navegador.",
-      );
-    },
-    status(msg) {
-      const el = document.getElementById("balanceExportStatus");
-      if (el)
-        el.textContent = this.storageFull
-          ? msg +
-          " A persistência local falhou; exporte o JSON para preservar os dados."
-          : msg;
-    },
-    initUI() {
-      /* O painel "Dados de balanceamento" saiu da tela final: a exportação fica só no menu inicial (openScreen). */
-      const old = document.getElementById("balanceExportPanel");
-      if (old) old.remove();
-    },
-    openScreen() {
-      scr("Dados de Balanceamento", (b) => {
-        const count = this.data.runs.length + (this.current ? 1 : 0);
-        b.innerHTML =
-          '<div class="rw"><span><b>Telemetria local</b><small>Registra build e status efetivos, sessões de escolha, Banir/Pular/Reroll, drops, métricas por minuto, dano por arma (com kills e críticos), inimigos (vida, dano, tempo de vida), chefes (padrões, dano ao herói, DPS), mitigação, cura, economia e as tabelas de balanceamento da versão. O pacote ZIP reúne tudo. Os dados ficam neste dispositivo até você exportá-los.</small></span></div>' +
-          '<div class="rw"><span><b>' +
-          count +
-          " partidas registradas</b><small>Limite de histórico: " +
-          BALANCE_MAX_RUNS +
-          " partidas. Versão do esquema: " +
-          BALANCE_SCHEMA_VERSION +
-          " | Partidas antigas descartadas: " +
-          (this.data.historyDiscardedRuns || 0) +
-          (this.storageFull
-            ? " | AVISO: a persistência local falhou; exporte os dados agora."
-            : "") +
-          ".</small></span></div>" +
-          '<div class="balance-export-actions balance-export-grid"><button type="button" class="mb" id="balanceScreenLast">Última partida (JSON)</button><button type="button" class="mb" id="balanceScreenAll">Histórico completo (JSON)</button><button type="button" class="mb" id="balanceScreenCSV">Resumo para planilha (CSV)</button><button type="button" class="mb" id="balanceScreenMin">CSV por minuto</button><button type="button" class="mb" id="balanceScreenWpn">CSV por arma</button><button type="button" class="mb" id="balanceScreenEne">CSV por inimigo</button><button type="button" class="mb" id="balanceScreenBoss">CSV por chefe</button><button type="button" class="mb" id="balanceScreenZip">Pacote completo (ZIP)</button></div><p class="sub" id="balanceScreenStatus" aria-live="polite"></p>';
-        const status = (m) => {
-          const el = document.getElementById("balanceScreenStatus");
-          if (el) el.textContent = m;
-        };
-        b.querySelector("#balanceScreenLast").addEventListener("click", () => {
-          this.exportJSON(true);
-          status("Arquivo preparado. Verifique a pasta de downloads.");
-        });
-        b.querySelector("#balanceScreenAll").addEventListener("click", () => {
-          this.exportJSON(false);
-          status("Arquivo preparado. Verifique a pasta de downloads.");
-        });
-        b.querySelector("#balanceScreenCSV").addEventListener("click", () => {
-          this.exportCSV();
-          status("Arquivo preparado. Verifique a pasta de downloads.");
-        });
-        [
-          ["#balanceScreenMin", "minutos"],
-          ["#balanceScreenWpn", "armas"],
-          ["#balanceScreenEne", "inimigos"],
-          ["#balanceScreenBoss", "chefes"],
-        ].forEach(([sel, kind]) =>
-          b.querySelector(sel).addEventListener("click", () => {
-            this.exportCSV(kind);
-            status("Arquivo preparado. Verifique a pasta de downloads.");
-          }),
-        );
-        b.querySelector("#balanceScreenZip").addEventListener("click", () => {
-          this.exportPackage();
-          status("Pacote preparado. Verifique a pasta de downloads.");
-        });
-      });
-    },
-  };
-  BTL.recoverInterrupted();
-  BTL.initUI();
 
   function resize() {
     const w = gameEl.clientWidth || innerWidth,
@@ -4641,7 +2302,6 @@
       rangedAttack: T.rangedAttack || null,
     };
     G.enemies.push(e);
-    BTL.spawn(e, false);
     return e;
   }
   /* Escala de vida dos inimigos e taxa de spawn: usadas no jogo e na telemetria (fonte única). */
@@ -4673,9 +2333,9 @@
     const worldSpd = world && Number.isFinite(world.spd) ? world.spd : 1;
     const bhp = Math.round(
       B.hp *
-      (1 + cyc * 0.5) *
-      (1 + Math.min(0.35, 0.02 * Math.max(0, pw - 3))) *
-      worldHp,
+        (1 + cyc * 0.5) *
+        (1 + Math.min(0.35, 0.02 * Math.max(0, pw - 3))) *
+        worldHp,
     ); // +3,5% de vida por melhoria acima de 3, além do mundo
     const e = {
       t: "boss",
@@ -4709,7 +2369,6 @@
     G.enemies.push(e);
     G.boss = e;
     G.arena = { x: G.p.x, y: G.p.y, r: ARENA(Math.min(i, 6)) };
-    BTL.bossSpawn(e, B);
     banner(B.name + (cyc ? " | retorno " + cyc : ""), B.sub);
     SFX.play("boss");
     G.shake = 0.6;
@@ -4739,12 +2398,12 @@
 
   /* Balance Lab: atribui o dano de um efeito à arma que o criou (f.wid / s.wid). */
   function hurtBy(src, e, d, kx, ky, kb) {
-    const prev = BTL.src;
-    BTL.src = src || null;
+    const prev = damageSrc;
+    damageSrc = src || null;
     try {
       hurt(e, d, kx, ky, kb);
     } finally {
-      BTL.src = prev;
+      damageSrc = prev;
     }
   }
   function hurt(e, d, kx, ky, kb) {
@@ -4761,12 +2420,6 @@
       var cr = true;
     } else var cr = false;
     d = Math.max(0, roundGameplayValue(d));
-    BTL.damage(
-      Math.min(Math.max(0, d), Math.max(0, e.hp)),
-      e,
-      BTL.src || "other",
-      { crit: cr, overkill: Math.max(0, d - Math.max(0, e.hp)), raw: d },
-    );
     dmgNum(e, Math.min(d, e.hp), cr);
     e.hp -= d;
     e.flash = 0.09;
@@ -4790,13 +2443,12 @@
     ) {
       const executeRemainder = Math.max(0, e.hp);
       e.hp = 0;
-      BTL.damage(executeRemainder, e, "execution");
     }
     if (e.hp <= 0) kill(e);
   }
   function burst(x, y, n, col, sp) {
     if (!save.set.fx) return;
-    for (let i = 0; i < n && G.parts.length < 400; i++) {
+    for (let i = 0; i < n && G.parts.length < 400 >> PERF.lvl; i++) {
       const a = rngFx() * 6.2832,
         v = rndFx(10, sp || 60);
       G.parts.push({
@@ -4813,12 +2465,7 @@
   }
   function enemyDeathFx(e) {
     const g = G;
-    if (
-      !save.set.fx ||
-      !e ||
-      e.boss ||
-      g.fx.filter((f) => f.k === "enemyDeath").length >= 48
-    )
+    if (!save.set.fx || !e || e.boss || fxCountKind(g, "enemyDeath") >= 48)
       return;
     const sprite = eSpr(e, g),
       frames =
@@ -4870,7 +2517,6 @@
     if (e.boss) hitStop(0.09);
     else if (e.elite) hitStop(0.04);
     G.kills++;
-    BTL.killed(e);
     if (G.mods.rage) G.rageT = 2;
     if (G.mods.killHeal && G.p) {
       /* limite: no máximo 4 de Salvação por segundo vindos de abates */
@@ -4884,7 +2530,6 @@
         win.v += add;
         const hp0 = G.p.hp;
         G.p.hp = Math.min(G.mods.maxhp, G.p.hp + add);
-        BTL.heal(G.p.hp - hp0, "on_kill");
       }
     }
     if (G.mods.acc && G.kills % 20 === 0) G.nextBonus = true;
@@ -4947,7 +2592,6 @@
   }
   function drop(x, y, type) {
     if (type === "f1" && G.pk.length > 380) {
-      BTL.pickupGenerated(type, null, true);
       gainXp(1);
       return;
     }
@@ -4961,7 +2605,6 @@
       life: type === "coin" ? COIN_LIFETIME : type[0] === "f" ? 90 : 60,
     };
     G.pk.push(pickup);
-    BTL.pickupGenerated(type, pickup, false);
   }
   const COIN_LIFETIME = 8,
     COIN_BLINK_SECONDS = 2.5;
@@ -4993,14 +2636,12 @@
   function gainXp(v) {
     v *= xpDensityMul();
     const effectiveXp = v * G.mods.xp;
-    BTL.xp(v, effectiveXp);
     G.xp += effectiveXp;
     while (G.xp >= G.need) {
       G.xp -= G.need;
       G.lvl++;
       G.need = needFor(G.lvl);
       G.pending.push({ kind: "lvl", n: G.lvl });
-      BTL.levelUp(G.lvl);
     }
   }
   function rollChoices() {
@@ -5168,25 +2809,24 @@
                 : pd.kind === "start"
                   ? "Bênção inicial"
                   : (pd.rev ? "Renascido! Nível " : "Fé aumentou! Nível ") +
-                  pd.n;
+                    pd.n;
     $("#lvSub").textContent =
       pd.kind === "slingTree"
         ? "Escolha um caminho para a sua Funda. Você só poderá seguir um nesta partida."
         : ["weaponTree", "passiveTree", "activeTree"].includes(pd.kind)
           ? "Escolha uma rota. A maestria do caminho aparecerá em uma próxima escolha."
           : "Armas " +
-          wcN +
-          "/" +
-          SLOT_W +
-          " | Dons " +
-          pcN +
-          "/" +
-          SLOT_P +
-          " | " +
-          activeSkillCountLabel(G) +
-          " — as cartas que você ignorar demoram a voltar";
+            wcN +
+            "/" +
+            SLOT_W +
+            " | Dons " +
+            pcN +
+            "/" +
+            SLOT_P +
+            " | " +
+            activeSkillCountLabel(G) +
+            " — as cartas que você ignorar demoram a voltar";
     curChoices = rollChoices();
-    BTL.openChoiceSession(pd, curChoices);
     LV_LOCK = performance.now() + 450;
     const box = $("#cards");
     box.classList.remove("has-two");
@@ -5437,7 +3077,7 @@
         G.weaponTrees[c.ownerId].tier = 1;
         toast(
           "Maestria: " +
-          EVOLUTION_TREES.weapon[c.ownerId].paths[c.id].node.name,
+            EVOLUTION_TREES.weapon[c.ownerId].paths[c.id].node.name,
         );
       }
     } else if (c.kind === "passiveBranch") {
@@ -5455,7 +3095,7 @@
         recalc();
         toast(
           "Maestria: " +
-          EVOLUTION_TREES.passive[c.ownerId].paths[c.id].node.name,
+            EVOLUTION_TREES.passive[c.ownerId].paths[c.id].node.name,
         );
       }
     } else if (c.kind === "activeBranch") {
@@ -5468,7 +3108,7 @@
         G.activeTrees[c.ownerId].tier = 1;
         toast(
           "Maestria: " +
-          EVOLUTION_TREES.active[c.ownerId].paths[c.id].node.name,
+            EVOLUTION_TREES.active[c.ownerId].paths[c.id].node.name,
         );
       }
     } else if (c.kind === "p") {
@@ -5530,7 +3170,6 @@
 
   /* ================= coleta e itens ================= */
   function collect(k) {
-    BTL.collect(k);
     if (k.type !== "f1")
       fxSpark(
         G.p.x,
@@ -5561,7 +3200,7 @@
         if (G.t - (G.ct || -9) > 0.3) {
           G.ct = G.t;
           G.fx.push({
-            wid: BTL.src || null,
+            wid: damageSrc || null,
             k: "txt",
             x: G.p.x,
             y: G.p.y - 12,
@@ -5621,7 +3260,7 @@
     SFX.play("shield");
     toast("Gelo do Céu! Inimigos congelados por " + FREEZE_T + "s");
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "pulse",
       x: G.p.x,
       y: G.p.y,
@@ -5654,9 +3293,8 @@
       life: 60,
     };
     G.pk.push(pickup);
-    BTL.pickupGenerated(t, pickup, false);
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "pulse",
       x: p.x + Math.cos(a) * d,
       y: p.y + Math.sin(a) * d,
@@ -5687,12 +3325,11 @@
     const p = G.p;
     if (p.inv > 0 || p.sh > 0) return;
     if (rng() < G.mods.block) {
-      BTL.blockedHit(rawHit);
       p.inv = 0.4;
       SFX.play("block");
       if (FXQ())
         G.fx.push({
-          wid: BTL.src || null,
+          wid: damageSrc || null,
           k: "guard",
           x: p.x,
           y: p.y,
@@ -5701,7 +3338,7 @@
           follow: true,
         });
       G.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "txt",
         x: p.x,
         y: p.y - 14,
@@ -5715,7 +3352,6 @@
     const hpBeforeHit = p.hp;
     p.hp -= d;
     if (TUT.on && p.hp < 1) p.hp = 1;
-    BTL.playerDamage(Math.max(0, hpBeforeHit - p.hp), src, rawHit);
     G.dmgTaken = (G.dmgTaken || 0) + d;
     p.inv = G.mods.invT || 0.8;
     G.hHurt = G.t;
@@ -5724,7 +3360,7 @@
     SFX.play("hurt");
     vib(40);
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "txt",
       x: p.x,
       y: p.y - 14,
@@ -5736,7 +3372,7 @@
     if (src) G.hitBy = srcName(src);
     if (G.mods.thorns && FXQ())
       G.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "thorns",
         x: p.x,
         y: p.y,
@@ -5755,15 +3391,13 @@
       G.reviveUsed = true;
       p.hp = Math.max(1, Math.round(G.mods.maxhp * 0.35));
       p.inv = Math.max(p.inv || 0, 2.4);
-      BTL.heal(p.hp, "manto_revival");
-      BTL.event("revive", { source: "manto" });
       G.shake = 0.55;
       G.flash = 0.25;
       burst(p.x, p.y, 24, "#fff0a3", 100);
       SFX.play("heal");
       toast("Manto da Ressurreição! Você foi restaurado.");
       G.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "ring",
         x: p.x,
         y: p.y,
@@ -5856,7 +3490,7 @@
     for (const id in G.W) {
       const w = G.W[id],
         s = w.s;
-      BTL.src = id;
+      damageSrc = id;
       const weaponDef = WEAPONS[id],
         behavior = weaponDef && weaponDef.behavior;
       switch (behavior) {
@@ -5885,7 +3519,7 @@
           SFX.play("sling");
           if (FXQ())
             G.fx.push({
-              wid: BTL.src || null,
+              wid: damageSrc || null,
               k: "swing",
               a0: rngFx() * TAU,
               t: 0,
@@ -5909,8 +3543,8 @@
               const pierce = signal
                 ? Infinity
                 : s.pierce +
-                (path === "pierce" ? (tier ? 5 : 3) : 0) +
-                (evolved ? 2 : 0);
+                  (path === "pierce" ? (tier ? 5 : 3) : 0) +
+                  (evolved ? 2 : 0);
               G.shots.push({
                 wid: id,
                 k: "covenant_arrow",
@@ -5935,7 +3569,7 @@
               continue;
             }
             G.shots.push({
-              wid: BTL.src || null,
+              wid: damageSrc || null,
               k: "stone",
               x: p.x,
               y: p.y,
@@ -5993,7 +3627,7 @@
             );
           if (variant === "jawbone" && path === "quake")
             G.fx.push({
-              wid: BTL.src || null,
+              wid: damageSrc || null,
               k: "ring",
               x: p.x,
               y: p.y,
@@ -6014,9 +3648,9 @@
             path = tree && tree.path,
             tier = tree && tree.tier ? 1 : 0;
           const radius =
-            s.radius *
-            (path === "sanctuary" ? (tier ? 1.55 : 1.3) : 1) *
-            (m.area || 1),
+              s.radius *
+              (path === "sanctuary" ? (tier ? 1.55 : 1.3) : 1) *
+              (m.area || 1),
             slow = path === "stillness" ? (tier ? 0.66 : 0.5) : s.slow;
           for (const e of G.enemies) {
             if (e.dead) continue;
@@ -6037,8 +3671,8 @@
                 hurt(
                   e,
                   s.dmg *
-                  m.dmg *
-                  (path === "stillness" ? (tier ? 1.35 : 1.2) : 1),
+                    m.dmg *
+                    (path === "stillness" ? (tier ? 1.35 : 1.2) : 1),
                   dx / d,
                   dy / d,
                   8,
@@ -6050,7 +3684,7 @@
             if (w.evoPulse <= 0) {
               w.evoPulse = tier ? 3 : 4;
               G.fx.push({
-                wid: BTL.src || null,
+                wid: damageSrc || null,
                 k: "ring",
                 x: p.x,
                 y: p.y,
@@ -6073,11 +3707,11 @@
             path = tree && tree.path,
             tier = tree && tree.tier ? 1 : 0;
           const count = Math.min(
-            8,
-            s.count +
-            (path === "bastion" ? (tier ? 2 : 1) : 0) +
-            amountBonus(m),
-          ),
+              8,
+              s.count +
+                (path === "bastion" ? (tier ? 2 : 1) : 0) +
+                amountBonus(m),
+            ),
             radius = s.radius + (path === "orbit" ? (tier ? 10 : 5) : 0),
             speed = s.speed * (path === "orbit" ? (tier ? 1.8 : 1.45) : 1),
             hitRadius = 7 * (m.area || 1);
@@ -6097,8 +3731,8 @@
                 hurt(
                   e,
                   s.dmg *
-                  m.dmg *
-                  (path === "retribution" ? (tier ? 1.6 : 1.35) : 1),
+                    m.dmg *
+                    (path === "retribution" ? (tier ? 1.6 : 1.35) : 1),
                   dx / d,
                   dy / d,
                   path === "retribution" ? 55 : 40,
@@ -6125,9 +3759,9 @@
             s.count + (path === "host" ? (tier ? 2 : 1) : 0) + amountBonus(m),
           );
           const radius =
-            s.radius +
-            (path === "war" ? 0 : 0) +
-            (path === "guard" ? (tier ? 4 : 2) : 0),
+              s.radius +
+              (path === "war" ? 0 : 0) +
+              (path === "guard" ? (tier ? 4 : 2) : 0),
             hitRadius = 8 * (m.area || 1);
           const speed = s.speed * (path === "war" ? (tier ? 1.55 : 1.3) : 1);
           const dmgMul = path === "war" ? (tier ? 1.45 : 1.25) : 1;
@@ -6177,11 +3811,11 @@
           w.cd -= dt;
           if (w.cd > 0) break;
           const count = Math.min(
-            8,
-            s.count +
-            (path === "flock" ? (tier ? 2 : 1) : 0) +
-            amountBonus(m),
-          ),
+              8,
+              s.count +
+                (path === "flock" ? (tier ? 2 : 1) : 0) +
+                amountBonus(m),
+            ),
             list = nearestList(p.x, p.y, m.rng, count);
           if (!list.length) {
             w.cd = 0.2;
@@ -6197,7 +3831,7 @@
                   ? (i - list.length + 1) * 0.5 * (i % 2 ? 1 : -1)
                   : 0);
             G.shots.push({
-              wid: BTL.src || null,
+              wid: damageSrc || null,
               k: "dove",
               x: p.x,
               y: p.y,
@@ -6235,7 +3869,7 @@
           for (let i = 0; i < count; i++) {
             const tg = list[Math.floor(rng() * list.length)];
             G.fx.push({
-              wid: BTL.src || null,
+              wid: damageSrc || null,
               k: "bolt",
               x: tg.x,
               y: tg.y,
@@ -6263,9 +3897,9 @@
           w.cd -= dt;
           if (w.cd > 0) break;
           const maxr =
-            s.maxr *
-            (path === "rampart" ? (tier ? 1.55 : 1.35) : 1) *
-            (m.area || 1),
+              s.maxr *
+              (path === "rampart" ? (tier ? 1.55 : 1.35) : 1) *
+              (m.area || 1),
             knock = s.knock + (path === "rampart" ? (tier ? 35 : 20) : 0);
           if (!nearestList(p.x, p.y, maxr * 0.9, 1).length) {
             w.cd = 0.2;
@@ -6274,7 +3908,7 @@
           w.cd = s.cd * m.cd;
           SFX.play("trumpet");
           const baseRing = {
-            wid: BTL.src || null,
+            wid: damageSrc || null,
             k: "ring",
             x: p.x,
             y: p.y,
@@ -6311,11 +3945,11 @@
           w.cd -= dt;
           if (w.cd > 0) break;
           const count = Math.min(
-            8,
-            s.count +
-            (path === "pentecost" ? (tier ? 2 : 1) : 0) +
-            amountBonus(m),
-          ),
+              8,
+              s.count +
+                (path === "pentecost" ? (tier ? 2 : 1) : 0) +
+                amountBonus(m),
+            ),
             radius =
               s.r *
               (path === "pentecost" ? (tier ? 1.5 : 1.25) : 1) *
@@ -6330,7 +3964,7 @@
           for (let i = 0; i < count; i++) {
             const tg = list[Math.floor(rng() * list.length)];
             G.fx.push({
-              wid: BTL.src || null,
+              wid: damageSrc || null,
               k: "flame",
               x: tg.x,
               y: tg.y,
@@ -6359,7 +3993,7 @@
     try {
       _updWeaponsBase(dt);
     } finally {
-      BTL.src = null;
+      damageSrc = null;
     }
   };
 
@@ -6367,7 +4001,7 @@
     const p = G.p,
       jaw = s.style === "jawbone";
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "slash",
       style: s.style || "sword",
       ang,
@@ -6380,7 +4014,7 @@
       y: p.y,
     });
     const h = {
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "melee",
       ang,
       range: s.range,
@@ -6483,7 +4117,6 @@
         const auraDmg = G.mods.aura * dt,
           beforeAuraHp = Math.max(0, e.hp);
         e.hp -= auraDmg;
-        BTL.damage(Math.min(beforeAuraHp, auraDmg), e, "aura");
         if (e.hp <= 0) kill(e);
       });
     p.inv -= dt;
@@ -6519,7 +4152,6 @@
         p.regen = 0;
         const hp0 = p.hp;
         p.hp = Math.min(m.maxhp, p.hp + HPS);
-        BTL.heal(p.hp - hp0, "regeneration");
         if (p.hp > hp0) healFx(p.hp - hp0);
         if (m.regenShield) p.sh = Math.max(p.sh, m.regenShield);
       }
@@ -6528,7 +4160,6 @@
       p.evoRegenCd = 0.9;
       const hp0 = p.hp;
       p.hp = Math.min(m.maxhp, p.hp + HPS);
-      BTL.heal(p.hp - hp0, "evolution_regeneration");
       if (p.hp > hp0) healFx(p.hp - hp0, false);
     }
     scatter();
@@ -6859,7 +4490,7 @@
         }
       });
     }
-    g.shots = g.shots.filter((s) => !s.dead);
+    g.shots = keepIf(g.shots, IS_ALIVE);
     // tiros inimigos
     updatePoison(g, dt);
     for (const q of g.eshots) {
@@ -6889,7 +4520,7 @@
         q.dead = true;
       }
     }
-    g.eshots = g.eshots.filter((q) => !q.dead);
+    g.eshots = keepIf(g.eshots, IS_ALIVE);
     // contato
     if (p.inv <= 0 && p.sh <= 0)
       forNear(p.x, p.y, 5 + 28, (e) => {
@@ -6912,7 +4543,6 @@
     const pr = m.pickup;
     for (const k of g.pk) {
       if (tickCoinLifetime(k, dt)) {
-        BTL.pickupExpired(k, "coin_lifetime");
         continue;
       }
       const dx = p.x - k.x,
@@ -6932,11 +4562,10 @@
         k.life -= dt;
         if (k.life <= 0 && !k.mag && d > 400) {
           k.dead = true;
-          BTL.pickupExpired(k, "unmagnetized_out_of_range_timeout");
         }
       }
     }
-    g.pk = g.pk.filter((k) => !k.dead);
+    g.pk = keepIf(g.pk, IS_ALIVE);
 
     // fx
     for (const f of g.fx) {
@@ -7049,7 +4678,7 @@
           }
         }
       }
-    g.fx = g.fx.filter((f) => f.t < f.life);
+    g.fx = keepIf(g.fx, IS_FX_LIVE);
     for (const q of g.parts) {
       q.x += q.vx * dt;
       q.y += q.vy * dt;
@@ -7057,8 +4686,11 @@
       q.vy *= 0.94;
       q.life -= dt;
     }
-    g.parts = g.parts.filter((q) => q.life > 0);
-    g.enemies = g.enemies.filter((e) => !e.dead);
+    g.parts = keepIf(g.parts, IS_PART_LIVE);
+    /* v0.69: teto de segurança (só o spawn principal respeitava 400; outros pontos empurravam sem limite) */
+    if (g.parts.length > 520 >> PERF.lvl)
+      g.parts.splice(0, g.parts.length - (520 >> PERF.lvl));
+    g.enemies = keepIf(g.enemies, IS_ALIVE);
     g.shake = Math.max(0, g.shake - dt);
     g.flash = Math.max(0, g.flash - dt);
     g.hurtFlash = Math.max(0, g.hurtFlash - dt);
@@ -7084,34 +4716,68 @@
   function onPath(tx, ty) {
     return Math.abs(ty - pathC(tx)) < pathW(tx) + 0.8;
   }
-  function drawGround() {
-    const x0 = Math.floor(camx / TS),
-      y0 = Math.floor(camy / TS),
-      x1 = Math.floor((camx + VW) / TS),
-      y1 = Math.floor((camy + VH) / TS),
-      dk = dawnK();
-    for (let ty = y0; ty <= y1; ty++)
-      for (let tx = x0; tx <= x1; tx++) {
-        const v = Math.floor(hash(tx, ty, 3) * 4);
-        let grp,
-          vi = v;
-        const dist = Math.abs(ty - pathC(tx)),
-          w = pathW(tx);
-        if (dist < w || (dist < w + 1 && hash(tx, ty, 5) > 0.5)) {
-          grp = "dirt";
-          vi = v % 3;
-        } else {
-          const n =
-            vnoise(tx * 0.11, ty * 0.11) * 0.7 +
-            vnoise(tx * 0.33, ty * 0.33) * 0.3;
-          grp = n > 0.56 ? "g2" : "g1";
+  /* v0.69 (desempenho): o chão recalculava hash/ruído e fazia 1 drawImage por tile (~650 por quadro, e o dobro no amanhecer)
+     a cada quadro. O mapa de tiles é determinístico, então agora é pré-renderizado em blocos de 16x16 tiles (256 px),
+     gerados sob demanda e guardados em cache (no máximo GRD_MAX por variante); cada quadro desenha só os blocos
+     visíveis (de 2 a 6 drawImage). O resultado é idêntico pixel a pixel. */
+  const GRD_N = 16,
+    GRD_PX = GRD_N * TS,
+    GRD_MAX = 24;
+  const GRD = { ref: null, night: new Map(), day: new Map() };
+  function groundChunk(cx, cy, tiles, set) {
+    const key = ((cx + 32768) << 16) | ((cy + 32768) & 0xffff);
+    let c = set.get(key);
+    if (c) {
+      set.delete(key); /* reinsere: o mais antigo é o primeiro do Map */
+      set.set(key, c);
+      return c;
+    }
+    c = mk(GRD_PX, GRD_PX, (g) => {
+      for (let oy = 0; oy < GRD_N; oy++)
+        for (let ox = 0; ox < GRD_N; ox++) {
+          const tx = cx * GRD_N + ox,
+            ty = cy * GRD_N + oy,
+            v = Math.floor(hash(tx, ty, 3) * 4);
+          let grp,
+            vi = v;
+          const dist = Math.abs(ty - pathC(tx)),
+            w = pathW(tx);
+          if (dist < w || (dist < w + 1 && hash(tx, ty, 5) > 0.5)) {
+            grp = "dirt";
+            vi = v % 3;
+          } else {
+            const n =
+              vnoise(tx * 0.11, ty * 0.11) * 0.7 +
+              vnoise(tx * 0.33, ty * 0.33) * 0.3;
+            grp = n > 0.56 ? "g2" : "g1";
+          }
+          g.drawImage(tiles[grp][vi], ox * TS, oy * TS);
         }
-        const X = tx * TS - camx,
-          Y = ty * TS - camy;
-        ctx.drawImage(S.tiles[grp][vi], X, Y);
+    });
+    set.set(key, c);
+    if (set.size > GRD_MAX) set.delete(set.keys().next().value);
+    return c;
+  }
+  function drawGround() {
+    if (GRD.ref !== S.tiles) {
+      /* mundo trocado (tiles novos): descarta os blocos antigos */
+      GRD.ref = S.tiles;
+      GRD.night.clear();
+      GRD.day.clear();
+    }
+    const cx0 = Math.floor(camx / GRD_PX),
+      cy0 = Math.floor(camy / GRD_PX),
+      cx1 = Math.floor((camx + VW - 1) / GRD_PX),
+      cy1 = Math.floor((camy + VH - 1) / GRD_PX),
+      dk = dawnK();
+    for (let cy = cy0; cy <= cy1; cy++)
+      for (let cx = cx0; cx <= cx1; cx++) {
+        const X = cx * GRD_PX - camx,
+          Y = cy * GRD_PX - camy;
+        ctx.drawImage(groundChunk(cx, cy, S.tiles, GRD.night), X, Y);
         if (dk > 0) {
           ctx.globalAlpha = dk;
-          ctx.drawImage(S.tilesDay[grp][vi], X, Y);
+          ctx.drawImage(groundChunk(cx, cy, S.tilesDay, GRD.day), X, Y);
           ctx.globalAlpha = 1;
         }
       }
@@ -7151,16 +4817,16 @@
     [1, "blood"],
   ];
   const SOLID = {
-    deadTree: 6,
-    bush: 5,
-    rock: 5,
-    tombA: 5,
-    tombB: 5,
-    cross: 4,
-    angel: 6,
-    gargoyle: 6,
-    coffin: 7,
-  },
+      deadTree: 6,
+      bush: 5,
+      rock: 5,
+      tombA: 5,
+      tombB: 5,
+      cross: 4,
+      angel: 6,
+      gargoyle: 6,
+      coffin: 7,
+    },
     FLAT = { blood: 1, pent: 1 };
   const graveZone = (cx, cy) =>
     vnoise(cx * 0.09 + 40, cy * 0.09 + 17) > 0.64; /* manchas de cemitério */
@@ -7181,6 +4847,46 @@
     if (k === "statue") k = hash(cx, cy, 11) < 0.5 ? "angel" : "gargoyle";
     return { k, px, py };
   }
+  /* v0.69 (desempenho): ferramentas sem alocação para o laço quente.
+     sortByKey: ordenação por inserção (estável); as listas mudam pouco de um quadro para o outro, então custa ~O(n).
+     keepIf: remove itens no lugar (sem criar um array novo por quadro, como filter fazia). */
+  function sortByKey(arr, key) {
+    const n = arr.length;
+    if (n > 400)
+      return arr.sort(
+        (a, b) => a[key] - b[key],
+      ); /* pior caso improvável: usa a ordenação nativa */
+    for (let i = 1; i < n; i++) {
+      const v = arr[i],
+        k = v[key];
+      let j = i - 1;
+      while (j >= 0 && arr[j][key] > k) {
+        arr[j + 1] = arr[j];
+        j--;
+      }
+      arr[j + 1] = v;
+    }
+    return arr;
+  }
+  function keepIf(arr, ok) {
+    let j = 0;
+    for (let i = 0; i < arr.length; i++) {
+      const v = arr[i];
+      if (ok(v)) arr[j++] = v;
+    }
+    arr.length = j;
+    return arr;
+  }
+  const IS_ALIVE = (o) => !o.dead,
+    IS_FX_LIVE = (f) => f.t < f.life,
+    IS_PART_LIVE = (q) => q.life > 0;
+  function fxCountKind(g, k) {
+    let n = 0;
+    for (let i = 0; i < g.fx.length; i++) if (g.fx[i].k === k) n++;
+    return n;
+  }
+  const AIR_BUF =
+    []; /* reaproveitado a cada quadro (antes: const air = [] novo) */
   /* v0.66: contorno claro (rim) para separar inimigos e herói do chão escuro. O sprite já tem 1 px de contorno
      escuro; o rim é uma silhueta 1 px maior, em cor clara, desenhada por baixo (efeito "adesivo"). Gerado uma vez
      por sprite/cor e guardado em cache (WeakMap: some junto com o sprite). Desligue com RIM_ON = false. */
@@ -7226,21 +4932,112 @@
     CALMC.set(im, c);
     return c;
   }
+  /* v0.69 (desempenho): cada sprite desenhado vira UMA chamada drawImage. As variantes (contorno claro "assado",
+     espelhado, congelado) são geradas uma vez por sprite e guardadas em cache (WeakMap: somem junto com o sprite).
+     Antes: save + translate + scale + (drawImage do contorno) + drawImage + restore = 6 a 7 chamadas por inimigo. */
+  const SPRV = new WeakMap();
+  /* tom gelado (equivale a hue-rotate(170deg) saturate(.5) brightness(1.2)) calculado uma vez, sem ctx.filter */
+  const FRZ_M = (() => {
+    const th = (170 * Math.PI) / 180,
+      c = Math.cos(th),
+      s = Math.sin(th),
+      H = [
+        0.213 + c * 0.787 - s * 0.213,
+        0.715 - c * 0.715 - s * 0.715,
+        0.072 - c * 0.072 + s * 0.928,
+        0.213 - c * 0.213 + s * 0.143,
+        0.715 + c * 0.285 + s * 0.14,
+        0.072 - c * 0.072 - s * 0.283,
+        0.213 - c * 0.213 - s * 0.787,
+        0.715 - c * 0.715 + s * 0.715,
+        0.072 + c * 0.928 + s * 0.072,
+      ],
+      sa = 0.5,
+      Sa = [
+        0.213 + 0.787 * sa,
+        0.715 - 0.715 * sa,
+        0.072 - 0.072 * sa,
+        0.213 - 0.213 * sa,
+        0.715 + 0.285 * sa,
+        0.072 - 0.072 * sa,
+        0.213 - 0.213 * sa,
+        0.715 - 0.715 * sa,
+        0.072 + 0.928 * sa,
+      ],
+      M = new Array(9).fill(0);
+    for (let r = 0; r < 3; r++)
+      for (let k = 0; k < 3; k++)
+        for (let j = 0; j < 3; j++)
+          M[r * 3 + k] += Sa[r * 3 + j] * H[j * 3 + k] * 1.2;
+    return M;
+  })();
+  function frozenCanvas(src) {
+    const w = src.width,
+      h = src.height;
+    return mk(w, h, (g) => {
+      g.drawImage(src, 0, 0);
+      try {
+        const im = g.getImageData(0, 0, w, h),
+          d = im.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (!d[i + 3]) continue;
+          const r = d[i],
+            gg = d[i + 1],
+            b = d[i + 2];
+          d[i] = FRZ_M[0] * r + FRZ_M[1] * gg + FRZ_M[2] * b;
+          d[i + 1] = FRZ_M[3] * r + FRZ_M[4] * gg + FRZ_M[5] * b;
+          d[i + 2] = FRZ_M[6] * r + FRZ_M[7] * gg + FRZ_M[8] * b;
+        }
+        g.putImageData(im, 0, 0);
+      } catch (e) {
+        /* canvas protegido: usa o filtro uma única vez (o resultado fica em cache) */
+        g.clearRect(0, 0, w, h);
+        g.filter = "hue-rotate(170deg) saturate(0.5) brightness(1.2)";
+        g.drawImage(src, 0, 0);
+        g.filter = "none";
+      }
+    });
+  }
+  let FRZ_NOW = false; /* ligado por frzDraw() enquanto os inimigos estão congelados */
+  function sprVar(s, flash, flip, rim) {
+    const key =
+      (flash ? 1 : 0) + (flip ? 2 : 0) + (FRZ_NOW ? 4 : 0) + "|" + (rim || "");
+    let m = SPRV.get(s.c);
+    if (!m) SPRV.set(s.c, (m = {}));
+    let v = m[key];
+    if (v) return v;
+    let base = flash ? s.f : s.c;
+    if (FRZ_NOW) base = frozenCanvas(base);
+    if (rim) {
+      const rc = rimOf(s, rim);
+      base = mk(rc.width, rc.height, (g) => {
+        g.drawImage(rc, 0, 0);
+        g.drawImage(base, 1, 1);
+      });
+    }
+    if (flip) {
+      const src = base;
+      base = mk(src.width, src.height, (g) => {
+        g.translate(src.width, 0);
+        g.scale(-1, 1);
+        g.drawImage(src, 0, 0);
+      });
+    }
+    return (m[key] = base);
+  }
   function spr(s, x, y, sc, flash, flip, syy, alpha, sxx, rim) {
-    ctx.save();
-    ctx.translate(sx(x), sy(y));
-    if (alpha !== undefined && alpha < 1) ctx.globalAlpha = alpha;
-    ctx.scale((flip ? -1 : 1) * sc * (sxx || 1), sc * (syy || 1));
-    if (rim && RIM_ON && s.c)
-      ctx.drawImage(
-        rimOf(s, rim),
-        -s.w / 2 - 1,
-        -s.h / 2 - 1,
-        s.w + 2,
-        s.h + 2,
-      );
-    ctx.drawImage(flash ? s.f : s.c, -s.w / 2, -s.h / 2);
-    ctx.restore();
+    const useRim = rim && RIM_ON && s.c ? rim : null,
+      v = sprVar(s, flash, flip, useRim),
+      kx = sc * (sxx || 1),
+      ky = sc * (syy || 1),
+      dw = (useRim ? s.w + 2 : s.w) * kx,
+      dh = (useRim ? s.h + 2 : s.h) * ky,
+      fade = alpha !== undefined && alpha < 1,
+      pa = fade ? ctx.globalAlpha : 1;
+    if (fade) ctx.globalAlpha = alpha;
+    if (kx === 1 && ky === 1) ctx.drawImage(v, sx(x) - dw / 2, sy(y) - dh / 2);
+    else ctx.drawImage(v, sx(x) - dw / 2, sy(y) - dh / 2, dw, dh);
+    if (fade) ctx.globalAlpha = pa;
   }
   function shadow(x, y, w) {
     ctx.fillStyle = "rgba(0,0,0,.3)";
@@ -7345,9 +5142,10 @@
       spr(im, k.x, k.y + bob, sc, false, false, 1, coinOpacity(k, g.t));
     }
     // inimigos (no chão: ordenados com o cenário; voadores por cima)
-    g.enemies.sort((a, b) => a.y - b.y);
+    sortByKey(g.enemies, "y");
     {
-      const air = [];
+      const air = AIR_BUF;
+      air.length = 0;
       for (const e of g.enemies) {
         if (
           e.x < camx - 60 ||
@@ -7373,9 +5171,9 @@
           p.moving && !hv2
             ? -Math.abs(Math.sin((Math.PI * (p.walk * 13 - 0.5)) / 2)) * 1.5
             : 0;
-      for (const [weaponId, weaponRun] of Object.entries(g.W || {}))
+      for (const weaponId in g.W || {})
         if (
-          weaponRun &&
+          g.W[weaponId] &&
           WEAPONS[weaponId] &&
           WEAPONS[weaponId].behavior === "aura_pulse"
         )
@@ -7414,8 +5212,9 @@
     flushDecor(1e9);
     drawMiniHp(g);
     // escudos
-    for (const [weaponId, weaponRun] of Object.entries(g.W || {})) {
-      const behavior = WEAPONS[weaponId] && WEAPONS[weaponId].behavior;
+    for (const weaponId in g.W || {}) {
+      const behavior = WEAPONS[weaponId] && WEAPONS[weaponId].behavior,
+        weaponRun = g.W[weaponId];
       if (!weaponRun) continue;
       if (behavior === "orbiting_shields") drawShields(g, p, weaponId);
       else if (behavior === "orbiting_companions") drawAngels(g, p, weaponId);
@@ -7473,10 +5272,19 @@
         if (hs) spr(hs, f.x, f.y, 1, false, f.face < 0, 1, 0.55 * (1 - k));
       }
     }
-    for (const q of g.parts) {
-      ctx.globalAlpha = Math.max(0, q.life / q.max);
-      ctx.fillStyle = q.col;
-      ctx.fillRect(sx(q.x), sy(q.y), q.sz, q.sz);
+    {
+      let lastCol = null;
+      const ps =
+        PERF.lvl +
+        1; /* qualidade reduzida: desenha 1 a cada 2 (ou 3) partículas */
+      for (let pi = 0; pi < g.parts.length; pi += ps) {
+        const q = g.parts[pi];
+        ctx.globalAlpha = q.life > 0 ? q.life / q.max : 0;
+        if (q.col !== lastCol)
+          ctx.fillStyle = lastCol =
+            q.col; /* v0.69: só troca a cor quando muda */
+        ctx.fillRect(sx(q.x), sy(q.y), q.sz, q.sz);
+      }
     }
     ctx.globalAlpha = 1;
     // atmosfera: anoitece com o tempo
@@ -7543,7 +5351,9 @@
       fpsValue = Math.round((fpsFrames * 1000) / (now - fpsLast));
       fpsFrames = 0;
       fpsLast = now;
-      if (H$.fps && save.set.showfps) H$.fps.textContent = "FPS: " + fpsValue;
+      if (H$.fps && save.set.showfps)
+        H$.fps.textContent =
+          "FPS: " + fpsValue + (PERF.lvl ? " Q" + (3 - PERF.lvl) : "");
     }
   }
   function syncFpsHud() {
@@ -7615,8 +5425,8 @@
         H$.bosstxt,
         "bt",
         Math.max(0, Math.ceil(g.boss.hp)).toLocaleString("pt-BR") +
-        " / " +
-        Math.ceil(g.boss.mhp).toLocaleString("pt-BR"),
+          " / " +
+          Math.ceil(g.boss.mhp).toLocaleString("pt-BR"),
       );
     } else H$.bossbar.hidden = true;
   }
@@ -7628,8 +5438,8 @@
         (id === "sling"
           ? SLING_TREE[ev.path]
           : EVOLUTION_TREES[group] &&
-          EVOLUTION_TREES[group][id] &&
-          EVOLUTION_TREES[group][id].paths[ev.path]);
+            EVOLUTION_TREES[group][id] &&
+            EVOLUTION_TREES[group][id].paths[ev.path]);
     const evolved = !!ev,
       mastered = evolved && !!ev.tier,
       sup = !!(isW && G && G.evo && G.evo[id]),
@@ -7649,8 +5459,8 @@
       // (def.desc ? "&#10;" + def.desc : "") +
       (path
         ? "&#10;" +
-        path.name +
-        (mastered ? " | MAESTRIA: " + path.node.name : " | caminho evolutivo")
+          path.name +
+          (mastered ? " | MAESTRIA: " + path.node.name : " | caminho evolutivo")
         : "") +
       (sup
         ? "&#10;✦ Evolução Suprema: " + NX_EVO[id].n
@@ -7663,10 +5473,10 @@
       '"' +
       (evolved
         ? ' style="--evo-color:' +
-        evoAccent(id, ev.path, mastered) +
-        '" data-evo-path="' +
-        ev.path +
-        '"'
+          evoAccent(id, ev.path, mastered) +
+          '" data-evo-path="' +
+          ev.path +
+          '"'
         : "") +
       ' data-tip="' +
       title +
@@ -7710,6 +5520,53 @@
     t.classList.add("show");
   }
 
+  /* v0.69: QUALIDADE ADAPTATIVA. Mede o tempo real entre quadros durante a partida. Se o aparelho não acompanha
+     (média bem acima do esperado por ~2 s) desce um nível de enfeites: 1 = menos partículas/sombras suaves/névoa a
+     cada 2 quadros; 2 = sem brilhos aditivos, sem faíscas da arena, névoa a cada 3 quadros. Sobe de volta quando
+     fica estável por ~12 s. Não mexe na jogabilidade (só em efeitos visuais) e respeita "Efeitos visuais" e o limite de FPS. */
+  const PERF = { lvl: 0, ema: 16.7, slow: 0, fast: 0, t0: 0, fogN: 0 };
+  function perfTick(now, expect) {
+    const d = now - PERF.t0;
+    PERF.t0 = now;
+    if (PERF.off) return; /* fixado por __dbg.perfLvl() nos testes */
+    if (d <= 0 || d > 250)
+      return; /* quadro perdido (aba em segundo plano, anúncio): não conta */
+    PERF.ema += (d - PERF.ema) * 0.08;
+    const r = PERF.ema / expect;
+    if (r > 1.4) {
+      PERF.fast = 0;
+      if (++PERF.slow > 110 && PERF.lvl < 2) {
+        PERF.lvl++;
+        PERF.slow = 0;
+      }
+    } else if (r < 1.12) {
+      PERF.slow = 0;
+      if (++PERF.fast > 720 && PERF.lvl > 0) {
+        PERF.lvl--;
+        PERF.fast = 0;
+      }
+    } else {
+      PERF.slow = Math.max(0, PERF.slow - 1);
+      PERF.fast = 0;
+    }
+  }
+  function perfReset() {
+    /* mantém o nível atual: um aparelho que já mostrou ser lento não começa a partida seguinte no nível máximo */
+    PERF.slow = PERF.fast = 0;
+    PERF.ema = 16.7;
+    PERF.t0 = performance.now();
+  }
+  /* v0.69: ao voltar para o app (ou no primeiro toque depois de uma interrupção) acorda o áudio e reinicia o relógio */
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      last = performance.now();
+      SFX.wake();
+    }
+  });
+  addEventListener("pointerdown", () => SFX.wake(), {
+    capture: true,
+    passive: true,
+  });
   /* ================= fluxo ================= */
   let last = 0,
     raf = 0,
@@ -7723,6 +5580,9 @@
       lastDraw = now;
     }
     if (state !== "dawning") dawnText(0);
+    if (state === "play")
+      perfTick(now, cap ? 1000 / cap : 1000 / (PERF.hz || 60));
+    else PERF.t0 = now;
     if (save.set.showfps) updFps(now);
     const dt = Math.min(0.05, (now - last) / 1000 || 0);
     last = now;
@@ -7734,7 +5594,7 @@
     else if (G && (state === "paused" || state === "levelup")) {
       try {
         wxUpdate(dt);
-      } catch (e) { }
+      } catch (e) {}
     }
     if (
       G &&
@@ -7777,27 +5637,22 @@
     ctx.drawImage(vign, 0, 0);
   }
   function startRun() {
+    perfReset();
     SFX.init();
     save.hero = selHero;
     persist();
     try {
       profTouchDay();
-    } catch (e) { }
-    track("run_start", {
-      hero: selHero,
-      daily: RUN.daily ? 1 : 0,
-      mode: RUN.mode === "inf" ? "inf" : "std",
-    });
+    } catch (e) {}
     try {
       wxReset();
-    } catch (e) { }
+    } catch (e) {}
     newRun(selHero);
     G.inf = RUN.mode === "inf";
     SLOT_W = G.inf ? INF_SLOTS_W : 4;
     SLOT_P = G.inf ? INF_SLOTS_P : 4;
     state = "play";
     last = performance.now();
-    BTL.start(G);
     $("#menu").hidden = true;
     $("#end").hidden = true;
     $("#pause").hidden = true;
@@ -7818,20 +5673,10 @@
     if (G.over) return;
     G.over = true;
     state = won ? "win" : "dead";
-    BTL.finish(won, ret);
     save.coins += runCoins();
     save.runs++;
     starterArm();
     G.won = !!won;
-    track("run_end", {
-      won: won ? 1 : 0,
-      t: Math.floor(G.t),
-      lvl: G.lvl,
-      kills: G.kills,
-      hero: selHero,
-      ret: ret ? 1 : 0,
-      mode: G.inf ? "inf" : "std",
-    });
     if (won) (save.winH = save.winH || {})[G.hk] = 1;
     checkAch();
     {
@@ -7899,7 +5744,7 @@
       ps.innerHTML = "";
       try {
         ps.appendChild(statBox());
-      } catch (e) { }
+      } catch (e) {}
     }
     $("#pause").hidden = false;
     resetScrollTree($("#pause"));
@@ -7917,7 +5762,7 @@
     G = null;
     try {
       wxReset();
-    } catch (e) { }
+    } catch (e) {}
     $("#hud").hidden = true;
     $("#pause").hidden = true;
     $("#end").hidden = true;
@@ -7942,7 +5787,7 @@
     homeWalletSync();
     try {
       profBtnSync();
-    } catch (e) { }
+    } catch (e) {}
   }
 
   /* ================= v0.2: loja, testemunhos, configuracoes ================= */
@@ -8373,8 +6218,8 @@
   const coinBonus = () =>
     clampN(
       (rtHas("u2_tithe") ? 0.2 : 0) +
-      (rtHas("k_grace") ? 0.1 : 0) +
-      clampN(G && G.mods ? G.mods.greed : 0, 0, ECO.BOLSA_MAX),
+        (rtHas("k_grace") ? 0.1 : 0) +
+        clampN(G && G.mods ? G.mods.greed : 0, 0, ECO.BOLSA_MAX),
       0,
       ECO.COIN_BONUS_MAX,
     );
@@ -8538,7 +6383,7 @@
     }
     try {
       persist();
-    } catch (e) { }
+    } catch (e) {}
   }
   const _sf = statsFor;
   statsFor = function (id, l) {
@@ -8557,10 +6402,10 @@
   /* Conquistas: nome, descrição e recompensa ficam em registry.js → achievements. Aqui só as regras (funções). */
   /* Helpers dos Testemunhos (leem o save; Runas do Reino ficam em save.rt = {ramo:{slot:id}}, 4 slots por ramo) */
   const rtCount = (s) =>
-    Object.values(s.rt || {}).reduce(
-      (n, c) => n + Object.keys(c || {}).length,
-      0,
-    ),
+      Object.values(s.rt || {}).reduce(
+        (n, c) => n + Object.keys(c || {}).length,
+        0,
+      ),
     rtFull = (s) =>
       Object.values(s.rt || {}).filter((c) => Object.keys(c || {}).length >= 4)
         .length,
@@ -8654,7 +6499,7 @@
         let ok = false;
         try {
           ok = a[3](g, save);
-        } catch (e) { }
+        } catch (e) {}
         if (ok) {
           save.ach[a[0]] = 1;
           persist();
@@ -8670,7 +6515,7 @@
                   notify("Mundo liberado: " + WORLDS[wi].n + "!", "ok");
                 }
               }
-          } catch (e) { }
+          } catch (e) {}
         }
       }
   }
@@ -8743,9 +6588,9 @@
      recebem uma imagem de forma fixa, escolhida pelo nome da tela. */
   const SCREEN_BG = {
     "Preparar a jornada": "loading/hero_select.png",
-    "Biblioteca": "loading/biblioteca.png",
-    "Loja": "loading/loja.png",
-    "Selecione o Mundo": "loading/mode_select.png"
+    Biblioteca: "loading/biblioteca.png",
+    Loja: "loading/loja.png",
+    "Selecione o Mundo": "loading/mode_select.png",
   };
   function screenBgHash(s) {
     let h = 0;
@@ -8809,12 +6654,12 @@
       bt.innerHTML =
         left > 0
           ? '<span class="uic i-play"></span> +' +
-          AD_COIN +
-          " grátis <em>" +
-          left +
-          "/" +
-          AD_COIN_MAX +
-          "</em>"
+            AD_COIN +
+            " grátis <em>" +
+            left +
+            "/" +
+            AD_COIN_MAX +
+            "</em>"
           : "Grátis amanhã";
       if (left <= 0) bt.style.opacity = 0.55;
       bt.onclick = () => {
@@ -8822,8 +6667,8 @@
           return deny(
             bt,
             "Você já usou os " +
-            AD_COIN_MAX +
-            " anúncios de hoje. Volte amanhã!",
+              AD_COIN_MAX +
+              " anúncios de hoje. Volte amanhã!",
           );
         ADS.rewarded((ok) => {
           if (!ok) return;
@@ -8924,14 +6769,14 @@
       ? "Equipada neste ramo."
       : !unl
         ? "Exige " +
-        (need === 1 ? "a pedra-chave" : need + " escolhas anteriores") +
-        " do ramo " +
-        C.title +
-        "."
+          (need === 1 ? "a pedra-chave" : need + " escolhas anteriores") +
+          " do ramo " +
+          C.title +
+          "."
         : cur
           ? "Substitui a runa atual deste nível: " +
-          (rtFind(runeSel.cat, runeSel.slot, cur) || [0, "?"])[1] +
-          "."
+            (rtFind(runeSel.cat, runeSel.slot, cur) || [0, "?"])[1] +
+            "."
           : "Disponível.";
     box.style.setProperty("--rc", C.color);
     box.innerHTML =
@@ -9161,10 +7006,10 @@
     b.insertAdjacentHTML(
       "afterbegin",
       '<div class="rw"><span>Testemunhos <b>' +
-      n +
-      "/" +
-      ACH.length +
-      '</b></span><span id="achGp"></span></div>',
+        n +
+        "/" +
+        ACH.length +
+        '</b></span><span id="achGp"></span></div>',
     );
     if (window.FePGS) {
       const gb = document.createElement("button");
@@ -9221,7 +7066,7 @@
           if (!SFX.on) {
             try {
               wxStopRain();
-            } catch (e) { }
+            } catch (e) {}
           }
         }
         if (k === "music") musApply();
@@ -9230,7 +7075,7 @@
         if (k === "fx" && !save.set.fx) {
           try {
             wxReset();
-          } catch (e) { }
+          } catch (e) {}
         }
         persist();
         if (k === "fx") renderSet(b);
@@ -9274,7 +7119,7 @@
       if (SFX._m) SFX._m.gain.value = SFX.vol;
       try {
         wxSyncRainVol();
-      } catch (e) { }
+      } catch (e) {}
       v.querySelector("b").textContent = e.target.value + "%";
       persist();
     };
@@ -9445,19 +7290,7 @@
   $("#mShop").onclick = () => scr("Tesouros do Reino", renderShop);
   $("#mAch").onclick = () => scr("Testemunhos", renderAch);
   $("#mSet").onclick = () => scr("Configurações", renderSet);
-  $("#mSet").insertAdjacentHTML(
-    "beforebegin",
-    '<button style="display:none;" class="mb" id="mBalanceData" type="button">Dados de Balanceamento</button>',
-  );
-  $("#mBalanceData").onclick = () => BTL.openScreen();
   $("#mRank").onclick = () => scr("Ranking", renderRank);
-  const _oldRank = () =>
-    scr("Ranking", (b) => {
-      b.innerHTML =
-        '<div class="rw"><span>O ranking online (Tempo, Abates, Nível) chega em uma próxima atualização.<small>Seu melhor tempo: ' +
-        (save.best ? fmt(save.best) : "—") +
-        "</small></span></div>";
-    });
 
   const RUN = { spawn: 1, coin: 1 };
   function goRun() {
@@ -9503,9 +7336,9 @@
       {} /* opcional: { dawn: 'modes/amanhecer.jpg', vigil: '...', upcoming: '...' } */,
     sfx: {},
     music: {
-      menu: ["music/music_menus.mp3", "music/music_menus_2.mp3"],
-      run: ["music/run.mp3", "music/run_2.mp3"],
-      boss: ["music/boss.mp3", "music/boss_2.mp3"],
+      menu: ["music/music_menus.mp3", "music/music_menus_2.mp3", "music/music_menus_3.mp3", "music/music_menus_4.mp3"],
+      run: ["music/run.mp3", "music/run_2.mp3", "music/run_3.mp3", "music/run_4.mp3"],
+      boss: ["music/boss.mp3", "music/boss_2.mp3", "music/boss_3.mp3", "music/boss_4.mp3", "music/boss_5.mp3"],
     },
   };
   const ASSET_LOG = { ok: [], miss: [] },
@@ -9685,8 +7518,8 @@
     );
     console.log(
       "Não encontrados, usando o desenho do código (" +
-      ASSET_LOG.miss.length +
-      "):",
+        ASSET_LOG.miss.length +
+        "):",
       ASSET_LOG.miss.join(", "),
     );
   };
@@ -9706,9 +7539,9 @@
             c.preservesPitch =
               c.mozPreservesPitch =
               c.webkitPreservesPitch =
-              false;
+                false;
           }
-          c.play().catch(() => { });
+          c.play().catch(() => {});
         };
       },
       { once: true },
@@ -9725,7 +7558,7 @@
     a._f = 0;
     try {
       a.volume = 0;
-    } catch (e) { }
+    } catch (e) {}
     nxFade(a, 1, 900);
   }
   function nxMusOut(a) {
@@ -9733,7 +7566,7 @@
     nxFade(a, 0, 600, () => {
       try {
         a.pause();
-      } catch (e) { }
+      } catch (e) {}
       a._f = 1;
     });
   }
@@ -9756,7 +7589,7 @@
     a.volume = clamp(save.set.mvol * nxMusMul(a), 0, 1);
     if (save.set.music && !ADS.busy && !document.hidden) {
       const p = a.play();
-      if (p && p.catch) p.catch(() => { });
+      if (p && p.catch) p.catch(() => {});
     } else a.pause();
   }
   /* sorteia uma das faixas da categoria (nunca repete a anterior, se houver 2+) e toca até acabar; ao fim sorteia outra */
@@ -9773,7 +7606,7 @@
     musLast[musCur] = musTrk;
     try {
       musTrk.currentTime = 0;
-    } catch (e) { }
+    } catch (e) {}
     musApply();
     nxMusIn(musTrk);
   }
@@ -9890,14 +7723,14 @@
       d.insertAdjacentHTML(
         "beforeend",
         "<h3>" +
-        x.name +
-        '</h3><div class="role">' +
-        (x.locked
-          ? "Bloqueado"
-          : k === selHero
-            ? '<span class="uic i-check"></span> Escolhido'
-            : "&nbsp;") +
-        "</div>",
+          x.name +
+          '</h3><div class="role">' +
+          (x.locked
+            ? "Bloqueado"
+            : k === selHero
+              ? '<span class="uic i-check"></span> Escolhido'
+              : "&nbsp;") +
+          "</div>",
       );
       d.onclick = () => {
         viewHero = k;
@@ -10025,26 +7858,26 @@
           h("GRAÇA PESSOAL") +
           (X.grace
             ? "<b>" +
-            X.grace.n +
-            '</b><div class="hero-muted">' +
-            X.grace.d +
-            "</div>"
+              X.grace.n +
+              '</b><div class="hero-muted">' +
+              X.grace.d +
+              "</div>"
             : '<b>NENHUMA</b><div class="hero-muted">Sem passiva, escudo ou cura. Desafio para experientes.</div>') +
           h("MAESTRIA") +
           (X.ch
             ? '<b class="hero-blood">SEM MAESTRIA</b><div class="hero-muted">Sem bônus de classe.</div>'
             : nx
               ? '<b class="hero-gold">PRÓXIMA M' +
-              (l + 1) +
-              " · " +
-              nx[0].toUpperCase() +
-              '</b><div class="hero-muted">' +
-              nx[1] +
-              " — " +
-              MQ[l - 1] +
-              " com " +
-              X.name +
-              "</div>"
+                (l + 1) +
+                " · " +
+                nx[0].toUpperCase() +
+                '</b><div class="hero-muted">' +
+                nx[1] +
+                " — " +
+                MQ[l - 1] +
+                " com " +
+                X.name +
+                "</div>"
               : '<b class="hero-gold">MAESTRIA MÁXIMA</b>');
       }
     }
@@ -10196,7 +8029,7 @@
     );
   }
   const wOpen = (i) =>
-    !!WORLDS[i] && (!WORLDS[i].key || worldOwned(i) || worldByAch(i)),
+      !!WORLDS[i] && (!WORLDS[i].key || worldOwned(i) || worldByAch(i)),
     curW = () => WORLDS[wOpen(save.world) ? save.world : 0],
     _mr0 = Math.random;
   const mul = (a) => () => {
@@ -10213,9 +8046,9 @@
     "-" +
     String(d.getDate()).padStart(2, "0");
   const spDate = () =>
-    new Date(
-      Date.now() - 10800000,
-    ) /* America/Sao_Paulo = UTC-3 (sem horário de verão desde 2019) */,
+      new Date(
+        Date.now() - 10800000,
+      ) /* America/Sao_Paulo = UTC-3 (sem horário de verão desde 2019) */,
     dayKey = () => {
       const d = spDate();
       return (
@@ -10315,7 +8148,6 @@
     if (bonus) {
       save.coins += bonus;
       g.dailyBonus = bonus;
-      BTL.patchEconomy({ dailyBonus: bonus });
     }
     persist();
     refreshMeta();
@@ -10325,13 +8157,13 @@
     $("#endSum").insertAdjacentHTML(
       "beforeend",
       "<div><b>" +
-      sc +
-      "</b>Pontos do dia" +
-      (nb ? '<br><span class="newrec">MELHOR DO DIA</span>' : "") +
-      "</div>" +
-      (bonus
-        ? "<div><b>+" + bonus + "</b>Bônus | sequência " + D.streak + "</div>"
-        : ""),
+        sc +
+        "</b>Pontos do dia" +
+        (nb ? '<br><span class="newrec">MELHOR DO DIA</span>' : "") +
+        "</div>" +
+        (bonus
+          ? "<div><b>+" + bonus + "</b>Bônus | sequência " + D.streak + "</div>"
+          : ""),
     );
   };
   ["#againBtn"].forEach((s) =>
@@ -10413,11 +8245,11 @@
       (done
         ? "já recebido hoje"
         : ECO.DAILY_BASE +
-        " moedas (+" +
-        ECO.DAILY_WIN +
-        " na vitória) + " +
-        ECO.DAILY_STREAK_STEP +
-        " por dia de sequência") +
+          " moedas (+" +
+          ECO.DAILY_WIN +
+          " na vitória) + " +
+          ECO.DAILY_STREAK_STEP +
+          " por dia de sequência") +
       '</small></span></div><div class="rw"><span>Próximo desafio em <b id="dCount">--:--:--</b></span></div>';
     const g = document.createElement("button");
     g.className = "mb daily-action";
@@ -10496,49 +8328,62 @@
       FOGC = { c, g: c.getContext("2d") };
     }
     const fg = FOGC.g;
-    fg.globalCompositeOperation = "source-over";
-    fg.globalAlpha = 1;
-    fg.clearRect(0, 0, VW, VH);
-    fg.fillStyle = nxFogBase() + f * 0.18 + ")";
-    fg.fillRect(0, 0, VW, VH);
-    for (const [sp, al, par] of [
-      [5, 0.75, 0.35],
-      [-9, 0.6, 0.55],
-      [13, 0.45, 0.8],
-    ]) {
-      fg.globalAlpha = Math.min(1, f * al);
-      const ox = -(((T * sp + camx * par) % 256) + 256) % 256,
-        oy = -(((T * sp * 0.4 + camy * par) % 256) + 256) % 256;
-      for (let x = ox - 256; x < VW; x += 256)
-        for (let y = oy - 256; y < VH; y += 256) fg.drawImage(FOG, x, y);
+    /* qualidade reduzida: refaz a névoa a cada 2º/3º quadro e só repete a imagem anterior nos outros */
+    const fogRedraw =
+      !PERF.lvl || !FOGC.ok || ++PERF.fogN % (PERF.lvl + 1) === 0;
+    if (fogRedraw) {
+      fg.globalCompositeOperation = "source-over";
+      fg.globalAlpha = 1;
+      fg.clearRect(0, 0, VW, VH);
+      fg.fillStyle = nxFogBase() + f * 0.18 + ")";
+      fg.fillRect(0, 0, VW, VH);
+      for (const [sp, al, par] of [
+        [5, 0.75, 0.35],
+        [-9, 0.6, 0.55],
+        [13, 0.45, 0.8],
+      ]) {
+        fg.globalAlpha = Math.min(1, f * al);
+        const ox = -(((T * sp + camx * par) % 256) + 256) % 256,
+          oy = -(((T * sp * 0.4 + camy * par) % 256) + 256) % 256;
+        for (let x = ox - 256; x < VW; x += 256)
+          for (let y = oy - 256; y < VH; y += 256) fg.drawImage(FOG, x, y);
+      }
+      fg.globalCompositeOperation = "destination-out";
+      fg.globalAlpha = 0.85;
+      fg.drawImage(
+        HOLE,
+        sx(g.p.x) - 160,
+        sy(g.p.y) - 160,
+      ); /* clareira em volta do herói */
+      fg.globalCompositeOperation = "source-over";
+      fg.globalAlpha = 1;
+      FOGC.ok = true;
     }
-    fg.globalCompositeOperation = "destination-out";
-    fg.globalAlpha = 0.85;
-    fg.drawImage(
-      HOLE,
-      sx(g.p.x) - 160,
-      sy(g.p.y) - 160,
-    ); /* clareira em volta do herói */
-    fg.globalCompositeOperation = "source-over";
-    fg.globalAlpha = 1;
     ctx.drawImage(FOGC.c, 0, 0);
     ctx.save();
     if (xt > 0.01) {
       ctx.fillStyle = "rgba(25,0,12," + xt * 0.4 * dk + ")";
       ctx.fillRect(0, 0, VW, VH);
     }
-    const gr = ctx.createRadialGradient(
-      VW / 2,
-      VH / 2,
-      VH * 0.25,
-      VW / 2,
-      VH / 2,
-      VW * 0.62,
-    );
-    gr.addColorStop(0, "rgba(10,0,5,0)");
-    gr.addColorStop(1, "rgba(10,0,5," + (0.2 + 0.6 * xt) * dk + ")");
-    ctx.fillStyle = gr;
-    ctx.fillRect(0, 0, VW, VH);
+    /* vinheta: gradiente gerado uma vez (cor fixa, alfa 0 → 1) e escalado por globalAlpha */
+    if (!FOGC.vg || FOGC.vg.width !== VW || FOGC.vg.height !== VH)
+      FOGC.vg = mk(VW, VH, (v) => {
+        const gr = v.createRadialGradient(
+          VW / 2,
+          VH / 2,
+          VH * 0.25,
+          VW / 2,
+          VH / 2,
+          VW * 0.62,
+        );
+        gr.addColorStop(0, "rgba(10,0,5,0)");
+        gr.addColorStop(1, "rgba(10,0,5,1)");
+        v.fillStyle = gr;
+        v.fillRect(0, 0, VW, VH);
+      });
+    ctx.globalAlpha = Math.min(1, (0.2 + 0.6 * xt) * dk);
+    ctx.drawImage(FOGC.vg, 0, 0);
+    ctx.globalAlpha = 1;
     if (g.boss) {
       ctx.fillStyle =
         "rgba(120,0,20," + (0.05 + 0.04 * Math.sin(g.t * 3)) + ")";
@@ -10625,14 +8470,14 @@
         setTimeout(() => {
           try {
             src.stop();
-          } catch (e) { }
+          } catch (e) {}
         }, 500);
       } else {
         try {
           src.stop();
-        } catch (e) { }
+        } catch (e) {}
       }
-    } catch (e) { }
+    } catch (e) {}
     WX.rainOn = false;
     WX.rainNodes = null;
   }
@@ -10644,7 +8489,7 @@
           SFX.ctx.currentTime,
           0.05,
         );
-      } catch (e) { }
+      } catch (e) {}
     }
   }
   function wxReset() {
@@ -10709,7 +8554,8 @@
       /* gotas */
       const dens = 4;
       for (let i = 0; i < dens; i++) {
-        if (WX.drops.length > 200) break;
+        if (WX.drops.length > 200 >> PERF.lvl)
+          break; /* v0.69: menos gotas em qualidade reduzida */
         WX.drops.push({
           x: Math.random() * (VW + 40) - 20,
           y: -8 - Math.random() * 30,
@@ -10771,10 +8617,11 @@
       ctx.beginPath();
       for (let i = 0; i < WX.drops.length; i++) {
         const d = WX.drops[i];
-        ctx.globalAlpha = d.a;
         ctx.moveTo(d.x, d.y);
         ctx.lineTo(d.x + slant * d.len, d.y + d.len);
       }
+      /* v0.69: um traço só usa o globalAlpha do momento do stroke(); o loop antigo trocava 200 vezes sem efeito */
+      ctx.globalAlpha = WX.drops[WX.drops.length - 1].a;
       ctx.stroke();
       ctx.restore();
     }
@@ -11069,11 +8916,11 @@
       burst(p.x, p.y, 12, "#ffe08a", 80);
       toast(
         ACT[id].n +
-        ": +" +
-        Math.round(bonus * 100) +
-        "% de ataque por " +
-        Math.round(seconds * 10) / 10 +
-        " s",
+          ": +" +
+          Math.round(bonus * 100) +
+          "% de ataque por " +
+          Math.round(seconds * 10) / 10 +
+          " s",
       );
     },
   };
@@ -11083,10 +8930,10 @@
       if (typeof handler !== "function")
         throw new Error(
           "[Content] Active " +
-          id +
-          " has no engine handler for " +
-          definition.behavior +
-          ".",
+            id +
+            " has no engine handler for " +
+            definition.behavior +
+            ".",
         );
       return [id, { ...definition, go: (g, level) => handler(g, level, id) }];
     }),
@@ -11178,7 +9025,6 @@
       return;
     }
     ACT[id].go(g, g.al[id]);
-    BTL.activeUse(id);
     g.acd[id] = actCd(id, g.al[id]) * actCdMod(g);
   }
   const AC = document.createElement("div");
@@ -11198,14 +9044,14 @@
       b.setAttribute(
         "data-tip",
         actTip(id, g) +
-        (ev
-          ? " | " +
-          EVOLUTION_TREES.active[id].paths[ev.path].name +
-          (ev.tier
-            ? " | MAESTRIA " +
-            EVOLUTION_TREES.active[id].paths[ev.path].node.name
-            : "")
-          : ""),
+          (ev
+            ? " | " +
+              EVOLUTION_TREES.active[id].paths[ev.path].name +
+              (ev.tier
+                ? " | MAESTRIA " +
+                  EVOLUTION_TREES.active[id].paths[ev.path].node.name
+                : "")
+            : ""),
       );
       if (ev)
         b.style.setProperty("--evo-color", evoAccent(id, ev.path, !!ev.tier));
@@ -11253,8 +9099,8 @@
           (g.A.indexOf(id) + 1) +
           (label
             ? " | " +
-            label.name +
-            (ev.tier ? " | Maestria: " + label.node.name : "")
+              label.name +
+              (ev.tier ? " | Maestria: " + label.node.name : "")
             : "") +
           '"><img alt="" src="' +
           gameIconURL(id, "active") +
@@ -11410,7 +9256,7 @@
       if (r.dataset.c) {
         try {
           localStorage.removeItem(SAVE_KEY);
-        } catch (e) { }
+        } catch (e) {}
         location.reload();
       } else {
         r.dataset.c = 1;
@@ -11535,7 +9381,7 @@
   function dmgNum(e, v, cr) {
     if (!G || v <= 0 || G.fx.length > 140) return;
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "dmg",
       x: e.x + rndFx(-5, 5),
       y: e.y - e.r - 4,
@@ -11579,13 +9425,6 @@
     Capacitor.isNativePlatform &&
     Capacitor.isNativePlatform()
   );
-  /* v0.39: analytics silencioso. Sem bridge (navegador) não faz nada; no app envia ao Firebase, se instalado */
-  const track = (n, p) => {
-    if (TUT.on) return;
-    try {
-      window.FeTrack && window.FeTrack(n, p);
-    } catch (e) { }
-  };
   const ADS_SIM = !IS_NATIVE && /[?&]debug\b/.test(location.search); // simulador só no navegador e só com ?debug
   const AD_REWARDED_ID = "ca-app-pub-3940256099942544/5224354917"; // reserva (só usada se o android-bridge.js faltar): ID de teste do Google
   const ADM = () => IS_NATIVE && Capacitor.Plugins && Capacitor.Plugins.AdMob;
@@ -11600,13 +9439,21 @@
     gameEl.appendChild(d);
     setTimeout(() => d.remove(), 2600);
   }
+  /* v0.69: volta de anúncio. O app ficou em segundo plano: o relógio do loop e o áudio precisam ser reiniciados, e
+     o contador de vozes do NXA pode ter ficado preso. Tudo é feito na hora, antes de a próxima tela aparecer. */
+  function adResume() {
+    PERF.t0 = last = performance.now();
+    PERF.slow = 0;
+    lastDraw = 0;
+    sfxReset();
+    SFX.wake();
+  }
   const ADS = {
     busy: false,
     rewarded(cb) {
       if (ADS.busy || ADS.loading) return;
       const _rcb = cb;
       cb = (ok) => {
-        track("ad_rewarded", { ok: ok ? 1 : 0 });
         _rcb && _rcb(ok);
       };
       const sdk = window.CrazyGames && window.CrazyGames.SDK,
@@ -11617,17 +9464,18 @@
       }, 35000);
       if (IS_NATIVE) notify("Carregando anúncio…", "info");
       const start = () => {
-        clearTimeout(ldT);
-        ADS.loading = false;
-        ADS.busy = true;
-        SFX.on = false;
-        if (musTrk) musTrk.pause();
-      },
+          clearTimeout(ldT);
+          ADS.loading = false;
+          ADS.busy = true;
+          SFX.on = false;
+          if (musTrk) musTrk.pause();
+        },
         done = (ok) => {
           clearTimeout(ldT);
           ADS.loading = false;
           ADS.busy = false;
           SFX.on = !!save.set.sound;
+          adResume();
           musApply();
           cb(ok);
         };
@@ -11655,7 +9503,7 @@
           hs.forEach((h) => {
             try {
               h.remove();
-            } catch (e) { }
+            } catch (e) {}
           });
           if (!ok)
             adMsg("Anúncio indisponível agora. Tente de novo em instantes.");
@@ -11786,7 +9634,6 @@
   function completeSkippedLevel() {
     const xp = skipXpAmount();
     G.choiceTools.skipUsed++;
-    BTL.skipChoice(0, xp);
     G.choiceTools.action = null;
     G.pending.shift();
     {
@@ -11828,7 +9675,6 @@
     tools.banishUsed++;
     tools.action = null;
     curChoices = remaining;
-    BTL.banishOption(choice, remaining);
     const cards = $("#cards"),
       removed = cards && cards.children[i];
     if (removed) {
@@ -11871,7 +9717,6 @@
       if (!ok || G !== run || state !== "levelup" || run.choiceTools.adBonus)
         return;
       run.choiceTools.adBonus = true;
-      BTL.syncChoiceTools();
       refreshChoiceToolUI();
       toast(
         "Anúncio recompensado: +1 uso de Banir e +1 uso de Pular nesta partida.",
@@ -11892,7 +9737,6 @@
   rrb.onclick = () =>
     ADS.rewarded((ok) => {
       if (ok && state === "levelup") {
-        BTL.rerollChoice("rewarded_ad");
         if (G.choiceTools) G.choiceTools.action = null;
         G.rr = 1;
         for (const o of curChoices) if (o.id) G.snub[cardKey(o)] = G.offerN + 2;
@@ -11915,13 +9759,13 @@
     dbl.innerHTML =
       left <= 0
         ? '<span class="uic i-play"></span> +' +
-        u +
-        " moedas | limite de hoje atingido"
+          u +
+          " moedas | limite de hoje atingido"
         : '<span class="uic i-play"></span> +' +
-        u +
-        " moedas | ad (restam " +
-        left +
-        " hoje)";
+          u +
+          " moedas | ad (restam " +
+          left +
+          " hoje)";
     dbl.onclick = () => {
       if (adGoldUsed() >= AD_COIN_MAX || (G && (G.dblPaid || 0) > 0)) return;
       ADS.rewarded((ok) => {
@@ -11931,7 +9775,6 @@
         save.adg.n++;
         save.coins += u;
         if (G) G.dblPaid = (G.dblPaid || 0) + u;
-        BTL.patchEconomy({ adCoins: G ? G.dblPaid : u });
         persist();
         refreshMeta();
         dbl.hidden = true;
@@ -11953,8 +9796,8 @@
     box.insertAdjacentHTML(
       "beforeend",
       '<span class="newrec coin-doubled">BÔNUS DO ANÚNCIO</span><span class="coinpop">+' +
-      n +
-      " moedas</span>",
+        n +
+        " moedas</span>",
     );
     const step = () => {
       const k = Math.min(1, (performance.now() - t0) / 750);
@@ -12011,7 +9854,7 @@
     G.shake = Math.max(G.shake, 0.3);
     SFX.play("boom");
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "pulse",
       x: e.x,
       y: e.y,
@@ -12356,8 +10199,8 @@
         '">' +
         (rec
           ? recFlagHTML(
-            "Recomendado: completa a Evolução Suprema de " + WEAPONS[id].name,
-          )
+              "Recomendado: completa a Evolução Suprema de " + WEAPONS[id].name,
+            )
           : "") +
         '<div class="evo-eq">' +
         piece(E.dom, "p", "Nv " + domLv + "+", dl, domLv) +
@@ -12434,11 +10277,11 @@
       "</div>" +
       (isSkills || isTrees
         ? '<div class="lib-chips">' +
-        chip("all", "Todas") +
-        chip("w", "Armas") +
-        chip("p", "Dons") +
-        chip("a", "Ativas") +
-        "</div>"
+          chip("all", "Todas") +
+          chip("w", "Armas") +
+          chip("p", "Dons") +
+          chip("a", "Ativas") +
+          "</div>"
         : "") +
       (isTrees
         ? '<div class="lib-tree-intro"><b>Planeje sua build antes da partida.</b><span>Cada árvore oferece três caminhos exclusivos. Depois de escolher um caminho, a Maestria correspondente pode aparecer nas escolhas seguintes. Esta tela é apenas uma prévia: não altera sua partida.</span></div>'
@@ -12463,17 +10306,17 @@
       "</div>";
     b.querySelectorAll("[data-t]").forEach(
       (x) =>
-      (x.onclick = () => {
-        libTab = +x.dataset.t;
-        renderLib(b);
-      }),
+        (x.onclick = () => {
+          libTab = +x.dataset.t;
+          renderLib(b);
+        }),
     );
     b.querySelectorAll("[data-f]").forEach(
       (x) =>
-      (x.onclick = () => {
-        libFilter = x.dataset.f;
-        renderLib(b);
-      }),
+        (x.onclick = () => {
+          libFilter = x.dataset.f;
+          renderLib(b);
+        }),
     );
     const grid = $("#libB");
     if (isEvo) {
@@ -12510,7 +10353,7 @@
       libList = libEntries().filter((e) =>
         isSkills
           ? (e.g === "w" || e.g === "p" || e.g === "a") &&
-          (libFilter === "all" || e.g === libFilter)
+            (libFilter === "all" || e.g === libFilter)
           : libTab === 2
             ? e.g === "d"
             : e.g === "b",
@@ -12630,12 +10473,12 @@
   function bindLibDetailNavigation() {
     LIBD.querySelectorAll(".ld-nav").forEach(
       (x) =>
-      (x.onclick = (ev) => {
-        ev.stopPropagation();
-        const d = +x.dataset.d;
-        if (libDetailMode === "tree") openTreeDet(libTreeIdx + d);
-        else openLibDet(libIdx + d);
-      }),
+        (x.onclick = (ev) => {
+          ev.stopPropagation();
+          const d = +x.dataset.d;
+          if (libDetailMode === "tree") openTreeDet(libTreeIdx + d);
+          else openLibDet(libIdx + d);
+        }),
     );
     const close = LIBD.querySelector(".ld-x");
     if (close) close.onclick = closeLibDet;
@@ -12664,53 +10507,53 @@
     const bodyExtra =
       e.g === "h"
         ? '<div class="ld-hero-grid">' +
-        '<div class="ld-hero-block"><h4>ARMA INICIAL</h4><div class="ld-hero-weapon">' +
-        (e.startId && WEAPONS[e.startId]
-          ? '<img alt="" src="' + iconURL(e.startId) + '"> '
-          : "") +
-        e.startName +
-        (e.H.startLvl ? " <em>Nv " + e.H.startLvl + "</em>" : "") +
-        '</div><div class="ld-hero-muted">' +
-        (e.H.bonus || "") +
-        "</div></div>" +
-        '<div class="ld-hero-block"><h4>GRAÇA PESSOAL</h4><b>' +
-        e.graceN +
-        '</b><div class="ld-hero-muted">' +
-        e.graceD +
-        "</div></div>" +
-        '<div class="ld-hero-block"><h4>MAESTRIA</h4>' +
-        (e.X.ch
-          ? '<b>Sem maestria</b><div class="ld-hero-muted">Herói de desafio — sem bônus de classe.</div>'
-          : e.X.perks && e.X.perks.length
-            ? '<ol class="ld-hero-perks">' +
-            e.X.perks
-              .map(
-                (p, j) =>
-                  "<li><b>M" +
-                  (j + 2) +
-                  " | " +
-                  p[0] +
-                  "</b> " +
-                  p[1] +
-                  (MQ[j] ? "<small>" + MQ[j] + "</small>" : "") +
-                  "</li>",
-              )
-              .join("") +
-            "</ol>"
-            : '<div class="ld-hero-muted">—</div>') +
-        "</div>" +
-        '<div class="ld-hero-block"><h4>COMO DESBLOQUEAR</h4><b class="ld-hero-gold">' +
-        e.unlock +
-        "</b></div>" +
-        "</div>"
+          '<div class="ld-hero-block"><h4>ARMA INICIAL</h4><div class="ld-hero-weapon">' +
+          (e.startId && WEAPONS[e.startId]
+            ? '<img alt="" src="' + iconURL(e.startId) + '"> '
+            : "") +
+          e.startName +
+          (e.H.startLvl ? " <em>Nv " + e.H.startLvl + "</em>" : "") +
+          '</div><div class="ld-hero-muted">' +
+          (e.H.bonus || "") +
+          "</div></div>" +
+          '<div class="ld-hero-block"><h4>GRAÇA PESSOAL</h4><b>' +
+          e.graceN +
+          '</b><div class="ld-hero-muted">' +
+          e.graceD +
+          "</div></div>" +
+          '<div class="ld-hero-block"><h4>MAESTRIA</h4>' +
+          (e.X.ch
+            ? '<b>Sem maestria</b><div class="ld-hero-muted">Herói de desafio — sem bônus de classe.</div>'
+            : e.X.perks && e.X.perks.length
+              ? '<ol class="ld-hero-perks">' +
+                e.X.perks
+                  .map(
+                    (p, j) =>
+                      "<li><b>M" +
+                      (j + 2) +
+                      " | " +
+                      p[0] +
+                      "</b> " +
+                      p[1] +
+                      (MQ[j] ? "<small>" + MQ[j] + "</small>" : "") +
+                      "</li>",
+                  )
+                  .join("") +
+                "</ol>"
+              : '<div class="ld-hero-muted">—</div>') +
+          "</div>" +
+          '<div class="ld-hero-block"><h4>COMO DESBLOQUEAR</h4><b class="ld-hero-gold">' +
+          e.unlock +
+          "</b></div>" +
+          "</div>"
         : "<h4>" +
-        lab.toUpperCase() +
-        "</h4><ol>" +
-        D.evo
-          .map((r) => "<li><b>" + r[0] + "</b> " + r[1] + "</li>")
-          .join("") +
-        "</ol>" +
-        (D.tip ? '<div class="ld-tip"><b>Dica:</b> ' + D.tip + "</div>" : "");
+          lab.toUpperCase() +
+          "</h4><ol>" +
+          D.evo
+            .map((r) => "<li><b>" + r[0] + "</b> " + r[1] + "</li>")
+            .join("") +
+          "</ol>" +
+          (D.tip ? '<div class="ld-tip"><b>Dica:</b> ' + D.tip + "</div>" : "");
     LIBD.innerHTML =
       '<div class="ld-wrap' +
       (e.g === "h" ? " ld-wrap-hero" : "") +
@@ -13098,7 +10941,6 @@
     do k = pick(L);
     while (k === e.lastP && L.length > 1);
     e.lastP = k;
-    BTL.bossPattern(e, k);
     if (k === "ring" || k === "cone" || k === "summon" || k === "fire")
       e.castT = g.t;
     switch (k) {
@@ -13334,9 +11176,9 @@
       const blink =
         0.55 +
         0.45 *
-        Math.sin(
-          f.t * (14 + 30 * p),
-        ); /* pisca mais rápido perto do impacto */
+          Math.sin(
+            f.t * (14 + 30 * p),
+          ); /* pisca mais rápido perto do impacto */
       qRing(
         cx,
         cy,
@@ -13539,6 +11381,176 @@
   }
 
   /* Borda da arena do chefe: muralha de chamas espirituais (vermelho, laranja, amarelo e branco) com faíscas */
+  /* v0.69 (desempenho): a muralha de chamas era desenhada com ~1.200 curvas por quadro (6 chamadas cada) mais dois
+     strokeRect com shadowBlur. Agora cada chama é um sprite pequeno (camadas vermelho+laranja+amarelo+branco já somadas),
+     gerado uma vez por (lado, altura, balanço) e desenhado com 1 drawImage; o brilho usa traços sobrepostos em vez de
+     shadowBlur e as faíscas usam cores pré-montadas (sem criar strings a cada quadro). */
+  const ARENA_FL = {};
+  const ARENA_TW = 9; /* meia largura do sprite de chama */
+  function arenaFlame(c2, bx, by, tx, ty, nx, ny, wid, hei, sway, fill) {
+    const tipx = bx + nx * hei + tx * sway,
+      tipy = by + ny * hei + ty * sway,
+      cxm = nx * hei * 0.55 + tx * sway * 0.35,
+      cym = ny * hei * 0.55 + ty * sway * 0.35;
+    c2.fillStyle = fill;
+    c2.beginPath();
+    c2.moveTo(bx - tx * wid, by - ty * wid);
+    c2.quadraticCurveTo(
+      bx - tx * wid * 0.9 + cxm,
+      by - ty * wid * 0.9 + cym,
+      tipx,
+      tipy,
+    );
+    c2.quadraticCurveTo(
+      bx + tx * wid * 0.9 + cxm,
+      by + ty * wid * 0.9 + cym,
+      bx + tx * wid,
+      by + ty * wid,
+    );
+    c2.closePath();
+    c2.fill();
+  }
+  /* devolve { c, bx, by }: canvas da chama e o ponto da base dentro dele */
+  function arenaFlameSprite(s, Hq, swq, fx, tx, ty, nx, ny) {
+    const key = s + "|" + Hq + "|" + swq + "|" + (fx ? 1 : 0);
+    let f = ARENA_FL[key];
+    if (f) return f;
+    const along = Hq + 6,
+      horiz = nx !== 0,
+      W = horiz ? along : ARENA_TW * 2 + 1,
+      H = horiz ? ARENA_TW * 2 + 1 : along,
+      bx = nx === 1 ? 2 : nx === -1 ? W - 3 : ARENA_TW,
+      by = ny === 1 ? 2 : ny === -1 ? H - 3 : ARENA_TW,
+      sway = swq * 0.55,
+      al = fx ? 0.78 : 0.95;
+    const c = mk(W, H, (c2) => {
+      c2.globalCompositeOperation = "lighter";
+      arenaFlame(
+        c2,
+        bx,
+        by,
+        tx,
+        ty,
+        nx,
+        ny,
+        3.8,
+        Hq,
+        sway,
+        "rgba(205, 28, 18," + al + ")",
+      );
+      arenaFlame(
+        c2,
+        bx,
+        by,
+        tx,
+        ty,
+        nx,
+        ny,
+        2.9,
+        Hq * 0.78,
+        sway * 0.8,
+        "rgba(255, 118, 24," + al + ")",
+      );
+      if (fx) {
+        arenaFlame(
+          c2,
+          bx,
+          by,
+          tx,
+          ty,
+          nx,
+          ny,
+          1.9,
+          Hq * 0.52,
+          sway * 0.55,
+          "rgba(255, 214, 80,.9)",
+        );
+        if (Hq > 11)
+          arenaFlame(
+            c2,
+            bx,
+            by,
+            tx,
+            ty,
+            nx,
+            ny,
+            1,
+            Hq * 0.28,
+            sway * 0.3,
+            "rgba(255, 250, 226,.95)",
+          );
+      }
+    });
+    return (ARENA_FL[key] = { c, bx, by });
+  }
+  const ARENA_SPARK = (() => {
+    const cols = [
+      "255, 120, 25",
+      "230, 40, 25",
+      "255, 215, 80",
+      "255, 248, 225",
+    ];
+    return cols.map((c) => {
+      const a = [];
+      for (let i = 0; i < 8; i++)
+        a.push("rgba(" + c + "," + ((i + 0.5) / 8).toFixed(3) + ")");
+      return a;
+    });
+  })();
+  /* brilho da borda: o shadowBlur (16 e 8) é aplicado UMA vez numa tira de 128 px e a tira é repetida ao longo de cada
+     lado (só os trechos visíveis). O alfa da pulsação multiplica a tira, igual ao que o shadowBlur fazia. */
+  const ARENA_GLOW = {};
+  const AG_M = 44; /* meia altura da tira (alcance do brilho + traço) */
+  function arenaGlowStrip(vert) {
+    const k = vert ? "v" : "h";
+    if (ARENA_GLOW[k]) return ARENA_GLOW[k];
+    const L = 128,
+      S = AG_M * 2 + 1;
+    return (ARENA_GLOW[k] = mk(vert ? S : L, vert ? L : S, (c) => {
+      const line = (w) => {
+        c.lineWidth = w;
+        c.beginPath();
+        if (vert) {
+          c.moveTo(AG_M + 0.5, -60);
+          c.lineTo(AG_M + 0.5, L + 60);
+        } else {
+          c.moveTo(-60, AG_M + 0.5);
+          c.lineTo(L + 60, AG_M + 0.5);
+        }
+        c.stroke();
+      };
+      c.shadowColor = "rgba(255, 90, 20, .7)";
+      c.shadowBlur = 16;
+      c.strokeStyle = "rgba(255, 70, 20, 0.22)";
+      line(9);
+      c.shadowColor = "rgba(255, 200, 80, .6)";
+      c.shadowBlur = 8;
+      c.strokeStyle = "rgba(255, 190, 70, 0.18)";
+      line(3);
+    }));
+  }
+  function arenaGlow(x, y, w, h, pulse) {
+    const hs = arenaGlowStrip(false),
+      vs = arenaGlowStrip(true),
+      S = AG_M * 2 + 1;
+    ctx.globalAlpha = pulse;
+    /* lados horizontais: tiras de 128 px alinhadas ao canto, cortadas no fim do lado e fora da tela */
+    for (let i = Math.max(0, Math.floor((-128 - x) / 128)); ; i++) {
+      const tx = x + i * 128,
+        sw = Math.min(128, x + w - tx);
+      if (sw <= 0 || tx > VW) break;
+      ctx.drawImage(hs, 0, 0, sw, S, tx, y - AG_M, sw, S);
+      ctx.drawImage(hs, 0, 0, sw, S, tx, y + h - AG_M, sw, S);
+    }
+    for (let i = Math.max(0, Math.floor((-128 - y) / 128)); ; i++) {
+      const ty = y + i * 128,
+        sh = Math.min(128, y + h - ty);
+      if (sh <= 0 || ty > VH) break;
+      ctx.drawImage(vs, 0, 0, S, sh, x - AG_M, ty, S, sh);
+      ctx.drawImage(vs, 0, 0, S, sh, x + w - AG_M, ty, S, sh);
+    }
+    ctx.globalAlpha = 1;
+  }
   function drawArenaBorder(g) {
     const A = g.arena;
     if (!A) return;
@@ -13547,7 +11559,7 @@
       w = A.r * 2,
       h = A.r * 2,
       tm = g.t,
-      fx = FXQ();
+      fx = FXQ() && PERF.lvl < 2;
     const hash = (n) => {
       const v = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
       return v - Math.floor(v);
@@ -13559,21 +11571,9 @@
     ctx.rect(0, 0, VW, VH);
     ctx.rect(x, y, w, h);
     ctx.fill("evenodd");
-    /* halo quente (brasa) em volta da arena */
+    /* halo quente (brasa) em volta da arena: traços sobrepostos no lugar de shadowBlur */
     const pulse = 0.75 + 0.25 * Math.sin(tm * 5);
-    if (fx) {
-      ctx.shadowColor = "rgba(255, 90, 20, .7)";
-      ctx.shadowBlur = 16;
-      ctx.strokeStyle = "rgba(255, 70, 20," + (0.22 * pulse).toFixed(3) + ")";
-      ctx.lineWidth = 9;
-      ctx.strokeRect(x, y, w, h);
-      ctx.shadowColor = "rgba(255, 200, 80, .6)";
-      ctx.shadowBlur = 8;
-      ctx.strokeStyle = "rgba(255, 190, 70," + (0.18 * pulse).toFixed(3) + ")";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x, y, w, h);
-      ctx.shadowBlur = 0;
-    }
+    if (fx) arenaGlow(x, y, w, h, pulse);
     /* lados: início, direção da borda e normal apontando para dentro da arena */
     const sides = [
       [x, y, 1, 0, 0, 1, w],
@@ -13583,34 +11583,11 @@
     ];
     const M = 36; /* margem de corte fora da tela */
     const STEP = 5;
-    const flame = (bx, by, tx, ty, nx, ny, wid, hei, sway, fill) => {
-      const tipx = bx + nx * hei + tx * sway,
-        tipy = by + ny * hei + ty * sway,
-        cxm = nx * hei * 0.55 + tx * sway * 0.35,
-        cym = ny * hei * 0.55 + ty * sway * 0.35;
-      ctx.fillStyle = fill;
-      ctx.beginPath();
-      ctx.moveTo(bx - tx * wid, by - ty * wid);
-      ctx.quadraticCurveTo(
-        bx - tx * wid * 0.9 + cxm,
-        by - ty * wid * 0.9 + cym,
-        tipx,
-        tipy,
-      );
-      ctx.quadraticCurveTo(
-        bx + tx * wid * 0.9 + cxm,
-        by + ty * wid * 0.9 + cym,
-        bx + tx * wid,
-        by + ty * wid,
-      );
-      ctx.closePath();
-      ctx.fill();
-    };
     if (fx) ctx.globalCompositeOperation = "lighter";
     for (let s = 0; s < 4; s++) {
       const [x1, y1, tx, ty, nx, ny, len] = sides[s];
       const n = Math.max(8, Math.floor(len / STEP));
-      /* brasa no chão ao longo da borda */
+      /* brasa no chão ao longo da borda (só o trecho visível) */
       for (let i = 0; i <= n; i++) {
         const px = x1 + tx * i * STEP,
           py = y1 + ty * i * STEP;
@@ -13622,58 +11599,10 @@
         /* línguas altas ocasionais, que pulsam */
         if (hash(seed) > 0.86) H *= 1.35 + 0.35 * Math.sin(tm * 4 + seed);
         const sway = Math.sin(tm * 5 + seed * 1.3) * 2.2;
-        const al = fx ? 0.78 : 0.95;
-        flame(
-          px,
-          py,
-          tx,
-          ty,
-          nx,
-          ny,
-          3.8,
-          H,
-          sway,
-          "rgba(205, 28, 18," + al + ")",
-        );
-        flame(
-          px,
-          py,
-          tx,
-          ty,
-          nx,
-          ny,
-          2.9,
-          H * 0.78,
-          sway * 0.8,
-          "rgba(255, 118, 24," + al + ")",
-        );
-        if (fx) {
-          flame(
-            px,
-            py,
-            tx,
-            ty,
-            nx,
-            ny,
-            1.9,
-            H * 0.52,
-            sway * 0.55,
-            "rgba(255, 214, 80,.9)",
-          );
-          if (H > 11)
-            flame(
-              px,
-              py,
-              tx,
-              ty,
-              nx,
-              ny,
-              1,
-              H * 0.28,
-              sway * 0.3,
-              "rgba(255, 250, 226,.95)",
-            );
-        }
+        const Hq = Math.max(4, Math.min(30, Math.round(H))),
+          swq = Math.round(sway / 0.55),
+          f = arenaFlameSprite(s, Hq, swq, fx, tx, ty, nx, ny);
+        ctx.drawImage(f.c, Math.round(px - f.bx), Math.round(py - f.by));
       }
       /* faixa de brasa na base das chamas */
       ctx.lineCap = "round";
@@ -13698,16 +11627,10 @@
           const px = x1 + tx * along + nx * dist,
             py = y1 + ty * along + ny * dist - t * 6; /* sobe levemente */
           if (px < -4 || px > VW + 4 || py < -4 || py > VH + 4) continue;
-          const c = hash(sd + 5.9);
-          const col =
-            c < 0.38
-              ? "255, 120, 25"
-              : c < 0.62
-                ? "230, 40, 25"
-                : c < 0.82
-                  ? "255, 215, 80"
-                  : "255, 248, 225";
-          ctx.fillStyle = "rgba(" + col + "," + (1 - t).toFixed(3) + ")";
+          const c = hash(sd + 5.9),
+            ci = c < 0.38 ? 0 : c < 0.62 ? 1 : c < 0.82 ? 2 : 3;
+          ctx.fillStyle =
+            ARENA_SPARK[ci][Math.max(0, Math.min(7, Math.floor((1 - t) * 8)))];
           const sz = t < 0.35 && c > 0.5 ? 2 : 1;
           ctx.fillRect(Math.round(px), Math.round(py), sz, sz);
         }
@@ -13723,8 +11646,15 @@
     ctx.setLineDash([]);
     ctx.restore();
   }
-    /* ===== marcadores de itens especiais e da Arca ===== */
-  const MARK_TYPES = { bread: 1, fire: 1, shield: 1, frozen: 1, mana: 1, ark: 1 };
+  /* ===== marcadores de itens especiais e da Arca ===== */
+  const MARK_TYPES = {
+    bread: 1,
+    fire: 1,
+    shield: 1,
+    frozen: 1,
+    mana: 1,
+    ark: 1,
+  };
   const MARK_MARGIN = 26; /* distância mínima entre o marcador e a borda */
 
   function markArrow(x, y, ang, col) {
@@ -14241,7 +12171,7 @@
           });
         }
       D.sw = S.hero[g.hk];
-      const bl = { c: mk(w, h, () => { }), f: mk(w, h, () => { }), w, h };
+      const bl = { c: mk(w, h, () => {}), f: mk(w, h, () => {}), w, h };
       S.hero[g.hk] = [bl, bl];
     }
     for (const q of D.dust) {
@@ -14277,12 +12207,12 @@
       get: () =>
         HU[k].ads
           ? "Assistir " +
-          HU[k].ads +
-          " anúncios (" +
-          (save.adw[k] || 0) +
-          "/" +
-          HU[k].ads +
-          ")"
+            HU[k].ads +
+            " anúncios (" +
+            (save.adw[k] || 0) +
+            "/" +
+            HU[k].ads +
+            ")"
           : HU[k].coins + " moedas",
       configurable: true,
     });
@@ -14349,10 +12279,10 @@
           return deny(
             bt,
             "Faltam " +
-            (U.coins - save.coins) +
-            " moedas para desbloquear " +
-            X.name +
-            ".",
+              (U.coins - save.coins) +
+              " moedas para desbloquear " +
+              X.name +
+              ".",
           );
         if (!bt.dataset.c) {
           bt.dataset.c = 1;
@@ -14383,12 +12313,12 @@
       row.insertAdjacentHTML(
         "beforeend",
         '<small class="hero-wallet">Você tem ' +
-        save.coins +
-        " moedas" +
-        (avg
-          ? " | média de " + avg + " por partida (" + c.n + " partidas)"
-          : "") +
-        "</small>",
+          save.coins +
+          " moedas" +
+          (avg
+            ? " | média de " + avg + " por partida (" + c.n + " partidas)"
+            : "") +
+          "</small>",
       );
     b.appendChild(row);
   };
@@ -15108,230 +13038,230 @@
      Inclui: play help gear trophy book globe bag star calendar door redo flag check lock store coin rate
      + pause left right close (navegação da biblioteca e botão de pausa) */
   const UI_M = {
-    store: [
-      "gGgGgGgG",
-      "GgGgGgGg",
-      "gggggggg",
-      ".g....g.",
-      ".g.WW.g.",
-      ".g.WW.g.",
-      ".g.WW.g.",
-      ".gggggg.",
-    ],
-    rate: [
-      "...GG...",
-      "..GGGG..",
-      "GGGGGGGG",
-      ".GGGGGG.",
-      "..GGGG..",
-      ".GGGGGG.",
-      "GGG..GGG",
-      "GG....GG",
-    ],
-    coin: [
-      ".GGGGGG.",
-      "GGggggGG",
-      "GgGGGGgG",
-      "GgGggGgG",
-      "GgGggGgG",
-      "GgGGGGgG",
-      "GGggggGG",
-      ".GGGGGG.",
-    ],
-    play: [
-      "..G.....",
-      "..GG....",
-      "..GGG...",
-      "..GGGG..",
-      "..GGGG..",
-      "..GGG...",
-      "..GG....",
-      "..G.....",
-    ],
-    help: [
-      ".WWWWW..",
-      "WW...WW.",
-      ".....WW.",
-      "....WW..",
-      "...WW...",
-      "...WW...",
-      "........",
-      "...WW...",
-    ],
-    gear: [
-      "...GG...",
-      ".G.GG.G.",
-      "..GGGG..",
-      "GGG..GGG",
-      "GGG..GGG",
-      "..GGGG..",
-      ".G.GG.G.",
-      "...GG...",
-    ],
-    trophy: [
-      "GGGGGGGG",
-      "G.GGGG.G",
-      "G.GGGG.G",
-      ".GGGGGG.",
-      "..GGGG..",
-      "...GG...",
-      "...GG...",
-      "..gggg..",
-    ],
-    book: [
-      ".BBBBBB.",
-      "BWWBWWWB",
-      "BWWBWWWB",
-      "BWWBWWWB",
-      "BWWBWWWB",
-      "BWWBWWWB",
-      ".BBBBBB.",
-      "........",
-    ],
-    globe: [
-      "..BBBB..",
-      ".BNNBBB.",
-      "BNNNBBNB",
-      "BBNBBNNB",
-      "BBBBNNNB",
-      ".BBBNNB.",
-      "..BBBB..",
-      "........",
-    ],
-    bag: [
-      "..GGGG..",
-      "...gg...",
-      "..gggg..",
-      ".gggggg.",
-      "gggGGggg",
-      "gggGGggg",
-      ".gggggg.",
-      "..gggg..",
-    ],
-    star: [
-      "...GG...",
-      "...GG...",
-      "GGGGGGGG",
-      ".GGGGGG.",
-      "..GGGG..",
-      "..GGGG..",
-      ".GG..GG.",
-      ".G....G.",
-    ],
-    calendar: [
-      "RRRRRRRR",
-      "RWWWWWWR",
-      "WWWWWWWW",
-      "WGWGWGWW",
-      "WWWWWWWW",
-      "WGWGWGWW",
-      "WWWWWWWW",
-      "WWWWWWWW",
-    ],
-    door: [
-      ".gggggg.",
-      ".gGGGGg.",
-      ".gGGGGg.",
-      ".gGGGGg.",
-      ".gGGGWg.",
-      ".gGGGGg.",
-      ".gGGGGg.",
-      ".gggggg.",
-    ],
-    redo: [
-      "..WWWW..",
-      ".W....W.",
-      "W.....WW",
-      "W....WWW",
-      "W.....WW",
-      ".W......",
-      "..WWWW..",
-      "........",
-    ],
-    flag: [
-      "GG......",
-      "GRRRRR..",
-      "GRRRRRR.",
-      "GRRRRR..",
-      "G.......",
-      "G.......",
-      "G.......",
-      "GG......",
-    ],
-    check: [
-      "........",
-      ".......N",
-      "......NN",
-      "N....NN.",
-      "NN..NN..",
-      ".NNNN...",
-      "..NN....",
-      "........",
-    ],
-    noads: [
-      "..RRRR..",
-      ".RR..RR.",
-      "RR...RRR",
-      "R...R..R",
-      "R..R...R",
-      "RRR...RR",
-      ".RR..RR.",
-      "..RRRR..",
-    ],
-    lock: [
-      "..gggg..",
-      ".g....g.",
-      ".g....g.",
-      "GGGGGGGG",
-      "GGGDDGGG",
-      "GGGDDGGG",
-      "GGGGGGGG",
-      "GGGGGGGG",
-    ],
-    /* pause: duas barras verticais (substitui "II") */
-    pause: [
-      "........",
-      ".GG..GG.",
-      ".GG..GG.",
-      ".GG..GG.",
-      ".GG..GG.",
-      ".GG..GG.",
-      ".GG..GG.",
-      "........",
-    ],
-    /* left / right: setas de navegação da biblioteca (substitui ‹ ›) */
-    left: [
-      "........",
-      "...G....",
-      "..GG....",
-      ".GGGGGG.",
-      ".GGGGGG.",
-      "..GG....",
-      "...G....",
-      "........",
-    ],
-    right: [
-      "........",
-      "....G...",
-      "....GG..",
-      ".GGGGGG.",
-      ".GGGGGG.",
-      "....GG..",
-      "....G...",
-      "........",
-    ],
-    /* close: X de fechar modal (substitui "X") */
-    close: [
-      "........",
-      ".GG..GG.",
-      "..GGGG..",
-      "...GG...",
-      "...GG...",
-      "..GGGG..",
-      ".GG..GG.",
-      "........",
-    ],
-  },
+      store: [
+        "gGgGgGgG",
+        "GgGgGgGg",
+        "gggggggg",
+        ".g....g.",
+        ".g.WW.g.",
+        ".g.WW.g.",
+        ".g.WW.g.",
+        ".gggggg.",
+      ],
+      rate: [
+        "...GG...",
+        "..GGGG..",
+        "GGGGGGGG",
+        ".GGGGGG.",
+        "..GGGG..",
+        ".GGGGGG.",
+        "GGG..GGG",
+        "GG....GG",
+      ],
+      coin: [
+        ".GGGGGG.",
+        "GGggggGG",
+        "GgGGGGgG",
+        "GgGggGgG",
+        "GgGggGgG",
+        "GgGGGGgG",
+        "GGggggGG",
+        ".GGGGGG.",
+      ],
+      play: [
+        "..G.....",
+        "..GG....",
+        "..GGG...",
+        "..GGGG..",
+        "..GGGG..",
+        "..GGG...",
+        "..GG....",
+        "..G.....",
+      ],
+      help: [
+        ".WWWWW..",
+        "WW...WW.",
+        ".....WW.",
+        "....WW..",
+        "...WW...",
+        "...WW...",
+        "........",
+        "...WW...",
+      ],
+      gear: [
+        "...GG...",
+        ".G.GG.G.",
+        "..GGGG..",
+        "GGG..GGG",
+        "GGG..GGG",
+        "..GGGG..",
+        ".G.GG.G.",
+        "...GG...",
+      ],
+      trophy: [
+        "GGGGGGGG",
+        "G.GGGG.G",
+        "G.GGGG.G",
+        ".GGGGGG.",
+        "..GGGG..",
+        "...GG...",
+        "...GG...",
+        "..gggg..",
+      ],
+      book: [
+        ".BBBBBB.",
+        "BWWBWWWB",
+        "BWWBWWWB",
+        "BWWBWWWB",
+        "BWWBWWWB",
+        "BWWBWWWB",
+        ".BBBBBB.",
+        "........",
+      ],
+      globe: [
+        "..BBBB..",
+        ".BNNBBB.",
+        "BNNNBBNB",
+        "BBNBBNNB",
+        "BBBBNNNB",
+        ".BBBNNB.",
+        "..BBBB..",
+        "........",
+      ],
+      bag: [
+        "..GGGG..",
+        "...gg...",
+        "..gggg..",
+        ".gggggg.",
+        "gggGGggg",
+        "gggGGggg",
+        ".gggggg.",
+        "..gggg..",
+      ],
+      star: [
+        "...GG...",
+        "...GG...",
+        "GGGGGGGG",
+        ".GGGGGG.",
+        "..GGGG..",
+        "..GGGG..",
+        ".GG..GG.",
+        ".G....G.",
+      ],
+      calendar: [
+        "RRRRRRRR",
+        "RWWWWWWR",
+        "WWWWWWWW",
+        "WGWGWGWW",
+        "WWWWWWWW",
+        "WGWGWGWW",
+        "WWWWWWWW",
+        "WWWWWWWW",
+      ],
+      door: [
+        ".gggggg.",
+        ".gGGGGg.",
+        ".gGGGGg.",
+        ".gGGGGg.",
+        ".gGGGWg.",
+        ".gGGGGg.",
+        ".gGGGGg.",
+        ".gggggg.",
+      ],
+      redo: [
+        "..WWWW..",
+        ".W....W.",
+        "W.....WW",
+        "W....WWW",
+        "W.....WW",
+        ".W......",
+        "..WWWW..",
+        "........",
+      ],
+      flag: [
+        "GG......",
+        "GRRRRR..",
+        "GRRRRRR.",
+        "GRRRRR..",
+        "G.......",
+        "G.......",
+        "G.......",
+        "GG......",
+      ],
+      check: [
+        "........",
+        ".......N",
+        "......NN",
+        "N....NN.",
+        "NN..NN..",
+        ".NNNN...",
+        "..NN....",
+        "........",
+      ],
+      noads: [
+        "..RRRR..",
+        ".RR..RR.",
+        "RR...RRR",
+        "R...R..R",
+        "R..R...R",
+        "RRR...RR",
+        ".RR..RR.",
+        "..RRRR..",
+      ],
+      lock: [
+        "..gggg..",
+        ".g....g.",
+        ".g....g.",
+        "GGGGGGGG",
+        "GGGDDGGG",
+        "GGGDDGGG",
+        "GGGGGGGG",
+        "GGGGGGGG",
+      ],
+      /* pause: duas barras verticais (substitui "II") */
+      pause: [
+        "........",
+        ".GG..GG.",
+        ".GG..GG.",
+        ".GG..GG.",
+        ".GG..GG.",
+        ".GG..GG.",
+        ".GG..GG.",
+        "........",
+      ],
+      /* left / right: setas de navegação da biblioteca (substitui ‹ ›) */
+      left: [
+        "........",
+        "...G....",
+        "..GG....",
+        ".GGGGGG.",
+        ".GGGGGG.",
+        "..GG....",
+        "...G....",
+        "........",
+      ],
+      right: [
+        "........",
+        "....G...",
+        "....GG..",
+        ".GGGGGG.",
+        ".GGGGGG.",
+        "....GG..",
+        "....G...",
+        "........",
+      ],
+      /* close: X de fechar modal (substitui "X") */
+      close: [
+        "........",
+        ".GG..GG.",
+        "..GGGG..",
+        "...GG...",
+        "...GG...",
+        "..GGGG..",
+        ".GG..GG.",
+        "........",
+      ],
+    },
     UI_C = {
       G: "#f2c14e",
       g: "#a8741f",
@@ -15462,7 +13392,7 @@
         c.className = "wthumb";
         c.getContext("2d").drawImage(nxWorldThumb(i), 0, 0);
         x.insertBefore(c, x.firstChild);
-      } catch (e) { }
+      } catch (e) {}
     });
     host.querySelector("#prepD").textContent = curW().d;
   }
@@ -15730,7 +13660,7 @@
     const browserFallback = () => {
       try {
         if (navigator.vibrate) navigator.vibrate(ms);
-      } catch (e) { }
+      } catch (e) {}
     };
     // Native Capacitor must use the Haptics plugin; navigator.vibrate alone is unreliable in Android WebView.
     if (window.FeHaptics && typeof window.FeHaptics.vibrate === "function") {
@@ -15745,7 +13675,7 @@
           return;
         }
         if (result) return;
-      } catch (e) { }
+      } catch (e) {}
     }
     browserFallback();
   }
@@ -15764,7 +13694,7 @@
     const p = G.p;
     if (FXQ())
       G.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "heal",
         x: p.x,
         y: p.y,
@@ -15774,7 +13704,7 @@
       });
     if (showText)
       G.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "txt",
         x: p.x,
         y: p.y - 14,
@@ -15789,10 +13719,8 @@
       amount = Math.max(0, roundGameplayValue(n)),
       a = Math.min(amount, G.mods.maxhp - p.hp);
     if (a <= 0) {
-      BTL.heal(0, amount); /* cura desperdiçada com a Salvação cheia */
       return;
     }
-    BTL.heal(a, amount);
     p.hp += a;
     healFx(a);
   }
@@ -15847,8 +13775,8 @@
         (G.inf
           ? "Sua vigília chegou ao fim."
           : "Faltaram <b>" +
-          fmt(Math.max(0, WIN_T - G.t)) +
-          "</b> para o amanhecer.");
+            fmt(Math.max(0, WIN_T - G.t)) +
+            "</b> para o amanhecer.");
     if (!won && !ret)
       h += '<br><span class="end-tip">Dica: ' + pick(END_TIPS) + "</span>";
     el.innerHTML = h;
@@ -15942,21 +13870,21 @@
     if (adsRemoved() || ADS.busy) return cb && cb();
     const _icb = cb;
     cb = () => {
-      track("ad_interstitial_end", {});
       _icb && _icb();
     };
     const sdk = window.CrazyGames && window.CrazyGames.SDK;
     let fin = false;
     const start = () => {
-      ADS.busy = true;
-      SFX.on = false;
-      if (musTrk) musTrk.pause();
-    },
+        ADS.busy = true;
+        SFX.on = false;
+        if (musTrk) musTrk.pause();
+      },
       done = () => {
         if (fin) return;
         fin = true;
         ADS.busy = false;
         SFX.on = !!save.set.sound;
+        adResume();
         INT.last = Date.now();
         INT.idle = 0;
         musApply();
@@ -16297,7 +14225,7 @@
           try {
             const r = await FeIAP.info(PRODUCTS[key].sku || undefined);
             if (r && r.priceString) Billing.price[key] = r.priceString;
-          } catch (e) { }
+          } catch (e) {}
         }),
       );
     },
@@ -16325,10 +14253,6 @@
           return false;
         }
         if (!ok) {
-          track("purchase_fail", {
-            key: key,
-            err: window.FeIAP && FeIAP.lastError ? 1 : 0,
-          });
           notify(
             window.FeIAP && FeIAP.lastError
               ? "Compra não concluída [" + FeIAP.lastError + "]"
@@ -16338,7 +14262,6 @@
           return false;
         }
         Billing.grant(key, token, true);
-        track("purchase_ok", { key: key });
         SFX.play(P.kind === "coins" ? "coin" : "win");
         if (P.kind === "coins" && window.FeIAP) {
           try {
@@ -16360,13 +14283,13 @@
       if (!window.FeIAP) return;
       try {
         if (await FeIAP.owned()) Billing.grant("noads");
-      } catch (e) { }
+      } catch (e) {}
       for (const key of Object.keys(PRODUCTS)) {
         const P = PRODUCTS[key];
         if (P.kind !== "once" || !P.sku) continue;
         try {
           if (await FeIAP.owned(P.sku)) Billing.grant(key);
-        } catch (e) { }
+        } catch (e) {}
       }
       try {
         for (const it of (await FeIAP.pending()) || []) {
@@ -16375,9 +14298,9 @@
           Billing.grant(key, it.token);
           try {
             await FeIAP.consume(it.sku);
-          } catch (e) { }
+          } catch (e) {}
         }
-      } catch (e) { }
+      } catch (e) {}
     },
     async restore() {
       if (Billing.busy)
@@ -16441,10 +14364,10 @@
       return deny(
         bt,
         "Faltam " +
-        (cost - save.coins).toLocaleString("pt-BR") +
-        " moedas para desbloquear " +
-        HX[k].name +
-        ".",
+          (cost - save.coins).toLocaleString("pt-BR") +
+          " moedas para desbloquear " +
+          HX[k].name +
+          ".",
       );
     if (!bt.dataset.c) {
       bt.dataset.c = 1;
@@ -16476,10 +14399,10 @@
       return deny(
         bt,
         "Faltam " +
-        (cost - save.coins).toLocaleString("pt-BR") +
-        " moedas para desbloquear o ícone " +
-        it.name +
-        ".",
+          (cost - save.coins).toLocaleString("pt-BR") +
+          " moedas para desbloquear o ícone " +
+          it.name +
+          ".",
       );
     if (!bt.dataset.c) {
       bt.dataset.c = 1;
@@ -16498,8 +14421,7 @@
     persist();
     refreshMeta();
     try {
-      track("icon_buy", { id: it.id, cost });
-    } catch (e) { }
+    } catch (e) {}
     SFX.play("coin");
     buyPop(
       "Ícone desbloqueado",
@@ -16553,9 +14475,9 @@
       main.insertAdjacentHTML(
         "beforeend",
         '<h3 class="shop-h">' +
-        title +
-        "</h3>" +
-        (note ? '<p class="shop-note">' + note + "</p>" : ""),
+          title +
+          "</h3>" +
+          (note ? '<p class="shop-note">' + note + "</p>" : ""),
       );
     const rail = () => {
       const r = document.createElement("div");
@@ -16693,16 +14615,16 @@
             n(STARTER.coins) +
             " moedas | herói Sansão | Deserto de Sur | sem anúncios intersticiais",
           cta: owned
-            ? cta("Adquirido", true, () => { })
+            ? cta("Adquirido", true, () => {})
             : cta(
-              Billing.priceOf("starter") || PRODUCTS.starter.fb,
-              false,
-              async () => {
-                if (await Billing.buy("starter"))
-                  buyPop("Pacote inicial", "Pacote inicial liberado!");
-                refresh();
-              },
-            ),
+                Billing.priceOf("starter") || PRODUCTS.starter.fb,
+                false,
+                async () => {
+                  if (await Billing.buy("starter"))
+                    buyPop("Pacote inicial", "Pacote inicial liberado!");
+                  refresh();
+                },
+              ),
         }),
       );
     }
@@ -16725,7 +14647,7 @@
               artCls: "hero-art",
               title: X.name,
               sub: X.role || "",
-              cta: cta("Desbloqueado", true, () => { }),
+              cta: cta("Desbloqueado", true, () => {}),
             }),
           );
           return;
@@ -16737,7 +14659,7 @@
               artCls: "hero-art",
               title: X.name,
               sub: "Conquiste em jogo",
-              cta: cta("Em breve", true, () => { }),
+              cta: cta("Em breve", true, () => {}),
             }),
           );
           return;
@@ -16764,8 +14686,8 @@
       head(
         "Skins de heróis",
         "Cada skin custa " +
-        n(SK_PRICE_DEFAULT) +
-        " moedas e traz um ícone de perfil exclusivo. Equipe aqui ou na tela de herói.",
+          n(SK_PRICE_DEFAULT) +
+          " moedas e traz um ícone de perfil exclusivo. Equipe aqui ou na tela de herói.",
       );
       const r = rail();
       Object.keys(HX).forEach((k) => {
@@ -16780,9 +14702,9 @@
             bt = cta(
               '<span class="uic i-lock"></span> Requer ' + X.name,
               true,
-              () => { },
+              () => {},
             );
-          else if (eq) bt = cta("Em uso", true, () => { });
+          else if (eq) bt = cta("Em uso", true, () => {});
           else if (own)
             bt = cta("Equipar", false, () => {
               skEquip(k, d.id);
@@ -16835,7 +14757,7 @@
             bt = cta(html, save.coins < cost ? "dim" : false, () =>
               buyIconShop(it, bt, html, cost, refresh),
             );
-          } else if (P.icon === it.id) bt = cta("Em uso", true, () => { });
+          } else if (P.icon === it.id) bt = cta("Em uso", true, () => {});
           else
             bt = cta("Usar no perfil", false, () => {
               P.icon = it.id;
@@ -16854,7 +14776,7 @@
                 ? "Desbloqueado"
                 : it.cat === "demon"
                   ? FE_CONTENT.libraryTips[it.id] ||
-                  "Ícone de demônio para seu perfil."
+                    "Ícone de demônio para seu perfil."
                   : "",
               cta: bt,
             }),
@@ -17518,14 +15440,14 @@
       ch = Math.min(
         sp.h,
         pad.y +
-        Math.min(h0, Math.max(8, Math.round(Math.min(w0, h0 * 0.55) * 1.05))),
+          Math.min(h0, Math.max(8, Math.round(Math.min(w0, h0 * 0.55) * 1.05))),
       );
     if (w0 <= ch * 1.1) return { cw: sp.w, ch, x0: 0 };
     let cx = sp.w >> 1;
     try {
       const A = skDetect(skFromSprite(sp));
       if (A) cx = A.hx;
-    } catch (e) { }
+    } catch (e) {}
     const cw = Math.min(sp.w, Math.round(ch * 1.15));
     return {
       cw,
@@ -17948,10 +15870,10 @@
       grid = p.ov.querySelector(".pf-pick-grid"),
       L = profIconList();
     const CATS = [
-      ["hero", "Heróis"],
-      ["demon", "Demônios"],
-      ["boss", "Chefes"],
-    ],
+        ["hero", "Heróis"],
+        ["demon", "Demônios"],
+        ["boss", "Chefes"],
+      ],
       n = (v) => v.toLocaleString("pt-BR");
     tabs.innerHTML = "";
     grid.innerHTML = "";
@@ -17999,8 +15921,8 @@
         bt.insertAdjacentHTML(
           "beforeend",
           '<span class="pf-ico-price"><span class="uic i-coin"></span> ' +
-          n(cost) +
-          "</span>",
+            n(cost) +
+            "</span>",
         );
       bt.onclick = () => {
         if (lk)
@@ -18008,10 +15930,10 @@
             bt,
             it.skin
               ? "Compre a skin " +
-              it.name +
-              " na Loja (" +
-              n(cost) +
-              " moedas) para usar este ícone."
+                  it.name +
+                  " na Loja (" +
+                  n(cost) +
+                  " moedas) para usar este ícone."
               : it.cat === "hero"
                 ? "Libere o herói " + it.name + " para usar este ícone."
                 : "Compre este ícone na Loja por " + n(cost) + " moedas.",
@@ -18116,7 +16038,7 @@
       try {
         inp.focus();
         inp.select();
-      } catch (e) { }
+      } catch (e) {}
     }, 60);
     return inp;
   }
@@ -18159,7 +16081,7 @@
       profBtnSync();
       try {
         starterMenu();
-      } catch (e) { }
+      } catch (e) {}
     };
     profNameForm(ov.querySelector(".pf-wel-form"), {
       value: "",
@@ -18467,8 +16389,8 @@
           t.insertAdjacentHTML(
             "beforeend",
             '<i class="bar"><u style="width:' +
-            Math.max(0, Math.min(100, bar)) +
-            '%"></u></i>',
+              Math.max(0, Math.min(100, bar)) +
+              '%"></u></i>',
           );
         gr.appendChild(t);
       }
@@ -18518,12 +16440,12 @@
     });
   /* Balance Lab: roda uma arma definindo a origem do dano/efeitos criados por ela. */
   function nxAs(id, fn, ...args) {
-    const prev = BTL.src;
-    BTL.src = id;
+    const prev = damageSrc;
+    damageSrc = id;
     try {
       return fn(...args);
     } finally {
-      BTL.src = prev;
+      damageSrc = prev;
     }
   }
   function doRevive() {
@@ -18531,7 +16453,6 @@
       p = g.p,
       pre = g.pre;
     g.revived = true;
-    track("revive", { lvl: g.lvl });
     save.coins = pre.coins + (g.dblPaid || 0);
     save.runs = pre.runs;
     /* o bônus do anúncio de 2x já assistido é mantido */ if (pre.cst)
@@ -18669,17 +16590,17 @@
     unlock(id) {
       try {
         if (window.FePGS) FePGS.unlock(id);
-      } catch (e) { }
+      } catch (e) {}
     },
     submit(k, v) {
       try {
         if (window.FePGS) FePGS.submit(k, v);
-      } catch (e) { }
+      } catch (e) {}
     },
     sync() {
       try {
         for (const id in save.ach) PGS.unlock(id);
-      } catch (e) { }
+      } catch (e) {}
     },
   };
   addEventListener("fepgs", () => {
@@ -18721,25 +16642,25 @@
       '</b></span></div><div class="hdg">SUAS MELHORES PARTIDAS</div>' +
       (top.length
         ? top
-          .map(
-            (r, i) =>
-              '<div class="rw"><span><b>' +
-              (i + 1) +
-              ". " +
-              fmt(r.t) +
-              "</b>" +
-              (r.w ? " (vitória)" : "") +
-              "<small>" +
-              r.k +
-              " abates | nível " +
-              r.l +
-              " | " +
-              ((HEROES[r.h] || {}).name || r.h) +
-              " | " +
-              fmtDate(r.d) +
-              "</small></span></div>",
-          )
-          .join("")
+            .map(
+              (r, i) =>
+                '<div class="rw"><span><b>' +
+                (i + 1) +
+                ". " +
+                fmt(r.t) +
+                "</b>" +
+                (r.w ? " (vitória)" : "") +
+                "<small>" +
+                r.k +
+                " abates | nível " +
+                r.l +
+                " | " +
+                ((HEROES[r.h] || {}).name || r.h) +
+                " | " +
+                fmtDate(r.d) +
+                "</small></span></div>",
+            )
+            .join("")
         : '<div class="rw"><span><small>Jogue uma partida para registrar seus recordes.</small></span></div>') +
       '<div class="hdg">GOOGLE PLAY GAMES</div><div id="rkGp"></div>';
     const box = b.querySelector("#rkGp");
@@ -18768,7 +16689,7 @@
             if (!ok)
               notify(
                 "Não foi possível entrar agora. Tente de novo mais tarde." +
-                (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
+                  (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
                 "warn",
               );
             else {
@@ -18784,7 +16705,7 @@
       if (!ok)
         notify(
           "Não foi possível abrir o Google Play Games." +
-          (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
+            (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
           "warn",
         );
     };
@@ -18839,10 +16760,10 @@
       '</div><div class="row"><button type="button" class="btn" id="rtYes">Avaliar</button><button type="button" class="btn alt" id="rtNo">Agora não</button></div></div>';
     gameEl.appendChild(o);
     const close = (done) => {
-      save.rate.n = done ? RATE_AT.length : (save.rate.n || 0) + 1;
-      persist();
-      o.remove();
-    },
+        save.rate.n = done ? RATE_AT.length : (save.rate.n || 0) + 1;
+        persist();
+        o.remove();
+      },
       go = () => {
         close(true);
         if (window.FeReview) FeReview.store();
@@ -18912,7 +16833,7 @@
     if (D.gh <= 0) {
       D.gh = 0.035;
       G.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "ghost",
         x: p.x,
         y: p.y,
@@ -18931,7 +16852,6 @@
       const hb = $("#hpbar");
       if (hb) hb.classList.toggle("low", !!G.low);
     }
-    BTL.tick(dt);
   };
   /* ---- status do personagem (pausa/configurações e lateral da tela de cartas) ---- */
   const ST_KEYS = [
@@ -19062,11 +16982,11 @@
               : 0;
         const delta = dl
           ? '<i class="d' +
-          (dl < 0 ? " neg" : "") +
-          '">' +
-          (dl > 0 ? "+" : "−") +
-          statValue(k, Math.abs(dl)) +
-          "</i>"
+            (dl < 0 ? " neg" : "") +
+            '">' +
+            (dl > 0 ? "+" : "−") +
+            statValue(k, Math.abs(dl)) +
+            "</i>"
           : "";
         return (
           '<div class="st-r"><span class="st-lbl">' +
@@ -19202,7 +17122,7 @@
       AIM.sy = VH / 2; // sem arrastar: atira para a frente
       try {
         cv.setPointerCapture(e.pointerId);
-      } catch (x) { }
+      } catch (x) {}
       stick2.style.left = e.clientX - r.left + "px";
       stick2.style.top = e.clientY - r.top + "px";
       stick2.hidden = false;
@@ -19217,7 +17137,7 @@
     stick.dx = stick.dy = 0;
     try {
       cv.setPointerCapture(e.pointerId);
-    } catch (x) { }
+    } catch (x) {}
     const el = $("#stick");
     el.style.left = e.clientX - r.left + "px";
     el.style.top = e.clientY - r.top + "px";
@@ -19329,7 +17249,7 @@
       for (const s of document.styleSheets) {
         try {
           strip(s);
-        } catch (e) { }
+        } catch (e) {}
       }
       /* sem hover, a dica do item aparece ao tocar nele */
       document.addEventListener("click", (e) => {
@@ -19345,9 +17265,9 @@
           IS_NATIVE && Capacitor.Plugins && Capacitor.Plugins.SystemBars;
         if (SB && SB.hide) {
           const p = SB.hide();
-          if (p && p.catch) p.catch(() => { });
+          if (p && p.catch) p.catch(() => {});
         }
-      } catch (e) { }
+      } catch (e) {}
     };
     immersive();
     document.addEventListener("visibilitychange", () => {
@@ -19384,19 +17304,19 @@
     const BOOT_SCENE_COUNT = 21;
     const bootScenes =
       ASSET_MANIFEST.loading &&
-        ASSET_MANIFEST.loading.scenes &&
-        ASSET_MANIFEST.loading.scenes.length
+      ASSET_MANIFEST.loading.scenes &&
+      ASSET_MANIFEST.loading.scenes.length
         ? ASSET_MANIFEST.loading.scenes.map((x) => ({
-          video: x.video ? ASSET_DIR + x.video : "",
-          image: x.image ? ASSET_DIR + x.image : "",
-        }))
+            video: x.video ? ASSET_DIR + x.video : "",
+            image: x.image ? ASSET_DIR + x.image : "",
+          }))
         : Array.from({ length: BOOT_SCENE_COUNT }, (_, i) => {
-          const id = "loading/loading_" + String(i + 1).padStart(2, "0");
-          return {
-            video: ASSET_DIR + id + ".mp4",
-            image: ASSET_DIR + id + ".png",
-          };
-        });
+            const id = "loading/loading_" + String(i + 1).padStart(2, "0");
+            return {
+              video: ASSET_DIR + id + ".mp4",
+              image: ASSET_DIR + id + ".png",
+            };
+          });
     let bootIdx = Math.floor(Math.random() * bootScenes.length);
     try {
       /* não repete a cena da abertura anterior */
@@ -19406,7 +17326,7 @@
           (bootIdx + 1 + Math.floor(Math.random() * (bootScenes.length - 1))) %
           bootScenes.length;
       localStorage.setItem("fe_bootScene", String(bootIdx));
-    } catch (e) { }
+    } catch (e) {}
     const scene = bootScenes[bootIdx],
       artEl = $("#bootArt");
     /* 1) imagem (fallback e fundo enquanto o vídeo carrega) */
@@ -19423,9 +17343,9 @@
       vidTimers = [],
       vidStarted = false;
     const vidClear = () => {
-      vidTimers.forEach(clearTimeout);
-      vidTimers = [];
-    },
+        vidTimers.forEach(clearTimeout);
+        vidTimers = [];
+      },
       killVideo = () => {
         vidClear();
         if (!bootVid) return;
@@ -19433,7 +17353,7 @@
           bootVid.pause();
           bootVid.removeAttribute("src");
           bootVid.load();
-        } catch (e) { }
+        } catch (e) {}
         bootVid.remove();
         bootVid = null;
       };
@@ -19528,11 +17448,11 @@
           if (G2.signed) return res(true);
           let done = 0;
           const fin = (ok) => {
-            if (!done) {
-              done = 1;
-              res(ok);
-            }
-          },
+              if (!done) {
+                done = 1;
+                res(ok);
+              }
+            },
             to = setTimeout(() => fin(!!G2.signed), 10000);
           addEventListener(
             "fepgs",
@@ -19603,7 +17523,7 @@
             syncNewsBadge();
             if (newsIsUnread() && !TUT.on) openNewsModal();
             else profWelcomeMaybe();
-          } catch (e) { }
+          } catch (e) {}
         }, 650);
       }, 350);
     };
@@ -19705,11 +17625,11 @@
         return a.t < a.tel
           ? W[a.t < a.tel * 0.55 ? 0 : 1]
           : T[
-          Math.min(
-            T.length - 1,
-            Math.floor(((a.t - a.tel) / a.dur) * T.length),
-          )
-          ];
+              Math.min(
+                T.length - 1,
+                Math.floor(((a.t - a.tel) / a.dur) * T.length),
+              )
+            ];
       if (a.k === "spiral") return T[Math.floor(t * 9) % T.length];
       if (a.k === "blink") return W[1];
     }
@@ -19786,8 +17706,8 @@
       if (!def || EA_CFG.handDrawn.includes(k) || !A.loop || A.std) continue;
       if (A2.boss && A2.boss[k]) continue;
       const arch =
-        EA_CFG.archetypes[k] ||
-        (def.fly ? "fly" : def.mv === "wave" ? "spirit" : "ground"),
+          EA_CFG.archetypes[k] ||
+          (def.fly ? "fly" : def.mv === "wave" ? "spirit" : "ground"),
         ST = EA_CFG.states[arch],
         L = A.loop,
         L0 = L[0],
@@ -19804,12 +17724,12 @@
         T
           ? mk(T[0], AT.followFromAttack)
           : mk(L0, {
-            sx: AT.follow.sx,
-            sy: AT.follow.sy,
-            lean: lg.lean + AT.follow.leanDelta,
-            dx: (lg.dx || 0) + AT.follow.dxDelta,
-            dy: lg.dy || 0,
-          }),
+              sx: AT.follow.sx,
+              sy: AT.follow.sy,
+              lean: lg.lean + AT.follow.leanDelta,
+              dx: (lg.dx || 0) + AT.follow.dxDelta,
+              dy: lg.dy || 0,
+            }),
         mk(L0, AT.recover),
       ];
       if (W && W.length === 1) attack[1] = mk(W[0], AT.anticipateSolo);
@@ -21061,27 +18981,27 @@
     const dash = e.ab === "dash",
       C = dash
         ? {
-          mn: 36,
-          mx: 150,
-          tel: 0.55,
-          dur: 0.4,
-          spd: 215,
-          rec: 0.75,
-          c0: 3.4,
-          c1: 4.8,
-          wk: 0.8,
-        }
+            mn: 36,
+            mx: 150,
+            tel: 0.55,
+            dur: 0.4,
+            spd: 215,
+            rec: 0.75,
+            c0: 3.4,
+            c1: 4.8,
+            wk: 0.8,
+          }
         : {
-          mn: 60,
-          mx: 170,
-          tel: 0.5,
-          dur: 0.5,
-          spd: 185,
-          rec: 0.55,
-          c0: 3,
-          c1: 4.2,
-          wk: 1,
-        };
+            mn: 60,
+            mx: 170,
+            tel: 0.5,
+            dur: 0.5,
+            spd: 185,
+            rec: 0.55,
+            c0: 3,
+            c1: 4.2,
+            wk: 1,
+          };
     const a = e.ai || (e.ai = { st: 0, t: rnd(1.2, 2.5), ang: 0, gh: 0 });
     a.t -= dt;
     if (a.st === 0) {
@@ -21200,9 +19120,9 @@
       }
       case "flank": {
         const k =
-          clamp((d - 26) / 110, 0, 1) *
-          0.7 *
-          (Math.sin(e.ph * 7) > 0 ? 1 : -1),
+            clamp((d - 26) / 110, 0, 1) *
+            0.7 *
+            (Math.sin(e.ph * 7) > 0 ? 1 : -1),
           c = Math.cos(k),
           s = Math.sin(k);
         return [(ux * c - uy * s) * sp, (ux * s + uy * c) * sp];
@@ -21519,7 +19439,7 @@
         if (queue && !FLAT[k] && im.height > 8) DQ.push(o);
         else drawDI(o);
       }
-    DQ.sort((a, b) => a.py - b.py);
+    sortByKey(DQ, "py");
   }
 
   /* ---------- desenho de inimigos ---------- */
@@ -21575,10 +19495,11 @@
   const SQUASH_T = 0.12;
   /* inimigo congelado: tom gelado via filtro do canvas */
   function frzDraw(e, g, air) {
-    const frz = g.freezeT > 0;
-    if (frz) ctx.filter = "hue-rotate(170deg) saturate(0.5) brightness(1.2)";
+    /* v0.69: antes cada inimigo desenhava com ctx.filter (muito caro no WebView do Android). Agora o tom gelado vem de
+       uma variante do sprite gerada uma vez e guardada em cache (FRZ_NOW faz spr() escolher a variante). */
+    FRZ_NOW = g.freezeT > 0;
     drawEnemy(e, g, air);
-    if (frz) ctx.filter = "none";
+    FRZ_NOW = false;
   }
   function drawEnemy(e, g, air) {
     const s = eSpr(e, g);
@@ -21646,12 +19567,15 @@
     );
   }
   function glow(x, y, r, c, a) {
-    if (!FXQ() || a <= 0) return;
-    ctx.save();
+    if (!FXQ() || a <= 0 || PERF.lvl >= 2 || (PERF.lvl === 1 && a < 0.3))
+      return;
+    const pa = ctx.globalAlpha,
+      po = ctx.globalCompositeOperation;
     ctx.globalCompositeOperation = "lighter";
     ctx.globalAlpha = Math.min(1, a);
     ctx.drawImage(glowTex(c), sx(x) - r, sy(y) - r, r * 2, r * 2);
-    ctx.restore();
+    ctx.globalCompositeOperation = po;
+    ctx.globalAlpha = pa;
   }
   function sprRot(s, x, y, sc, rot, flip, alpha) {
     ctx.save();
@@ -21665,7 +19589,7 @@
   function fxSpark(x, y, col, r) {
     if (!G || G.fx.length > 200 || !FXQ()) return;
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "spark",
       x,
       y,
@@ -21684,7 +19608,7 @@
       /Branch|Node/.test(c.kind)
     )
       G.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "gain",
         x: G.p.x,
         y: G.p.y,
@@ -23004,9 +20928,9 @@
     return (
       d[i + 3] > 0 &&
       Math.abs(d[i] - SK_OUT[0]) +
-      Math.abs(d[i + 1] - SK_OUT[1]) +
-      Math.abs(d[i + 2] - SK_OUT[2]) <=
-      18
+        Math.abs(d[i + 1] - SK_OUT[1]) +
+        Math.abs(d[i + 2] - SK_OUT[2]) <=
+        18
     );
   }
   /* acha cabeça (topo do cabelo e centro) e pés; "unit" = espessura do contorno = tamanho do pixel de arte */
@@ -23421,10 +21345,10 @@
       return deny(
         bt,
         "Faltam " +
-        (cost - save.coins).toLocaleString("pt-BR") +
-        " moedas para a skin " +
-        d.name +
-        ".",
+          (cost - save.coins).toLocaleString("pt-BR") +
+          " moedas para a skin " +
+          d.name +
+          ".",
       );
     if (!bt.dataset.c) {
       bt.dataset.c = 1;
@@ -23447,9 +21371,9 @@
     buyPop(
       "Skin desbloqueada",
       d.name +
-      " já está equipada em " +
-      HX[h].name +
-      ". O ícone de perfil da skin também foi liberado.",
+        " já está equipada em " +
+        HX[h].name +
+        ". O ícone de perfil da skin também foi liberado.",
       "star",
     );
     done && done();
@@ -23497,6 +21421,7 @@
   }
   let skT = 0;
   setInterval(() => {
+    if (state === "play") return; /* v0.69: só anima prévias fora da partida */
     skT++;
     document
       .querySelectorAll("canvas[data-skpv]")
@@ -23810,11 +21735,11 @@
       if (!happy)
         try {
           g.filter = "grayscale(.5) brightness(.85)";
-        } catch (e) { }
+        } catch (e) {}
       g.drawImage(s.c, hx, hy, dw, dh);
       try {
         g.filter = "none";
-      } catch (e) { }
+      } catch (e) {}
       if (!fx) return;
       const top = hy / u,
         mid = top + dh / (2 * u);
@@ -24128,6 +22053,8 @@
   }
   let hMenuT = 0;
   setInterval(() => {
+    if (state === "play")
+      return; /* v0.69: sem partida em andamento não há retrato animado visível; poupa a thread principal */
     hMenuT++;
     document.querySelectorAll("canvas[data-hero]").forEach((c) => {
       /* ignora silhuetas bloqueadas (sem data-hero ou com data-locked) */
@@ -24140,9 +22067,9 @@
         H = HFR[k];
       if (!H || !S.hero[k] || S.hero[k][0] !== H.base0) return;
       const sp =
-        hMenuT % 6 === 5
-          ? H.act
-          : H.idle[H.v2 ? hMenuT % H.idle.length : hMenuT & 1],
+          hMenuT % 6 === 5
+            ? H.act
+            : H.idle[H.v2 ? hMenuT % H.idle.length : hMenuT & 1],
         x = c.getContext("2d");
       x.clearRect(0, 0, c.width, c.height);
       x.drawImage(
@@ -24214,7 +22141,7 @@
       if (SFX.last[key] && now - SFX.last[key] < 110) return;
       SFX.last[key] = now;
       NX_SND[n] && NX_SND[n]();
-    } catch (e) { }
+    } catch (e) {}
   }
   const nxTree = (id) => {
     const t = G && G.weaponTrees && G.weaponTrees[id];
@@ -24265,7 +22192,7 @@
     nxRect(g, "#9fdcff", 18, 17, 3, 1);
     nxRect(g, "#3a86c8", 14, 21, 9, 1);
   };
-    ICON_DRAW.axe = (g) => {
+  ICON_DRAW.axe = (g) => {
     g.imageSmoothingEnabled = false;
     g.drawImage(AXE_CANVAS, 0, 0, 24, 24);
   };
@@ -24364,7 +22291,7 @@
   function nxProj(style, x, y, ang, speed, dmg, o) {
     o = o || {};
     G.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "nxp",
       style,
       x,
@@ -24387,7 +22314,7 @@
     G.fx.push(
       Object.assign(
         {
-          wid: BTL.src || null,
+          wid: damageSrc || null,
           k: "jzone",
           x,
           y,
@@ -24422,17 +22349,17 @@
       tide = tr.p === "tide";
     w.cd = s.cd * m.cd * (tide && tr.t ? 0.85 : 1);
     const wall =
-      s.wall *
-      (tide ? (tr.t ? 1.45 : 1.25) : 1) *
-      (ev ? 1.25 : 1) *
-      (m.area || 1),
+        s.wall *
+        (tide ? (tr.t ? 1.45 : 1.25) : 1) *
+        (ev ? 1.25 : 1) *
+        (m.area || 1),
       speed = s.speed * (m.pspd || 1) * (tide ? 1.15 : 1),
       dist = s.dist * (1 + (m.rng - 90) / 400);
     const dmg = s.dmg * m.dmg,
       ret = tr.p === "return" || ev;
     const mk = (ang, dm, delay) =>
       g.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "sea",
         x: p.x + Math.cos(ang) * 8,
         y: p.y + Math.sin(ang) * 8,
@@ -24587,11 +22514,11 @@
     }
     w.cd = s.cd * m.cd;
     const n = Math.min(
-      7,
-      (ev
-        ? Math.max(3, s.count + 1)
-        : s.count + (tr.p === "twin" ? (tr.t ? 2 : 1) : 0)) + amountBonus(m),
-    ),
+        7,
+        (ev
+          ? Math.max(3, s.count + 1)
+          : s.count + (tr.p === "twin" ? (tr.t ? 2 : 1) : 0)) + amountBonus(m),
+      ),
       a0 = Math.atan2(list[0].y - p.y, list[0].x - p.x);
     const reach = s.reach * (1 + (m.rng - 90) / 320) * (ev ? 1.15 : 1),
       heavy = tr.p === "heavy",
@@ -24603,7 +22530,7 @@
             ? Math.atan2(list[i].y - p.y, list[i].x - p.x)
             : fan;
       g.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "axe",
         x: p.x,
         y: p.y,
@@ -24687,12 +22614,12 @@
   }
   /* ===== Machado de Eliseu: sprite em pixel art (12×12), gerado uma vez ===== */
   const AXE_PAL = {
-    O: "#1d2230", /* contorno */
-    W: "#eef3ff", /* brilho da lâmina */
-    B: "#b9c2d4", /* lâmina */
-    D: "#7d879c", /* lâmina na sombra */
-    H: "#c4552a", /* cabo (madeira avermelhada) */
-    h: "#7a2e18", /* cabo na sombra */
+    O: "#1d2230" /* contorno */,
+    W: "#eef3ff" /* brilho da lâmina */,
+    B: "#b9c2d4" /* lâmina */,
+    D: "#7d879c" /* lâmina na sombra */,
+    H: "#c4552a" /* cabo (madeira avermelhada) */,
+    h: "#7a2e18" /* cabo na sombra */,
   };
   const AXE_PX = [
     "........OOO.",
@@ -24748,7 +22675,7 @@
       big = !!(opt && opt.big),
       a = Math.atan2(tg.y - p.y, tg.x - p.x) + ((opt && opt.spread) || 0);
     g.fx.push({
-      wid: BTL.src || null,
+      wid: damageSrc || null,
       k: "raven",
       x: p.x,
       y: p.y,
@@ -24975,10 +22902,10 @@
     w.cd = s.cd * m.cd;
     const n = Math.min(6, s.count + (ev ? 1 : 0) + amountBonus(m));
     const dur =
-      s.dur *
-      (heroWeaponMods.durationMultiplier || 1) *
-      (ev ? 1.2 : 1) *
-      (m.duration || 1),
+        s.dur *
+        (heroWeaponMods.durationMultiplier || 1) *
+        (ev ? 1.2 : 1) *
+        (m.duration || 1),
       r =
         s.r *
         (heroWeaponMods.radiusMultiplier || 1) *
@@ -25142,9 +23069,9 @@
     }
     w.cd = s.cd * m.cd * (ev ? 0.9 : 1);
     const nets = Math.min(
-      4,
-      1 + (tr.p === "cast" ? (tr.t ? 2 : 1) : 0) + amountBonus(m),
-    ),
+        4,
+        1 + (tr.p === "cast" ? (tr.t ? 2 : 1) : 0) + amountBonus(m),
+      ),
       used = [],
       rad =
         s.r *
@@ -25168,12 +23095,12 @@
       if (!best) break;
       used.push(best);
       const hold =
-        (s.hold + (tr.p === "tight" && tr.t ? 0.6 : 0)) *
-        (ev ? 1.4 : 1) *
-        (m.duration || 1),
+          (s.hold + (tr.p === "tight" && tr.t ? 0.6 : 0)) *
+          (ev ? 1.4 : 1) *
+          (m.duration || 1),
         haul = tr.p === "haul" || ev ? (tr.t || ev ? 2 : 1) : 0;
       g.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "net",
         x: best.x,
         y: best.y,
@@ -25291,7 +23218,7 @@
         (it.i >= it.ll ? (it.i - it.ll + 1) * 0.2 * (it.i % 2 ? 1 : -1) : 0),
       speed = s.speed * (m.pspd || 1);
     g.shots.push({
-      wid: BTL.src || id,
+      wid: damageSrc || id,
       k: "sword",
       x: p.x,
       y: p.y - 4,
@@ -25337,12 +23264,12 @@
       n = Math.min(
         WT.maxLashes,
         s.count +
-        (cr >= 0 ? WT.cords.lashes[cr] : 0) +
-        (ev ? WT.supremeExtraLashes : 0),
+          (cr >= 0 ? WT.cords.lashes[cr] : 0) +
+          (ev ? WT.supremeExtraLashes : 0),
       );
     for (let i = 0; i < n; i++)
       g.fx.push({
-        wid: BTL.src || id,
+        wid: damageSrc || id,
         k: "whip",
         x: p.x,
         y: p.y,
@@ -25572,14 +23499,14 @@
     }
     w.cd = s.cd * m.cd;
     const waves = Math.min(
-      4,
-      s.waves + (tr.p === "wheel" ? (tr.t ? 2 : 1) : 0) + (ev ? 1 : 0),
-    ),
+        4,
+        s.waves + (tr.p === "wheel" ? (tr.t ? 2 : 1) : 0) + (ev ? 1 : 0),
+      ),
       half = 0.72 * (m.duration || 1),
       burn = tr.p === "burn" || ev;
     for (let i = 0; i < waves; i++)
       g.fx.push({
-        wid: BTL.src || id,
+        wid: damageSrc || id,
         k: "fwall",
         x: p.x,
         y: p.y,
@@ -25608,9 +23535,9 @@
       f.hit = new Set();
     }
     const k = Math.max(
-      0,
-      Math.min(1, f.back ? (f.life - f.t) / f.half : f.t / f.half),
-    ),
+        0,
+        Math.min(1, f.back ? (f.life - f.t) / f.half : f.t / f.half),
+      ),
       ease = 1 - (1 - k) * (1 - k);
     f.r = 4 + (f.maxr - 4) * ease;
     for (const e of g.enemies) {
@@ -25782,11 +23709,11 @@
       ev = nxHas(id),
       n = ev ? 7 : Math.min(7, s.beams + amountBonus(m));
     const len =
-      s.range *
-      (tr.p === "radiance" ? (tr.t ? 1.5 : 1.3) : 1) *
-      (ev ? 1.25 : 1) *
-      (1 + (m.rng - 90) / 500) *
-      (m.area || 1),
+        s.range *
+        (tr.p === "radiance" ? (tr.t ? 1.5 : 1.3) : 1) *
+        (ev ? 1.25 : 1) *
+        (1 + (m.rng - 90) / 500) *
+        (m.area || 1),
       wid =
         3.2 * (tr.p === "radiance" ? (tr.t ? 1.7 : 1.35) : 1) * (m.area || 1);
     return { n, len, wid, tr, ev, rev: tr.p === "revolve" };
@@ -26043,7 +23970,6 @@
       w = g.W[id];
     if (!w || g.evo[id]) return;
     g.evo[id] = 1;
-    BTL.event("evolution", { weapon: id, weaponLevel: w.lvl });
     E.ap(w);
     g.nx.ready[id] = 0;
     g.flash = 0.7;
@@ -26161,7 +24087,7 @@
         if (free) rrb.innerHTML = "Novas Bênçãos (" + g.hm.rr + " grátis)";
         else if (rrb.dataset.nxd) rrb.innerHTML = rrb.dataset.nxd;
       }
-    } catch (e) { }
+    } catch (e) {}
     refreshChoiceToolUI();
   };
   rrb.dataset.nxd = rrb.innerHTML;
@@ -26174,7 +24100,6 @@
       Number(HEROES[G.hk] && HEROES[G.hk].freeRerolls) > 0 &&
       state === "levelup"
     ) {
-      BTL.rerollChoice("free_hero");
       G.hm.rr--;
       if (G.choiceTools) G.choiceTools.action = null;
       G.rr = 1;
@@ -26612,8 +24537,8 @@
           dirty = true;
           toast(
             "Evolução Suprema pronta: " +
-            NX_EVO[id].n +
-            "! Ela aparece na próxima Arca",
+              NX_EVO[id].n +
+              "! Ela aparece na próxima Arca",
           );
           SFX.play("level");
         }
@@ -26672,17 +24597,17 @@
       D.evo.push([
         "Evolução Suprema",
         E.n +
-        " — " +
-        E.d +
-        " Requer: " +
-        PASSIVES[E.dom].name +
-        " Nv " +
-        NXV.domLv +
-        "+ | " +
-        WEAPONS[e.id].name +
-        " Nv " +
-        MAXW +
-        ". A Arca revela a evolução.",
+          " — " +
+          E.d +
+          " Requer: " +
+          PASSIVES[E.dom].name +
+          " Nv " +
+          NXV.domLv +
+          "+ | " +
+          WEAPONS[e.id].name +
+          " Nv " +
+          MAXW +
+          ". A Arca revela a evolução.",
       ]);
     }
     return D;
@@ -26939,7 +24864,7 @@
     }
     for (const e of list)
       g.fx.push({
-        wid: BTL.src || null,
+        wid: damageSrc || null,
         k: "flame",
         x: e.x,
         y: e.y,
@@ -27071,43 +24996,43 @@
     IS_NATIVE || !/[?&]debug\b/.test(location.search)
       ? null
       : {
-        NX_EVO,
-        NX_SIG,
-        nxEligible,
-        nxApplyEvo,
-        nxCarmel,
-        nxWaters,
-        nxDecree,
-        nxState,
-        WEAPONS,
-        PASSIVES,
-        EVOLUTION_TREES,
-        HX,
-        HU,
-        statsFor,
-        addWeapon,
-        MAXW,
-        rollChoices,
-        get curChoices() {
-          return curChoices;
-        },
-        get SLOT_W() {
-          return SLOT_W;
-        },
-        get LV_LOCK() {
-          return LV_LOCK;
-        },
-        openLevelUp,
-        spawnEnemy,
-        draw: () => draw(),
-        buildHTML,
-        buildRack,
-        FXR,
-        libEntries,
-        libDetail,
-        iconURL,
-        evolutionIconURL,
-      };
+          NX_EVO,
+          NX_SIG,
+          nxEligible,
+          nxApplyEvo,
+          nxCarmel,
+          nxWaters,
+          nxDecree,
+          nxState,
+          WEAPONS,
+          PASSIVES,
+          EVOLUTION_TREES,
+          HX,
+          HU,
+          statsFor,
+          addWeapon,
+          MAXW,
+          rollChoices,
+          get curChoices() {
+            return curChoices;
+          },
+          get SLOT_W() {
+            return SLOT_W;
+          },
+          get LV_LOCK() {
+            return LV_LOCK;
+          },
+          openLevelUp,
+          spawnEnemy,
+          draw: () => draw(),
+          buildHTML,
+          buildRack,
+          FXR,
+          libEntries,
+          libDetail,
+          iconURL,
+          evolutionIconURL,
+        };
 
   /* ================= v0.50: Mundos com identidade própria =================
      Cada mundo agora tem terreno, decoração, luz/sombras, clima, inimigo exclusivo e um evento próprio:
@@ -28183,15 +26108,71 @@
       }))
     );
   }
+  /* v0.69 (desempenho): a sombra projetada de cada elemento do cenário usava save + transform + drawImage + restore a
+     cada quadro. Com a luz fixa (mundos 1 e 2) a silhueta já inclinada é gerada uma vez (por silhueta e inclinação
+     arredondada a 0,025) e desenhada com 1 drawImage. A luz radial (Vale da Sombra) segue o caminho original. */
+  const NXCW = new WeakMap();
   function nxCast(sil, x, y, W, H, dx, dy, len, alpha) {
     let kx = dx * len,
       ky = dy * len * 0.5;
     if (Math.abs(ky) < 0.1 * len) ky = (ky < 0 ? -1 : 1) * 0.1 * len;
-    ctx.save();
+    if (NXL.radial) {
+      /* luz radial: a inclinação muda com a posição do herói, então não dá para guardar em cache; ao menos troca
+         save/transform/restore por 2 setTransform (o contexto principal não tem transformação base) */
+      const pa = ctx.globalAlpha;
+      ctx.globalAlpha = alpha;
+      ctx.setTransform(1, 0, -kx, -ky, x + kx * H, y + ky * H);
+      ctx.drawImage(sil, -W / 2, 0);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = pa;
+      return;
+    }
+    const qx = Math.round(kx * 40),
+      qy = Math.round(ky * 40),
+      key = qx + "|" + qy;
+    let m = NXCW.get(sil);
+    if (!m || m.n > 40) NXCW.set(sil, (m = { n: 0 }));
+    let e = m[key];
+    if (!e) {
+      const kx2 = qx / 40,
+        ky2 = qy / 40,
+        minX = -W / 2 + Math.min(0, kx2 * H),
+        maxX = W / 2 + Math.max(0, kx2 * H),
+        minY = Math.min(0, ky2 * H),
+        maxY = Math.max(0, ky2 * H),
+        ox = Math.ceil(-minX) + 1,
+        oy = Math.ceil(-minY) + 1,
+        smooth = ctx.imageSmoothingEnabled;
+      e = m[key] = {
+        ox,
+        oy,
+        c: mk(Math.ceil(maxX) + ox + 2, Math.ceil(maxY) + oy + 2, (g) => {
+          g.imageSmoothingEnabled = smooth;
+          g.transform(1, 0, -kx2, -ky2, ox + kx2 * H, oy + ky2 * H);
+          g.drawImage(sil, -W / 2, 0);
+        }),
+      };
+      m.n++;
+    }
+    const pa = ctx.globalAlpha;
     ctx.globalAlpha = alpha;
-    ctx.transform(1, 0, -kx, -ky, x + kx * H, y + ky * H);
-    ctx.drawImage(sil, -W / 2, 0);
-    ctx.restore();
+    ctx.drawImage(e.c, x - e.ox, y - e.oy);
+    ctx.globalAlpha = pa;
+  }
+  /* sombra de contato do cenário: 3 fillRect + string viram 1 drawImage em cache */
+  const NXCS = {};
+  function nxContact(x, y, aw) {
+    const qa = Math.round(NXL.a * 1.05 * 50),
+      key = aw + "|" + qa + "|" + NXL.col;
+    let c = NXCS[key];
+    if (!c)
+      c = NXCS[key] = mk(Math.max(1, aw), 4, (g) => {
+        g.fillStyle = "rgba(" + NXL.col + "," + qa / 50 + ")";
+        g.fillRect(1, 0, aw - 2, 1);
+        g.fillRect(0, 1, aw, 2);
+        g.fillRect(1, 3, aw - 2, 1);
+      });
+    ctx.drawImage(c, x - (aw >> 1), y - 2);
   }
   function nxShadowPass() {
     nxInit();
@@ -28203,7 +26184,7 @@
       y1 = Math.floor((camy + VH + 50) / DCS),
       g = G,
       pp = g && g.p,
-      soft = FXQ();
+      soft = FXQ() && PERF.lvl < 1;
     for (let cy = y0; cy <= y1; cy++)
       for (let cx = x0; cx <= x1; cx++) {
         const d = decorAt(cx, cy);
@@ -28227,11 +26208,7 @@
         const W = im.width,
           H = im.height;
         /* sombra de contato */
-        ctx.fillStyle = "rgba(" + NXL.col + "," + NXL.a * 1.05 + ")";
-        const aw = Math.round(W * 0.62);
-        ctx.fillRect(x - (aw >> 1) + 1, y - 2, aw - 2, 1);
-        ctx.fillRect(x - (aw >> 1), y - 1, aw, 2);
-        ctx.fillRect(x - (aw >> 1) + 1, y + 1, aw - 2, 1);
+        nxContact(x, y, Math.round(W * 0.62));
         if (H <= 8) continue;
         let dx = NXL.lx,
           dy = NXL.ly,
@@ -28263,19 +26240,28 @@
       }
   }
   /* sombra dos seres (herói, inimigos, itens): elipse que segue a luz do mundo */
+  /* v0.69: antes eram 3 fillRect + 3 fillStyle (com strings novas) por ser na tela, a cada quadro */
+  const NXSH = {};
   shadow = function (x, y, w) {
     const ox = Math.round(NXL.lx * w * 0.1),
       X = sx(x - w / 2) + ox,
       Y = sy(y),
       W = Math.max(3, Math.round(w)),
-      a = NXL.a * 1.15,
-      c = "rgba(" + NXL.col + ",";
-    ctx.fillStyle = c + a * 0.6 + ")";
-    ctx.fillRect(X + 1, Y - 1, W - 2, 1);
-    ctx.fillStyle = c + a + ")";
-    ctx.fillRect(X, Y, W, 2);
-    ctx.fillStyle = c + a * 0.6 + ")";
-    ctx.fillRect(X + 1, Y + 2, W - 2, 1);
+      qa = Math.round(NXL.a * 1.15 * 50),
+      key = W + "|" + qa + "|" + NXL.col;
+    let c = NXSH[key];
+    if (!c)
+      c = NXSH[key] = mk(W, 4, (g) => {
+        const a = qa / 50,
+          col = "rgba(" + NXL.col + ",";
+        g.fillStyle = col + a * 0.6 + ")";
+        g.fillRect(1, 0, W - 2, 1);
+        g.fillStyle = col + a + ")";
+        g.fillRect(0, 1, W, 2);
+        g.fillStyle = col + a * 0.6 + ")";
+        g.fillRect(1, 3, W - 2, 1);
+      });
+    ctx.drawImage(c, X, Y - 1);
   };
 
   /* ---------- decoração com brilho próprio ---------- */
@@ -28504,17 +26490,31 @@
       });
     _nxDE4(e, g, air);
   };
+  /* v0.69 (desempenho): a escuridão do Vale da Sombra (fundo escuro + "buracos" de luz com gradiente) é uma máscara
+     suave, então é montada em METADE da resolução e ampliada com suavização: ~4x menos pixels preenchidos por quadro
+     (era o passe mais caro do mundo 3, ~2/3 do tempo de desenho). */
+  const DKS = 0.5;
   let DKC = null;
   function nxDark(g) {
     if (!g || !g.p || state === "menu" || !(g.t >= 0)) return;
     const dk = 1 - dawnK();
     if (dk < 0.02) return;
-    if (!DKC || DKC.c.width !== VW || DKC.c.height !== VH) {
+    const dw = Math.max(1, Math.ceil(VW * DKS)),
+      dh = Math.max(1, Math.ceil(VH * DKS));
+    if (!DKC || DKC.c.width !== dw || DKC.c.height !== dh) {
       const c = document.createElement("canvas");
-      c.width = VW;
-      c.height = VH;
+      c.width = dw;
+      c.height = dh;
       DKC = { c, g: c.getContext("2d") };
     }
+    DKC.g.setTransform(
+      DKS,
+      0,
+      0,
+      DKS,
+      0,
+      0,
+    ); /* o desenho continua em coordenadas da tela */
     const c = DKC.g,
       p = g.p,
       hole = (x, y, r, a) => {
@@ -28546,7 +26546,8 @@
         n++;
       }
     }
-    for (const [id, mw] of Object.entries(g.W || {}))
+    for (const id in g.W || {}) {
+      const mw = g.W[id];
       if (
         mw &&
         mw.beams &&
@@ -28564,10 +26565,14 @@
           c.stroke();
         }
       }
+    }
     for (const L of NXLIGHTS) hole(L.x, L.y, L.r * 1.5, 0.85);
     c.globalCompositeOperation = "source-over";
     c.globalAlpha = 1;
-    ctx.drawImage(DKC.c, 0, 0);
+    const smooth = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = true; /* a máscara é suave: a ampliação com suavização é imperceptível */
+    ctx.drawImage(DKC.c, 0, 0, VW, VH);
+    ctx.imageSmoothingEnabled = smooth;
     /* realce do contorno da luz do herói */
     glow(p.x, p.y - 4, nxLightR(g) * 0.9, "rgba(190,150,255,1)", 0.1);
     glow(p.x, p.y - 5, 26, "rgba(255,240,255,1)", 0.22);
@@ -28601,10 +26606,10 @@
           gr.addColorStop(
             0,
             "rgba(" +
-            col +
-            "," +
-            (wi === 1 ? 0.1 : wi === 2 ? 0.13 : 0.24) +
-            ")",
+              col +
+              "," +
+              (wi === 1 ? 0.1 : wi === 2 ? 0.13 : 0.24) +
+              ")",
           );
           gr.addColorStop(1, "rgba(" + col + ",0)");
           c.fillStyle = gr;
@@ -28762,12 +26767,12 @@
       const N = fx ? 44 : 14;
       for (let i = 0; i < N; i++) {
         const x =
-          (((hz(i, 1) * VW +
-            Math.sin(T * 0.5 + i) * 10 -
-            camx * (0.3 + hz(i, 5) * 0.4)) %
-            VW) +
-            VW) %
-          VW,
+            (((hz(i, 1) * VW +
+              Math.sin(T * 0.5 + i) * 10 -
+              camx * (0.3 + hz(i, 5) * 0.4)) %
+              VW) +
+              VW) %
+            VW,
           y =
             (((hz(i, 3) * VH + T * (7 + hz(i, 2) * 12) - camy * 0.2) % VH) +
               VH) %
@@ -29105,6 +27110,14 @@
     w_seal: "weapon_seal",
   };
 
+  /* v0.69: zera contadores de vozes presos (onended não dispara quando o áudio foi interrompido) */
+  function sfxReset() {
+    SFX._nv = 0;
+    if (typeof NXA !== "undefined") {
+      NXA.active = 0;
+      NXA.voices = {};
+    }
+  }
   /* ---------- barramento com limitador (evita estourar quando há muitos sons) ---------- */
   SFX.mg = function () {
     if (!this._m) {
@@ -29186,7 +27199,7 @@
           NXA.report.ok.push(nm);
           return;
         }
-      } catch (e) { }
+      } catch (e) {}
     }
     NXA.report.miss.push(def.f);
   }
@@ -29201,7 +27214,7 @@
           "| usando som sintetizado:",
           NXA.report.miss.join(", ") || "(nenhum)",
         );
-      } catch (e) { }
+      } catch (e) {}
     });
   }
   const _nxaInit = SFX.init;
@@ -29225,6 +27238,8 @@
       A = NXA.buf[ev],
       c = SFX.ctx;
     if (!A || !c) return false;
+    if (!SFX.live())
+      return "skip"; /* v0.69: não cria vozes com o áudio suspenso */
     const now = performance.now();
     if (
       NXA.lastT[ev] &&
@@ -29235,9 +27250,9 @@
     if (NXA.active >= NXA.maxVoices && def.pri < 4) return "skip";
     NXA.lastT[ev] = now;
     const rate = Math.max(
-      0.4,
-      Math.min(2.4, o.rate != null ? o.rate : nxaRate(def, ev)),
-    ),
+        0.4,
+        Math.min(2.4, o.rate != null ? o.rate : nxaRate(def, ev)),
+      ),
       t = c.currentTime + (o.delay || 0),
       dur = A.dur / rate;
     const src = c.createBufferSource();
@@ -29286,7 +27301,7 @@
   let NXA_NOISE = null;
   function nxaNoise(dur, lp, vol, delay, hp) {
     const c = SFX.ctx;
-    if (!c || !SFX.on) return;
+    if (!c || !SFX.on || !SFX.live() || SFX._nv >= 40) return;
     if (!NXA_NOISE) {
       NXA_NOISE = c.createBuffer(
         1,
@@ -29525,7 +27540,7 @@
         SFX.tone(2093, 0.16, "triangle", 0.03, 0, 0.08);
         if (G && G.p)
           G.fx.push({
-            wid: BTL.src || null,
+            wid: damageSrc || null,
             k: "txt",
             x: G.p.x,
             y: G.p.y - 16,
@@ -29543,7 +27558,7 @@
         o.rate =
           (0.94 +
             0.12 *
-            Math.max(0, Math.min(1, g.p.hp / Math.max(1, g.mods.maxhp)))) *
+              Math.max(0, Math.min(1, g.p.hp / Math.max(1, g.mods.maxhp)))) *
           (1 + (Math.random() - 0.5) * 0.05);
     },
     footstep(o) {
@@ -29581,8 +27596,8 @@
         o.gain = 0.7;
       }
     },
-    victory() { },
-    defeat() { },
+    victory() {},
+    defeat() {},
   };
   const NXA_LAYER = {
     boss_alert() {
@@ -29641,7 +27656,7 @@
         nxaGo(ev, o);
         return;
       }
-    } catch (e) { }
+    } catch (e) {}
     return _nxaPlay.call(this, n);
   };
   NXA.cT = -9;
@@ -29673,10 +27688,10 @@
   const _nxaCI = chooseIdx;
   chooseIdx = function (i) {
     const banishing = !!(
-      G &&
-      G.choiceTools &&
-      G.choiceTools.action === "banish"
-    ),
+        G &&
+        G.choiceTools &&
+        G.choiceTools.action === "banish"
+      ),
       c =
         !banishing && state === "levelup" && performance.now() >= LV_LOCK
           ? curChoices[i]
@@ -29688,7 +27703,7 @@
         !canGainActive(G)
       ),
       evo = !!(c && c.kind === "evo");
-    if (c && !rejectedActive) BTL.choice(c, curChoices.slice());
+    if (c && !rejectedActive);
     const r = _nxaCI(i);
     if (c) SFX.play(evo ? "chest" : "card");
     return r;
@@ -29780,7 +27795,7 @@
     if (G && !G.over && G.p) {
       try {
         nxaWorld(dt);
-      } catch (e) { }
+      } catch (e) {}
     }
   };
 
@@ -29819,7 +27834,7 @@
       a._f = from + (to - from) * k;
       try {
         a.volume = clamp(save.set.mvol * nxMusMul(a), 0, 1);
-      } catch (e) { }
+      } catch (e) {}
       if (k >= 1) {
         clearInterval(a._fi);
         if (done) done();
@@ -29835,7 +27850,7 @@
       if (musTrk) {
         try {
           musTrk.volume = clamp(save.set.mvol * nxMusMul(musTrk), 0, 1);
-        } catch (e) { }
+        } catch (e) {}
       }
     };
     apply();
@@ -29920,164 +27935,151 @@
   }
   try {
     syncNewsBadge();
-  } catch (e) { }
+  } catch (e) {}
   bootScreen();
-  window.FE_SURVIVOR_BALANCE = Object.freeze({
-    schemaVersion: BALANCE_SCHEMA_VERSION,
-    telemetryVersion: BALANCE_TELEMETRY_VERSION,
-    getSummary: () => ({
-      savedRuns: BTL.data.runs.length,
-      activeRun: !!BTL.current,
-      storageKey: BALANCE_STORE_KEY,
-      localOnly: true,
-      storageFull: !!BTL.storageFull,
-      historyDiscardedRuns: BTL.data.historyDiscardedRuns || 0,
-    }),
-    exportJSON: () => BTL.exportJSON(false),
-    exportCSV: () => BTL.exportCSV(),
-    getData: () => BTL.clone(BTL.allData()),
-  });
   window.__dbg =
     IS_NATIVE || !/[?&]debug\b/.test(location.search)
       ? {
-        get state() {
-          return state;
-        },
-      } /* sem ?debug: só o estado (botão Voltar do app) */
+          get state() {
+            return state;
+          },
+        } /* sem ?debug: só o estado (botão Voltar do app) */
       : {
-        /* ganchos de teste da economia (só com ?debug no navegador; nunca no app nativo) */
-        eco: {
-          ECO,
-          PRODUCTS,
-          STARTER,
-          grant: (k, t, f) => Billing.grant(k, t, f),
-          coinMul,
-          mapCoinMul,
-          runCoinMul,
-          vigFactor,
-          ecoGain,
-          harvestTick,
-          runCoins,
-          runCoinsRaw,
-          dailyBonus,
-          adGoldUsed,
-          wOpen,
-          worldHint,
-          ecoReport,
-          skipXpAmount,
-          offerShown,
-          newRun: (h) => newRun(h),
-          dayKey: () => dayKey(),
-          yday: (k) => yday(k),
-          endRun: (w, r, q) =>
-            _erD(
-              w,
-              r,
-              q,
-            ) /* encerra direto (sem as animações de morte/amanhecer) */,
-          checkAch: () => checkAch(),
-          snapPre: (g) => snapPre(g),
-          doRevive: () => doRevive(),
-          startDaily: () => startDaily(),
+          /* ganchos de teste da economia (só com ?debug no navegador; nunca no app nativo) */
+          eco: {
+            ECO,
+            PRODUCTS,
+            STARTER,
+            grant: (k, t, f) => Billing.grant(k, t, f),
+            coinMul,
+            mapCoinMul,
+            runCoinMul,
+            vigFactor,
+            ecoGain,
+            harvestTick,
+            runCoins,
+            runCoinsRaw,
+            dailyBonus,
+            adGoldUsed,
+            wOpen,
+            worldHint,
+            ecoReport,
+            skipXpAmount,
+            offerShown,
+            newRun: (h) => newRun(h),
+            dayKey: () => dayKey(),
+            yday: (k) => yday(k),
+            endRun: (w, r, q) =>
+              _erD(
+                w,
+                r,
+                q,
+              ) /* encerra direto (sem as animações de morte/amanhecer) */,
+            checkAch: () => checkAch(),
+            snapPre: (g) => snapPre(g),
+            doRevive: () => doRevive(),
+            startDaily: () => startDaily(),
+            get G() {
+              return G;
+            },
+            get RUN() {
+              return RUN;
+            },
+            WORLDS,
+          },
+          solidAt,
+          seed: (n) => {
+            _rg = mul(n);
+            _rf = mul(n ^ 0x9e3779b9);
+          },
+          unseed: () => {
+            _rg = _rf = Math.random;
+          },
+          unlockInf: () => {
+            save.winH = save.winH || {};
+            save.winH.davi = 1;
+            persist();
+            return "Vigília liberada";
+          },
+          lockInf: () => {
+            save.winH = {};
+            persist();
+            return "Vigília bloqueada";
+          },
+          useAct: (i) => useAct(i),
+          get choices() {
+            return curChoices;
+          },
+          get slots() {
+            return [SLOT_W, SLOT_P, MAXA];
+          },
+          bossTime: (i) => bossTime(i),
+          get save() {
+            return save;
+          },
+          HEROES,
+          WORLDS,
+          RUN,
+          WIN_T,
+          BOSS_T,
+          MAXW,
+          SLOT_W,
+          SLOT_P,
+          ACT,
+          stick,
+          goRun: (p) => goRun(p),
+          setHero: (h) => {
+            selHero = h;
+          },
+          toMenu: () => {
+            state = "menu";
+            G = null;
+          },
+          recalc: () => recalc(),
+          get ACH() {
+            return ACH;
+          },
+          get S() {
+            return S;
+          },
+          ICONS,
+          UI_URL,
+          ASSET_LOG,
           get G() {
             return G;
           },
-          get RUN() {
-            return RUN;
+          get state() {
+            return state;
           },
-          WORLDS,
-        },
-        solidAt,
-        seed: (n) => {
-          _balanceDebugSeed = Number(n);
-          _rg = mul(n);
-          _rf = mul(n ^ 0x9e3779b9);
-        },
-        unseed: () => {
-          _balanceDebugSeed = null;
-          _rg = _rf = Math.random;
-        },
-        unlockInf: () => {
-          save.winH = save.winH || {};
-          save.winH.davi = 1;
-          persist();
-          return "Vigília liberada";
-        },
-        lockInf: () => {
-          save.winH = {};
-          persist();
-          return "Vigília bloqueada";
-        },
-        useAct: (i) => useAct(i),
-        get choices() {
-          return curChoices;
-        },
-        get slots() {
-          return [SLOT_W, SLOT_P, MAXA];
-        },
-        bossTime: (i) => bossTime(i),
-        get save() {
-          return save;
-        },
-        HEROES,
-        WORLDS,
-        RUN,
-        WIN_T,
-        BOSS_T,
-        MAXW,
-        SLOT_W,
-        SLOT_P,
-        ACT,
-        stick,
-        goRun: (p) => goRun(p),
-        setHero: (h) => {
-          selHero = h;
-        },
-        toMenu: () => {
-          state = "menu";
-          G = null;
-        },
-        recalc: () => recalc(),
-        get ACH() {
-          return ACH;
-        },
-        get S() {
-          return S;
-        },
-        ICONS,
-        UI_URL,
-        ASSET_LOG,
-        get G() {
-          return G;
-        },
-        get state() {
-          return state;
-        },
-        startRun,
-        chooseIdx,
-        setT: (t) => {
-          if (G) G.t = t;
-        },
-        update: (dt) => update(dt),
-        updHud: () => updHud(),
-        dblSetup: (n) => dblSetup(n),
-        grantTest: (k, t, f) => Billing.grant(k, t, f),
-        tapXY: (x, y) => {
-          const r = cv.getBoundingClientRect();
-          return {
-            x: r.left + ((x - camx) / VW) * r.width,
-            y: r.top + ((y - camy) / VH) * r.height,
-          };
-        },
-        keys,
-        gainAct,
-        buildActs,
-        buildRack,
-        openLevelUp,
-        toast,
-        notify,
-      };
-  track("app_open");
+          startRun,
+          chooseIdx,
+          setT: (t) => {
+            if (G) G.t = t;
+          },
+          update: (dt) => update(dt),
+          perfLvl: (n) => {
+            PERF.lvl = n | 0;
+            PERF.off = n != null;
+          },
+          perf: () => PERF,
+          updHud: () => updHud(),
+          dblSetup: (n) => dblSetup(n),
+          grantTest: (k, t, f) => Billing.grant(k, t, f),
+          tapXY: (x, y) => {
+            const r = cv.getBoundingClientRect();
+            return {
+              x: r.left + ((x - camx) / VW) * r.width,
+              y: r.top + ((y - camy) / VH) * r.height,
+            };
+          },
+          keys,
+          gainAct,
+          buildActs,
+          buildRack,
+          openLevelUp,
+          toast,
+          notify,
+        };
   musSet(musWant()); /* música do menu já na abertura */
   raf = requestAnimationFrame(loop);
 
