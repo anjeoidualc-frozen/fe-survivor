@@ -84,7 +84,7 @@
           refreshHomeVerseOnReturn();
         });
         if (listener && typeof listener.catch === "function")
-          listener.catch(() => {});
+          listener.catch(() => { });
       }
     }
   } catch (e) {
@@ -139,7 +139,7 @@
     if (newsBtn) newsBtn.focus({ preventScroll: true });
     try {
       profWelcomeMaybe();
-    } catch (e) {}
+    } catch (e) { }
   }
   if (newsBtn) newsBtn.addEventListener("click", openNewsModal);
   const newsBackBtn = document.getElementById("newsBack");
@@ -279,13 +279,13 @@
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (s) save = Object.assign(save, s);
-  } catch (e) {}
+  } catch (e) { }
   function persist() {
     if (window.__wiping || TUT.on) return;
     if (save.paid > save.coins) save.paid = save.coins;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-    } catch (e) {}
+    } catch (e) { }
   }
   /* ID numérico único por dispositivo (12 dígitos), gerado na 1ª abertura e persistido em save.pid */
   function ensurePlayerId() {
@@ -347,7 +347,7 @@
         try {
           const A = window.AudioContext || window.webkitAudioContext;
           this.ctx = new A();
-        } catch (e) {}
+        } catch (e) { }
       }
       if (this.ctx && this.ctx.state !== "running") this.wake();
       if (this.ctx && !this._sc) {
@@ -369,8 +369,8 @@
       this._wk = n;
       try {
         const p = c.resume();
-        if (p && p.catch) p.catch(() => {});
-      } catch (e) {}
+        if (p && p.catch) p.catch(() => { });
+      } catch (e) { }
     },
     live() {
       const c = this.ctx;
@@ -1720,10 +1720,10 @@
     const badge = mastery
       ? '<path d="M25 21L27 24L30 24L28 27L29 30L25 28L22 30L23 27L21 24L24 24Z" fill="#fff0a3" stroke="#f2c14e" stroke-width=".7"/>'
       : '<rect x="22" y="22" width="7" height="7" fill="#171027" stroke="' +
-        accent +
-        '" stroke-width="1"/><path d="M23 25.5H28M25.5 23V28" stroke="' +
-        accent +
-        '" stroke-width="1"/>';
+      accent +
+      '" stroke-width="1"/><path d="M23 25.5H28M25.5 23V28" stroke="' +
+      accent +
+      '" stroke-width="1"/>';
     const border = mastery ? "#ffe08a" : accent;
     const svg =
       '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="#05030b"/><rect x="2" y="2" width="28" height="28" fill="' +
@@ -1880,7 +1880,7 @@
     if (sys && document.fonts && document.fonts.load) {
       try {
         document.fonts.load("16px Inter");
-      } catch (e) {}
+      } catch (e) { }
     }
     CF.body = sys ? SYS_STACK : '"Pixelify Sans",monospace';
     CF.title = sys ? SYS_STACK : '"Press Start 2P","Pixelify Sans",monospace';
@@ -2333,9 +2333,9 @@
     const worldSpd = world && Number.isFinite(world.spd) ? world.spd : 1;
     const bhp = Math.round(
       B.hp *
-        (1 + cyc * 0.5) *
-        (1 + Math.min(0.35, 0.02 * Math.max(0, pw - 3))) *
-        worldHp,
+      (1 + cyc * 0.5) *
+      (1 + Math.min(0.35, 0.02 * Math.max(0, pw - 3))) *
+      worldHp,
     ); // +3,5% de vida por melhoria acima de 3, além do mundo
     const e = {
       t: "boss",
@@ -2809,23 +2809,23 @@
                 : pd.kind === "start"
                   ? "Bênção inicial"
                   : (pd.rev ? "Renascido! Nível " : "Fé aumentou! Nível ") +
-                    pd.n;
+                  pd.n;
     $("#lvSub").textContent =
       pd.kind === "slingTree"
         ? "Escolha um caminho para a sua Funda. Você só poderá seguir um nesta partida."
         : ["weaponTree", "passiveTree", "activeTree"].includes(pd.kind)
           ? "Escolha uma rota. A maestria do caminho aparecerá em uma próxima escolha."
           : "Armas " +
-            wcN +
-            "/" +
-            SLOT_W +
-            " | Dons " +
-            pcN +
-            "/" +
-            SLOT_P +
-            " | " +
-            activeSkillCountLabel(G) +
-            " — as cartas que você ignorar demoram a voltar";
+          wcN +
+          "/" +
+          SLOT_W +
+          " | Dons " +
+          pcN +
+          "/" +
+          SLOT_P +
+          " | " +
+          activeSkillCountLabel(G) +
+          " — as cartas que você ignorar demoram a voltar";
     curChoices = rollChoices();
     LV_LOCK = performance.now() + 450;
     const box = $("#cards");
@@ -3077,7 +3077,7 @@
         G.weaponTrees[c.ownerId].tier = 1;
         toast(
           "Maestria: " +
-            EVOLUTION_TREES.weapon[c.ownerId].paths[c.id].node.name,
+          EVOLUTION_TREES.weapon[c.ownerId].paths[c.id].node.name,
         );
       }
     } else if (c.kind === "passiveBranch") {
@@ -3095,7 +3095,7 @@
         recalc();
         toast(
           "Maestria: " +
-            EVOLUTION_TREES.passive[c.ownerId].paths[c.id].node.name,
+          EVOLUTION_TREES.passive[c.ownerId].paths[c.id].node.name,
         );
       }
     } else if (c.kind === "activeBranch") {
@@ -3108,7 +3108,7 @@
         G.activeTrees[c.ownerId].tier = 1;
         toast(
           "Maestria: " +
-            EVOLUTION_TREES.active[c.ownerId].paths[c.id].node.name,
+          EVOLUTION_TREES.active[c.ownerId].paths[c.id].node.name,
         );
       }
     } else if (c.kind === "p") {
@@ -3543,8 +3543,8 @@
               const pierce = signal
                 ? Infinity
                 : s.pierce +
-                  (path === "pierce" ? (tier ? 5 : 3) : 0) +
-                  (evolved ? 2 : 0);
+                (path === "pierce" ? (tier ? 5 : 3) : 0) +
+                (evolved ? 2 : 0);
               G.shots.push({
                 wid: id,
                 k: "covenant_arrow",
@@ -3648,9 +3648,9 @@
             path = tree && tree.path,
             tier = tree && tree.tier ? 1 : 0;
           const radius =
-              s.radius *
-              (path === "sanctuary" ? (tier ? 1.55 : 1.3) : 1) *
-              (m.area || 1),
+            s.radius *
+            (path === "sanctuary" ? (tier ? 1.55 : 1.3) : 1) *
+            (m.area || 1),
             slow = path === "stillness" ? (tier ? 0.66 : 0.5) : s.slow;
           for (const e of G.enemies) {
             if (e.dead) continue;
@@ -3671,8 +3671,8 @@
                 hurt(
                   e,
                   s.dmg *
-                    m.dmg *
-                    (path === "stillness" ? (tier ? 1.35 : 1.2) : 1),
+                  m.dmg *
+                  (path === "stillness" ? (tier ? 1.35 : 1.2) : 1),
                   dx / d,
                   dy / d,
                   8,
@@ -3707,11 +3707,11 @@
             path = tree && tree.path,
             tier = tree && tree.tier ? 1 : 0;
           const count = Math.min(
-              8,
-              s.count +
-                (path === "bastion" ? (tier ? 2 : 1) : 0) +
-                amountBonus(m),
-            ),
+            8,
+            s.count +
+            (path === "bastion" ? (tier ? 2 : 1) : 0) +
+            amountBonus(m),
+          ),
             radius = s.radius + (path === "orbit" ? (tier ? 10 : 5) : 0),
             speed = s.speed * (path === "orbit" ? (tier ? 1.8 : 1.45) : 1),
             hitRadius = 7 * (m.area || 1);
@@ -3731,8 +3731,8 @@
                 hurt(
                   e,
                   s.dmg *
-                    m.dmg *
-                    (path === "retribution" ? (tier ? 1.6 : 1.35) : 1),
+                  m.dmg *
+                  (path === "retribution" ? (tier ? 1.6 : 1.35) : 1),
                   dx / d,
                   dy / d,
                   path === "retribution" ? 55 : 40,
@@ -3759,9 +3759,9 @@
             s.count + (path === "host" ? (tier ? 2 : 1) : 0) + amountBonus(m),
           );
           const radius =
-              s.radius +
-              (path === "war" ? 0 : 0) +
-              (path === "guard" ? (tier ? 4 : 2) : 0),
+            s.radius +
+            (path === "war" ? 0 : 0) +
+            (path === "guard" ? (tier ? 4 : 2) : 0),
             hitRadius = 8 * (m.area || 1);
           const speed = s.speed * (path === "war" ? (tier ? 1.55 : 1.3) : 1);
           const dmgMul = path === "war" ? (tier ? 1.45 : 1.25) : 1;
@@ -3811,11 +3811,11 @@
           w.cd -= dt;
           if (w.cd > 0) break;
           const count = Math.min(
-              8,
-              s.count +
-                (path === "flock" ? (tier ? 2 : 1) : 0) +
-                amountBonus(m),
-            ),
+            8,
+            s.count +
+            (path === "flock" ? (tier ? 2 : 1) : 0) +
+            amountBonus(m),
+          ),
             list = nearestList(p.x, p.y, m.rng, count);
           if (!list.length) {
             w.cd = 0.2;
@@ -3897,9 +3897,9 @@
           w.cd -= dt;
           if (w.cd > 0) break;
           const maxr =
-              s.maxr *
-              (path === "rampart" ? (tier ? 1.55 : 1.35) : 1) *
-              (m.area || 1),
+            s.maxr *
+            (path === "rampart" ? (tier ? 1.55 : 1.35) : 1) *
+            (m.area || 1),
             knock = s.knock + (path === "rampart" ? (tier ? 35 : 20) : 0);
           if (!nearestList(p.x, p.y, maxr * 0.9, 1).length) {
             w.cd = 0.2;
@@ -3945,11 +3945,11 @@
           w.cd -= dt;
           if (w.cd > 0) break;
           const count = Math.min(
-              8,
-              s.count +
-                (path === "pentecost" ? (tier ? 2 : 1) : 0) +
-                amountBonus(m),
-            ),
+            8,
+            s.count +
+            (path === "pentecost" ? (tier ? 2 : 1) : 0) +
+            amountBonus(m),
+          ),
             radius =
               s.r *
               (path === "pentecost" ? (tier ? 1.5 : 1.25) : 1) *
@@ -4817,16 +4817,16 @@
     [1, "blood"],
   ];
   const SOLID = {
-      deadTree: 6,
-      bush: 5,
-      rock: 5,
-      tombA: 5,
-      tombB: 5,
-      cross: 4,
-      angel: 6,
-      gargoyle: 6,
-      coffin: 7,
-    },
+    deadTree: 6,
+    bush: 5,
+    rock: 5,
+    tombA: 5,
+    tombB: 5,
+    cross: 4,
+    angel: 6,
+    gargoyle: 6,
+    coffin: 7,
+  },
     FLAT = { blood: 1, pent: 1 };
   const graveZone = (cx, cy) =>
     vnoise(cx * 0.09 + 40, cy * 0.09 + 17) > 0.64; /* manchas de cemitério */
@@ -5425,8 +5425,8 @@
         H$.bosstxt,
         "bt",
         Math.max(0, Math.ceil(g.boss.hp)).toLocaleString("pt-BR") +
-          " / " +
-          Math.ceil(g.boss.mhp).toLocaleString("pt-BR"),
+        " / " +
+        Math.ceil(g.boss.mhp).toLocaleString("pt-BR"),
       );
     } else H$.bossbar.hidden = true;
   }
@@ -5438,8 +5438,8 @@
         (id === "sling"
           ? SLING_TREE[ev.path]
           : EVOLUTION_TREES[group] &&
-            EVOLUTION_TREES[group][id] &&
-            EVOLUTION_TREES[group][id].paths[ev.path]);
+          EVOLUTION_TREES[group][id] &&
+          EVOLUTION_TREES[group][id].paths[ev.path]);
     const evolved = !!ev,
       mastered = evolved && !!ev.tier,
       sup = !!(isW && G && G.evo && G.evo[id]),
@@ -5459,8 +5459,8 @@
       // (def.desc ? "&#10;" + def.desc : "") +
       (path
         ? "&#10;" +
-          path.name +
-          (mastered ? " | MAESTRIA: " + path.node.name : " | caminho evolutivo")
+        path.name +
+        (mastered ? " | MAESTRIA: " + path.node.name : " | caminho evolutivo")
         : "") +
       (sup
         ? "&#10;✦ Evolução Suprema: " + NX_EVO[id].n
@@ -5473,10 +5473,10 @@
       '"' +
       (evolved
         ? ' style="--evo-color:' +
-          evoAccent(id, ev.path, mastered) +
-          '" data-evo-path="' +
-          ev.path +
-          '"'
+        evoAccent(id, ev.path, mastered) +
+        '" data-evo-path="' +
+        ev.path +
+        '"'
         : "") +
       ' data-tip="' +
       title +
@@ -5594,7 +5594,7 @@
     else if (G && (state === "paused" || state === "levelup")) {
       try {
         wxUpdate(dt);
-      } catch (e) {}
+      } catch (e) { }
     }
     if (
       G &&
@@ -5643,10 +5643,10 @@
     persist();
     try {
       profTouchDay();
-    } catch (e) {}
+    } catch (e) { }
     try {
       wxReset();
-    } catch (e) {}
+    } catch (e) { }
     newRun(selHero);
     G.inf = RUN.mode === "inf";
     SLOT_W = G.inf ? INF_SLOTS_W : 4;
@@ -5744,7 +5744,7 @@
       ps.innerHTML = "";
       try {
         ps.appendChild(statBox());
-      } catch (e) {}
+      } catch (e) { }
     }
     $("#pause").hidden = false;
     resetScrollTree($("#pause"));
@@ -5762,7 +5762,7 @@
     G = null;
     try {
       wxReset();
-    } catch (e) {}
+    } catch (e) { }
     $("#hud").hidden = true;
     $("#pause").hidden = true;
     $("#end").hidden = true;
@@ -5787,7 +5787,7 @@
     homeWalletSync();
     try {
       profBtnSync();
-    } catch (e) {}
+    } catch (e) { }
   }
 
   /* ================= v0.2: loja, testemunhos, configuracoes ================= */
@@ -6218,8 +6218,8 @@
   const coinBonus = () =>
     clampN(
       (rtHas("u2_tithe") ? 0.2 : 0) +
-        (rtHas("k_grace") ? 0.1 : 0) +
-        clampN(G && G.mods ? G.mods.greed : 0, 0, ECO.BOLSA_MAX),
+      (rtHas("k_grace") ? 0.1 : 0) +
+      clampN(G && G.mods ? G.mods.greed : 0, 0, ECO.BOLSA_MAX),
       0,
       ECO.COIN_BONUS_MAX,
     );
@@ -6383,7 +6383,7 @@
     }
     try {
       persist();
-    } catch (e) {}
+    } catch (e) { }
   }
   const _sf = statsFor;
   statsFor = function (id, l) {
@@ -6402,10 +6402,10 @@
   /* Conquistas: nome, descrição e recompensa ficam em registry.js → achievements. Aqui só as regras (funções). */
   /* Helpers dos Testemunhos (leem o save; Runas do Reino ficam em save.rt = {ramo:{slot:id}}, 4 slots por ramo) */
   const rtCount = (s) =>
-      Object.values(s.rt || {}).reduce(
-        (n, c) => n + Object.keys(c || {}).length,
-        0,
-      ),
+    Object.values(s.rt || {}).reduce(
+      (n, c) => n + Object.keys(c || {}).length,
+      0,
+    ),
     rtFull = (s) =>
       Object.values(s.rt || {}).filter((c) => Object.keys(c || {}).length >= 4)
         .length,
@@ -6499,7 +6499,7 @@
         let ok = false;
         try {
           ok = a[3](g, save);
-        } catch (e) {}
+        } catch (e) { }
         if (ok) {
           save.ach[a[0]] = 1;
           persist();
@@ -6515,7 +6515,7 @@
                   notify("Mundo liberado: " + WORLDS[wi].n + "!", "ok");
                 }
               }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
   }
@@ -6654,12 +6654,12 @@
       bt.innerHTML =
         left > 0
           ? '<span class="uic i-play"></span> +' +
-            AD_COIN +
-            " grátis <em>" +
-            left +
-            "/" +
-            AD_COIN_MAX +
-            "</em>"
+          AD_COIN +
+          " grátis <em>" +
+          left +
+          "/" +
+          AD_COIN_MAX +
+          "</em>"
           : "Grátis amanhã";
       if (left <= 0) bt.style.opacity = 0.55;
       bt.onclick = () => {
@@ -6667,8 +6667,8 @@
           return deny(
             bt,
             "Você já usou os " +
-              AD_COIN_MAX +
-              " anúncios de hoje. Volte amanhã!",
+            AD_COIN_MAX +
+            " anúncios de hoje. Volte amanhã!",
           );
         ADS.rewarded((ok) => {
           if (!ok) return;
@@ -6769,14 +6769,14 @@
       ? "Equipada neste ramo."
       : !unl
         ? "Exige " +
-          (need === 1 ? "a pedra-chave" : need + " escolhas anteriores") +
-          " do ramo " +
-          C.title +
-          "."
+        (need === 1 ? "a pedra-chave" : need + " escolhas anteriores") +
+        " do ramo " +
+        C.title +
+        "."
         : cur
           ? "Substitui a runa atual deste nível: " +
-            (rtFind(runeSel.cat, runeSel.slot, cur) || [0, "?"])[1] +
-            "."
+          (rtFind(runeSel.cat, runeSel.slot, cur) || [0, "?"])[1] +
+          "."
           : "Disponível.";
     box.style.setProperty("--rc", C.color);
     box.innerHTML =
@@ -7006,10 +7006,10 @@
     b.insertAdjacentHTML(
       "afterbegin",
       '<div class="rw"><span>Testemunhos <b>' +
-        n +
-        "/" +
-        ACH.length +
-        '</b></span><span id="achGp"></span></div>',
+      n +
+      "/" +
+      ACH.length +
+      '</b></span><span id="achGp"></span></div>',
     );
     if (window.FePGS) {
       const gb = document.createElement("button");
@@ -7066,7 +7066,7 @@
           if (!SFX.on) {
             try {
               wxStopRain();
-            } catch (e) {}
+            } catch (e) { }
           }
         }
         if (k === "music") musApply();
@@ -7075,7 +7075,7 @@
         if (k === "fx" && !save.set.fx) {
           try {
             wxReset();
-          } catch (e) {}
+          } catch (e) { }
         }
         persist();
         if (k === "fx") renderSet(b);
@@ -7119,7 +7119,7 @@
       if (SFX._m) SFX._m.gain.value = SFX.vol;
       try {
         wxSyncRainVol();
-      } catch (e) {}
+      } catch (e) { }
       v.querySelector("b").textContent = e.target.value + "%";
       persist();
     };
@@ -7330,8 +7330,7 @@
     icons: {},
     ach: {} /* opcional: { k25: 'icons/ach/outro.png' } */,
     ui: {},
-    loading:
-      {} /* opcional: { scenes: [{ video: 'loading/a.mp4', image: 'loading/a.png' }, …] } */,
+    loading: {}, /* opcional: { scenes: [{ video: 'loading/a.mp4', image: 'loading/a.png' }, …] } */
     modes:
       {} /* opcional: { dawn: 'modes/amanhecer.jpg', vigil: '...', upcoming: '...' } */,
     sfx: {},
@@ -7518,8 +7517,8 @@
     );
     console.log(
       "Não encontrados, usando o desenho do código (" +
-        ASSET_LOG.miss.length +
-        "):",
+      ASSET_LOG.miss.length +
+      "):",
       ASSET_LOG.miss.join(", "),
     );
   };
@@ -7539,9 +7538,9 @@
             c.preservesPitch =
               c.mozPreservesPitch =
               c.webkitPreservesPitch =
-                false;
+              false;
           }
-          c.play().catch(() => {});
+          c.play().catch(() => { });
         };
       },
       { once: true },
@@ -7558,7 +7557,7 @@
     a._f = 0;
     try {
       a.volume = 0;
-    } catch (e) {}
+    } catch (e) { }
     nxFade(a, 1, 900);
   }
   function nxMusOut(a) {
@@ -7566,7 +7565,7 @@
     nxFade(a, 0, 600, () => {
       try {
         a.pause();
-      } catch (e) {}
+      } catch (e) { }
       a._f = 1;
     });
   }
@@ -7589,7 +7588,7 @@
     a.volume = clamp(save.set.mvol * nxMusMul(a), 0, 1);
     if (save.set.music && !ADS.busy && !document.hidden) {
       const p = a.play();
-      if (p && p.catch) p.catch(() => {});
+      if (p && p.catch) p.catch(() => { });
     } else a.pause();
   }
   /* sorteia uma das faixas da categoria (nunca repete a anterior, se houver 2+) e toca até acabar; ao fim sorteia outra */
@@ -7606,7 +7605,7 @@
     musLast[musCur] = musTrk;
     try {
       musTrk.currentTime = 0;
-    } catch (e) {}
+    } catch (e) { }
     musApply();
     nxMusIn(musTrk);
   }
@@ -7723,14 +7722,14 @@
       d.insertAdjacentHTML(
         "beforeend",
         "<h3>" +
-          x.name +
-          '</h3><div class="role">' +
-          (x.locked
-            ? "Bloqueado"
-            : k === selHero
-              ? '<span class="uic i-check"></span> Escolhido'
-              : "&nbsp;") +
-          "</div>",
+        x.name +
+        '</h3><div class="role">' +
+        (x.locked
+          ? "Bloqueado"
+          : k === selHero
+            ? '<span class="uic i-check"></span> Escolhido'
+            : "&nbsp;") +
+        "</div>",
       );
       d.onclick = () => {
         viewHero = k;
@@ -7858,26 +7857,26 @@
           h("GRAÇA PESSOAL") +
           (X.grace
             ? "<b>" +
-              X.grace.n +
-              '</b><div class="hero-muted">' +
-              X.grace.d +
-              "</div>"
+            X.grace.n +
+            '</b><div class="hero-muted">' +
+            X.grace.d +
+            "</div>"
             : '<b>NENHUMA</b><div class="hero-muted">Sem passiva, escudo ou cura. Desafio para experientes.</div>') +
           h("MAESTRIA") +
           (X.ch
             ? '<b class="hero-blood">SEM MAESTRIA</b><div class="hero-muted">Sem bônus de classe.</div>'
             : nx
               ? '<b class="hero-gold">PRÓXIMA M' +
-                (l + 1) +
-                " · " +
-                nx[0].toUpperCase() +
-                '</b><div class="hero-muted">' +
-                nx[1] +
-                " — " +
-                MQ[l - 1] +
-                " com " +
-                X.name +
-                "</div>"
+              (l + 1) +
+              " · " +
+              nx[0].toUpperCase() +
+              '</b><div class="hero-muted">' +
+              nx[1] +
+              " — " +
+              MQ[l - 1] +
+              " com " +
+              X.name +
+              "</div>"
               : '<b class="hero-gold">MAESTRIA MÁXIMA</b>');
       }
     }
@@ -8029,7 +8028,7 @@
     );
   }
   const wOpen = (i) =>
-      !!WORLDS[i] && (!WORLDS[i].key || worldOwned(i) || worldByAch(i)),
+    !!WORLDS[i] && (!WORLDS[i].key || worldOwned(i) || worldByAch(i)),
     curW = () => WORLDS[wOpen(save.world) ? save.world : 0],
     _mr0 = Math.random;
   const mul = (a) => () => {
@@ -8046,9 +8045,9 @@
     "-" +
     String(d.getDate()).padStart(2, "0");
   const spDate = () =>
-      new Date(
-        Date.now() - 10800000,
-      ) /* America/Sao_Paulo = UTC-3 (sem horário de verão desde 2019) */,
+    new Date(
+      Date.now() - 10800000,
+    ) /* America/Sao_Paulo = UTC-3 (sem horário de verão desde 2019) */,
     dayKey = () => {
       const d = spDate();
       return (
@@ -8157,13 +8156,13 @@
     $("#endSum").insertAdjacentHTML(
       "beforeend",
       "<div><b>" +
-        sc +
-        "</b>Pontos do dia" +
-        (nb ? '<br><span class="newrec">MELHOR DO DIA</span>' : "") +
-        "</div>" +
-        (bonus
-          ? "<div><b>+" + bonus + "</b>Bônus | sequência " + D.streak + "</div>"
-          : ""),
+      sc +
+      "</b>Pontos do dia" +
+      (nb ? '<br><span class="newrec">MELHOR DO DIA</span>' : "") +
+      "</div>" +
+      (bonus
+        ? "<div><b>+" + bonus + "</b>Bônus | sequência " + D.streak + "</div>"
+        : ""),
     );
   };
   ["#againBtn"].forEach((s) =>
@@ -8245,11 +8244,11 @@
       (done
         ? "já recebido hoje"
         : ECO.DAILY_BASE +
-          " moedas (+" +
-          ECO.DAILY_WIN +
-          " na vitória) + " +
-          ECO.DAILY_STREAK_STEP +
-          " por dia de sequência") +
+        " moedas (+" +
+        ECO.DAILY_WIN +
+        " na vitória) + " +
+        ECO.DAILY_STREAK_STEP +
+        " por dia de sequência") +
       '</small></span></div><div class="rw"><span>Próximo desafio em <b id="dCount">--:--:--</b></span></div>';
     const g = document.createElement("button");
     g.className = "mb daily-action";
@@ -8470,14 +8469,14 @@
         setTimeout(() => {
           try {
             src.stop();
-          } catch (e) {}
+          } catch (e) { }
         }, 500);
       } else {
         try {
           src.stop();
-        } catch (e) {}
+        } catch (e) { }
       }
-    } catch (e) {}
+    } catch (e) { }
     WX.rainOn = false;
     WX.rainNodes = null;
   }
@@ -8489,7 +8488,7 @@
           SFX.ctx.currentTime,
           0.05,
         );
-      } catch (e) {}
+      } catch (e) { }
     }
   }
   function wxReset() {
@@ -8916,11 +8915,11 @@
       burst(p.x, p.y, 12, "#ffe08a", 80);
       toast(
         ACT[id].n +
-          ": +" +
-          Math.round(bonus * 100) +
-          "% de ataque por " +
-          Math.round(seconds * 10) / 10 +
-          " s",
+        ": +" +
+        Math.round(bonus * 100) +
+        "% de ataque por " +
+        Math.round(seconds * 10) / 10 +
+        " s",
       );
     },
   };
@@ -8930,10 +8929,10 @@
       if (typeof handler !== "function")
         throw new Error(
           "[Content] Active " +
-            id +
-            " has no engine handler for " +
-            definition.behavior +
-            ".",
+          id +
+          " has no engine handler for " +
+          definition.behavior +
+          ".",
         );
       return [id, { ...definition, go: (g, level) => handler(g, level, id) }];
     }),
@@ -9044,14 +9043,14 @@
       b.setAttribute(
         "data-tip",
         actTip(id, g) +
-          (ev
-            ? " | " +
-              EVOLUTION_TREES.active[id].paths[ev.path].name +
-              (ev.tier
-                ? " | MAESTRIA " +
-                  EVOLUTION_TREES.active[id].paths[ev.path].node.name
-                : "")
-            : ""),
+        (ev
+          ? " | " +
+          EVOLUTION_TREES.active[id].paths[ev.path].name +
+          (ev.tier
+            ? " | MAESTRIA " +
+            EVOLUTION_TREES.active[id].paths[ev.path].node.name
+            : "")
+          : ""),
       );
       if (ev)
         b.style.setProperty("--evo-color", evoAccent(id, ev.path, !!ev.tier));
@@ -9099,8 +9098,8 @@
           (g.A.indexOf(id) + 1) +
           (label
             ? " | " +
-              label.name +
-              (ev.tier ? " | Maestria: " + label.node.name : "")
+            label.name +
+            (ev.tier ? " | Maestria: " + label.node.name : "")
             : "") +
           '"><img alt="" src="' +
           gameIconURL(id, "active") +
@@ -9256,7 +9255,7 @@
       if (r.dataset.c) {
         try {
           localStorage.removeItem(SAVE_KEY);
-        } catch (e) {}
+        } catch (e) { }
         location.reload();
       } else {
         r.dataset.c = 1;
@@ -9464,12 +9463,12 @@
       }, 35000);
       if (IS_NATIVE) notify("Carregando anúncio…", "info");
       const start = () => {
-          clearTimeout(ldT);
-          ADS.loading = false;
-          ADS.busy = true;
-          SFX.on = false;
-          if (musTrk) musTrk.pause();
-        },
+        clearTimeout(ldT);
+        ADS.loading = false;
+        ADS.busy = true;
+        SFX.on = false;
+        if (musTrk) musTrk.pause();
+      },
         done = (ok) => {
           clearTimeout(ldT);
           ADS.loading = false;
@@ -9503,7 +9502,7 @@
           hs.forEach((h) => {
             try {
               h.remove();
-            } catch (e) {}
+            } catch (e) { }
           });
           if (!ok)
             adMsg("Anúncio indisponível agora. Tente de novo em instantes.");
@@ -9759,13 +9758,13 @@
     dbl.innerHTML =
       left <= 0
         ? '<span class="uic i-play"></span> +' +
-          u +
-          " moedas | limite de hoje atingido"
+        u +
+        " moedas | limite de hoje atingido"
         : '<span class="uic i-play"></span> +' +
-          u +
-          " moedas | ad (restam " +
-          left +
-          " hoje)";
+        u +
+        " moedas | ad (restam " +
+        left +
+        " hoje)";
     dbl.onclick = () => {
       if (adGoldUsed() >= AD_COIN_MAX || (G && (G.dblPaid || 0) > 0)) return;
       ADS.rewarded((ok) => {
@@ -9796,8 +9795,8 @@
     box.insertAdjacentHTML(
       "beforeend",
       '<span class="newrec coin-doubled">BÔNUS DO ANÚNCIO</span><span class="coinpop">+' +
-        n +
-        " moedas</span>",
+      n +
+      " moedas</span>",
     );
     const step = () => {
       const k = Math.min(1, (performance.now() - t0) / 750);
@@ -10199,8 +10198,8 @@
         '">' +
         (rec
           ? recFlagHTML(
-              "Recomendado: completa a Evolução Suprema de " + WEAPONS[id].name,
-            )
+            "Recomendado: completa a Evolução Suprema de " + WEAPONS[id].name,
+          )
           : "") +
         '<div class="evo-eq">' +
         piece(E.dom, "p", "Nv " + domLv + "+", dl, domLv) +
@@ -10277,11 +10276,11 @@
       "</div>" +
       (isSkills || isTrees
         ? '<div class="lib-chips">' +
-          chip("all", "Todas") +
-          chip("w", "Armas") +
-          chip("p", "Dons") +
-          chip("a", "Ativas") +
-          "</div>"
+        chip("all", "Todas") +
+        chip("w", "Armas") +
+        chip("p", "Dons") +
+        chip("a", "Ativas") +
+        "</div>"
         : "") +
       (isTrees
         ? '<div class="lib-tree-intro"><b>Planeje sua build antes da partida.</b><span>Cada árvore oferece três caminhos exclusivos. Depois de escolher um caminho, a Maestria correspondente pode aparecer nas escolhas seguintes. Esta tela é apenas uma prévia: não altera sua partida.</span></div>'
@@ -10306,17 +10305,17 @@
       "</div>";
     b.querySelectorAll("[data-t]").forEach(
       (x) =>
-        (x.onclick = () => {
-          libTab = +x.dataset.t;
-          renderLib(b);
-        }),
+      (x.onclick = () => {
+        libTab = +x.dataset.t;
+        renderLib(b);
+      }),
     );
     b.querySelectorAll("[data-f]").forEach(
       (x) =>
-        (x.onclick = () => {
-          libFilter = x.dataset.f;
-          renderLib(b);
-        }),
+      (x.onclick = () => {
+        libFilter = x.dataset.f;
+        renderLib(b);
+      }),
     );
     const grid = $("#libB");
     if (isEvo) {
@@ -10353,7 +10352,7 @@
       libList = libEntries().filter((e) =>
         isSkills
           ? (e.g === "w" || e.g === "p" || e.g === "a") &&
-            (libFilter === "all" || e.g === libFilter)
+          (libFilter === "all" || e.g === libFilter)
           : libTab === 2
             ? e.g === "d"
             : e.g === "b",
@@ -10473,12 +10472,12 @@
   function bindLibDetailNavigation() {
     LIBD.querySelectorAll(".ld-nav").forEach(
       (x) =>
-        (x.onclick = (ev) => {
-          ev.stopPropagation();
-          const d = +x.dataset.d;
-          if (libDetailMode === "tree") openTreeDet(libTreeIdx + d);
-          else openLibDet(libIdx + d);
-        }),
+      (x.onclick = (ev) => {
+        ev.stopPropagation();
+        const d = +x.dataset.d;
+        if (libDetailMode === "tree") openTreeDet(libTreeIdx + d);
+        else openLibDet(libIdx + d);
+      }),
     );
     const close = LIBD.querySelector(".ld-x");
     if (close) close.onclick = closeLibDet;
@@ -10507,53 +10506,53 @@
     const bodyExtra =
       e.g === "h"
         ? '<div class="ld-hero-grid">' +
-          '<div class="ld-hero-block"><h4>ARMA INICIAL</h4><div class="ld-hero-weapon">' +
-          (e.startId && WEAPONS[e.startId]
-            ? '<img alt="" src="' + iconURL(e.startId) + '"> '
-            : "") +
-          e.startName +
-          (e.H.startLvl ? " <em>Nv " + e.H.startLvl + "</em>" : "") +
-          '</div><div class="ld-hero-muted">' +
-          (e.H.bonus || "") +
-          "</div></div>" +
-          '<div class="ld-hero-block"><h4>GRAÇA PESSOAL</h4><b>' +
-          e.graceN +
-          '</b><div class="ld-hero-muted">' +
-          e.graceD +
-          "</div></div>" +
-          '<div class="ld-hero-block"><h4>MAESTRIA</h4>' +
-          (e.X.ch
-            ? '<b>Sem maestria</b><div class="ld-hero-muted">Herói de desafio — sem bônus de classe.</div>'
-            : e.X.perks && e.X.perks.length
-              ? '<ol class="ld-hero-perks">' +
-                e.X.perks
-                  .map(
-                    (p, j) =>
-                      "<li><b>M" +
-                      (j + 2) +
-                      " | " +
-                      p[0] +
-                      "</b> " +
-                      p[1] +
-                      (MQ[j] ? "<small>" + MQ[j] + "</small>" : "") +
-                      "</li>",
-                  )
-                  .join("") +
-                "</ol>"
-              : '<div class="ld-hero-muted">—</div>') +
-          "</div>" +
-          '<div class="ld-hero-block"><h4>COMO DESBLOQUEAR</h4><b class="ld-hero-gold">' +
-          e.unlock +
-          "</b></div>" +
-          "</div>"
+        '<div class="ld-hero-block"><h4>ARMA INICIAL</h4><div class="ld-hero-weapon">' +
+        (e.startId && WEAPONS[e.startId]
+          ? '<img alt="" src="' + iconURL(e.startId) + '"> '
+          : "") +
+        e.startName +
+        (e.H.startLvl ? " <em>Nv " + e.H.startLvl + "</em>" : "") +
+        '</div><div class="ld-hero-muted">' +
+        (e.H.bonus || "") +
+        "</div></div>" +
+        '<div class="ld-hero-block"><h4>GRAÇA PESSOAL</h4><b>' +
+        e.graceN +
+        '</b><div class="ld-hero-muted">' +
+        e.graceD +
+        "</div></div>" +
+        '<div class="ld-hero-block"><h4>MAESTRIA</h4>' +
+        (e.X.ch
+          ? '<b>Sem maestria</b><div class="ld-hero-muted">Herói de desafio — sem bônus de classe.</div>'
+          : e.X.perks && e.X.perks.length
+            ? '<ol class="ld-hero-perks">' +
+            e.X.perks
+              .map(
+                (p, j) =>
+                  "<li><b>M" +
+                  (j + 2) +
+                  " | " +
+                  p[0] +
+                  "</b> " +
+                  p[1] +
+                  (MQ[j] ? "<small>" + MQ[j] + "</small>" : "") +
+                  "</li>",
+              )
+              .join("") +
+            "</ol>"
+            : '<div class="ld-hero-muted">—</div>') +
+        "</div>" +
+        '<div class="ld-hero-block"><h4>COMO DESBLOQUEAR</h4><b class="ld-hero-gold">' +
+        e.unlock +
+        "</b></div>" +
+        "</div>"
         : "<h4>" +
-          lab.toUpperCase() +
-          "</h4><ol>" +
-          D.evo
-            .map((r) => "<li><b>" + r[0] + "</b> " + r[1] + "</li>")
-            .join("") +
-          "</ol>" +
-          (D.tip ? '<div class="ld-tip"><b>Dica:</b> ' + D.tip + "</div>" : "");
+        lab.toUpperCase() +
+        "</h4><ol>" +
+        D.evo
+          .map((r) => "<li><b>" + r[0] + "</b> " + r[1] + "</li>")
+          .join("") +
+        "</ol>" +
+        (D.tip ? '<div class="ld-tip"><b>Dica:</b> ' + D.tip + "</div>" : "");
     LIBD.innerHTML =
       '<div class="ld-wrap' +
       (e.g === "h" ? " ld-wrap-hero" : "") +
@@ -11176,9 +11175,9 @@
       const blink =
         0.55 +
         0.45 *
-          Math.sin(
-            f.t * (14 + 30 * p),
-          ); /* pisca mais rápido perto do impacto */
+        Math.sin(
+          f.t * (14 + 30 * p),
+        ); /* pisca mais rápido perto do impacto */
       qRing(
         cx,
         cy,
@@ -11724,9 +11723,9 @@
     off.sort((a, b) => a.d - b.d);
     for (const o of off.slice(0, 8)) {
       const tx =
-          Math.abs(o.dx) > 0.001
-            ? (cx - MARK_MARGIN) / Math.abs(o.dx)
-            : Infinity,
+        Math.abs(o.dx) > 0.001
+          ? (cx - MARK_MARGIN) / Math.abs(o.dx)
+          : Infinity,
         ty =
           Math.abs(o.dy) > 0.001
             ? (cy - MARK_MARGIN) / Math.abs(o.dy)
@@ -12171,7 +12170,7 @@
           });
         }
       D.sw = S.hero[g.hk];
-      const bl = { c: mk(w, h, () => {}), f: mk(w, h, () => {}), w, h };
+      const bl = { c: mk(w, h, () => { }), f: mk(w, h, () => { }), w, h };
       S.hero[g.hk] = [bl, bl];
     }
     for (const q of D.dust) {
@@ -12207,12 +12206,12 @@
       get: () =>
         HU[k].ads
           ? "Assistir " +
-            HU[k].ads +
-            " anúncios (" +
-            (save.adw[k] || 0) +
-            "/" +
-            HU[k].ads +
-            ")"
+          HU[k].ads +
+          " anúncios (" +
+          (save.adw[k] || 0) +
+          "/" +
+          HU[k].ads +
+          ")"
           : HU[k].coins + " moedas",
       configurable: true,
     });
@@ -12279,10 +12278,10 @@
           return deny(
             bt,
             "Faltam " +
-              (U.coins - save.coins) +
-              " moedas para desbloquear " +
-              X.name +
-              ".",
+            (U.coins - save.coins) +
+            " moedas para desbloquear " +
+            X.name +
+            ".",
           );
         if (!bt.dataset.c) {
           bt.dataset.c = 1;
@@ -12313,12 +12312,12 @@
       row.insertAdjacentHTML(
         "beforeend",
         '<small class="hero-wallet">Você tem ' +
-          save.coins +
-          " moedas" +
-          (avg
-            ? " | média de " + avg + " por partida (" + c.n + " partidas)"
-            : "") +
-          "</small>",
+        save.coins +
+        " moedas" +
+        (avg
+          ? " | média de " + avg + " por partida (" + c.n + " partidas)"
+          : "") +
+        "</small>",
       );
     b.appendChild(row);
   };
@@ -13038,230 +13037,230 @@
      Inclui: play help gear trophy book globe bag star calendar door redo flag check lock store coin rate
      + pause left right close (navegação da biblioteca e botão de pausa) */
   const UI_M = {
-      store: [
-        "gGgGgGgG",
-        "GgGgGgGg",
-        "gggggggg",
-        ".g....g.",
-        ".g.WW.g.",
-        ".g.WW.g.",
-        ".g.WW.g.",
-        ".gggggg.",
-      ],
-      rate: [
-        "...GG...",
-        "..GGGG..",
-        "GGGGGGGG",
-        ".GGGGGG.",
-        "..GGGG..",
-        ".GGGGGG.",
-        "GGG..GGG",
-        "GG....GG",
-      ],
-      coin: [
-        ".GGGGGG.",
-        "GGggggGG",
-        "GgGGGGgG",
-        "GgGggGgG",
-        "GgGggGgG",
-        "GgGGGGgG",
-        "GGggggGG",
-        ".GGGGGG.",
-      ],
-      play: [
-        "..G.....",
-        "..GG....",
-        "..GGG...",
-        "..GGGG..",
-        "..GGGG..",
-        "..GGG...",
-        "..GG....",
-        "..G.....",
-      ],
-      help: [
-        ".WWWWW..",
-        "WW...WW.",
-        ".....WW.",
-        "....WW..",
-        "...WW...",
-        "...WW...",
-        "........",
-        "...WW...",
-      ],
-      gear: [
-        "...GG...",
-        ".G.GG.G.",
-        "..GGGG..",
-        "GGG..GGG",
-        "GGG..GGG",
-        "..GGGG..",
-        ".G.GG.G.",
-        "...GG...",
-      ],
-      trophy: [
-        "GGGGGGGG",
-        "G.GGGG.G",
-        "G.GGGG.G",
-        ".GGGGGG.",
-        "..GGGG..",
-        "...GG...",
-        "...GG...",
-        "..gggg..",
-      ],
-      book: [
-        ".BBBBBB.",
-        "BWWBWWWB",
-        "BWWBWWWB",
-        "BWWBWWWB",
-        "BWWBWWWB",
-        "BWWBWWWB",
-        ".BBBBBB.",
-        "........",
-      ],
-      globe: [
-        "..BBBB..",
-        ".BNNBBB.",
-        "BNNNBBNB",
-        "BBNBBNNB",
-        "BBBBNNNB",
-        ".BBBNNB.",
-        "..BBBB..",
-        "........",
-      ],
-      bag: [
-        "..GGGG..",
-        "...gg...",
-        "..gggg..",
-        ".gggggg.",
-        "gggGGggg",
-        "gggGGggg",
-        ".gggggg.",
-        "..gggg..",
-      ],
-      star: [
-        "...GG...",
-        "...GG...",
-        "GGGGGGGG",
-        ".GGGGGG.",
-        "..GGGG..",
-        "..GGGG..",
-        ".GG..GG.",
-        ".G....G.",
-      ],
-      calendar: [
-        "RRRRRRRR",
-        "RWWWWWWR",
-        "WWWWWWWW",
-        "WGWGWGWW",
-        "WWWWWWWW",
-        "WGWGWGWW",
-        "WWWWWWWW",
-        "WWWWWWWW",
-      ],
-      door: [
-        ".gggggg.",
-        ".gGGGGg.",
-        ".gGGGGg.",
-        ".gGGGGg.",
-        ".gGGGWg.",
-        ".gGGGGg.",
-        ".gGGGGg.",
-        ".gggggg.",
-      ],
-      redo: [
-        "..WWWW..",
-        ".W....W.",
-        "W.....WW",
-        "W....WWW",
-        "W.....WW",
-        ".W......",
-        "..WWWW..",
-        "........",
-      ],
-      flag: [
-        "GG......",
-        "GRRRRR..",
-        "GRRRRRR.",
-        "GRRRRR..",
-        "G.......",
-        "G.......",
-        "G.......",
-        "GG......",
-      ],
-      check: [
-        "........",
-        ".......N",
-        "......NN",
-        "N....NN.",
-        "NN..NN..",
-        ".NNNN...",
-        "..NN....",
-        "........",
-      ],
-      noads: [
-        "..RRRR..",
-        ".RR..RR.",
-        "RR...RRR",
-        "R...R..R",
-        "R..R...R",
-        "RRR...RR",
-        ".RR..RR.",
-        "..RRRR..",
-      ],
-      lock: [
-        "..gggg..",
-        ".g....g.",
-        ".g....g.",
-        "GGGGGGGG",
-        "GGGDDGGG",
-        "GGGDDGGG",
-        "GGGGGGGG",
-        "GGGGGGGG",
-      ],
-      /* pause: duas barras verticais (substitui "II") */
-      pause: [
-        "........",
-        ".GG..GG.",
-        ".GG..GG.",
-        ".GG..GG.",
-        ".GG..GG.",
-        ".GG..GG.",
-        ".GG..GG.",
-        "........",
-      ],
-      /* left / right: setas de navegação da biblioteca (substitui ‹ ›) */
-      left: [
-        "........",
-        "...G....",
-        "..GG....",
-        ".GGGGGG.",
-        ".GGGGGG.",
-        "..GG....",
-        "...G....",
-        "........",
-      ],
-      right: [
-        "........",
-        "....G...",
-        "....GG..",
-        ".GGGGGG.",
-        ".GGGGGG.",
-        "....GG..",
-        "....G...",
-        "........",
-      ],
-      /* close: X de fechar modal (substitui "X") */
-      close: [
-        "........",
-        ".GG..GG.",
-        "..GGGG..",
-        "...GG...",
-        "...GG...",
-        "..GGGG..",
-        ".GG..GG.",
-        "........",
-      ],
-    },
+    store: [
+      "gGgGgGgG",
+      "GgGgGgGg",
+      "gggggggg",
+      ".g....g.",
+      ".g.WW.g.",
+      ".g.WW.g.",
+      ".g.WW.g.",
+      ".gggggg.",
+    ],
+    rate: [
+      "...GG...",
+      "..GGGG..",
+      "GGGGGGGG",
+      ".GGGGGG.",
+      "..GGGG..",
+      ".GGGGGG.",
+      "GGG..GGG",
+      "GG....GG",
+    ],
+    coin: [
+      ".GGGGGG.",
+      "GGggggGG",
+      "GgGGGGgG",
+      "GgGggGgG",
+      "GgGggGgG",
+      "GgGGGGgG",
+      "GGggggGG",
+      ".GGGGGG.",
+    ],
+    play: [
+      "..G.....",
+      "..GG....",
+      "..GGG...",
+      "..GGGG..",
+      "..GGGG..",
+      "..GGG...",
+      "..GG....",
+      "..G.....",
+    ],
+    help: [
+      ".WWWWW..",
+      "WW...WW.",
+      ".....WW.",
+      "....WW..",
+      "...WW...",
+      "...WW...",
+      "........",
+      "...WW...",
+    ],
+    gear: [
+      "...GG...",
+      ".G.GG.G.",
+      "..GGGG..",
+      "GGG..GGG",
+      "GGG..GGG",
+      "..GGGG..",
+      ".G.GG.G.",
+      "...GG...",
+    ],
+    trophy: [
+      "GGGGGGGG",
+      "G.GGGG.G",
+      "G.GGGG.G",
+      ".GGGGGG.",
+      "..GGGG..",
+      "...GG...",
+      "...GG...",
+      "..gggg..",
+    ],
+    book: [
+      ".BBBBBB.",
+      "BWWBWWWB",
+      "BWWBWWWB",
+      "BWWBWWWB",
+      "BWWBWWWB",
+      "BWWBWWWB",
+      ".BBBBBB.",
+      "........",
+    ],
+    globe: [
+      "..BBBB..",
+      ".BNNBBB.",
+      "BNNNBBNB",
+      "BBNBBNNB",
+      "BBBBNNNB",
+      ".BBBNNB.",
+      "..BBBB..",
+      "........",
+    ],
+    bag: [
+      "..GGGG..",
+      "...gg...",
+      "..gggg..",
+      ".gggggg.",
+      "gggGGggg",
+      "gggGGggg",
+      ".gggggg.",
+      "..gggg..",
+    ],
+    star: [
+      "...GG...",
+      "...GG...",
+      "GGGGGGGG",
+      ".GGGGGG.",
+      "..GGGG..",
+      "..GGGG..",
+      ".GG..GG.",
+      ".G....G.",
+    ],
+    calendar: [
+      "RRRRRRRR",
+      "RWWWWWWR",
+      "WWWWWWWW",
+      "WGWGWGWW",
+      "WWWWWWWW",
+      "WGWGWGWW",
+      "WWWWWWWW",
+      "WWWWWWWW",
+    ],
+    door: [
+      ".gggggg.",
+      ".gGGGGg.",
+      ".gGGGGg.",
+      ".gGGGGg.",
+      ".gGGGWg.",
+      ".gGGGGg.",
+      ".gGGGGg.",
+      ".gggggg.",
+    ],
+    redo: [
+      "..WWWW..",
+      ".W....W.",
+      "W.....WW",
+      "W....WWW",
+      "W.....WW",
+      ".W......",
+      "..WWWW..",
+      "........",
+    ],
+    flag: [
+      "GG......",
+      "GRRRRR..",
+      "GRRRRRR.",
+      "GRRRRR..",
+      "G.......",
+      "G.......",
+      "G.......",
+      "GG......",
+    ],
+    check: [
+      "........",
+      ".......N",
+      "......NN",
+      "N....NN.",
+      "NN..NN..",
+      ".NNNN...",
+      "..NN....",
+      "........",
+    ],
+    noads: [
+      "..RRRR..",
+      ".RR..RR.",
+      "RR...RRR",
+      "R...R..R",
+      "R..R...R",
+      "RRR...RR",
+      ".RR..RR.",
+      "..RRRR..",
+    ],
+    lock: [
+      "..gggg..",
+      ".g....g.",
+      ".g....g.",
+      "GGGGGGGG",
+      "GGGDDGGG",
+      "GGGDDGGG",
+      "GGGGGGGG",
+      "GGGGGGGG",
+    ],
+    /* pause: duas barras verticais (substitui "II") */
+    pause: [
+      "........",
+      ".GG..GG.",
+      ".GG..GG.",
+      ".GG..GG.",
+      ".GG..GG.",
+      ".GG..GG.",
+      ".GG..GG.",
+      "........",
+    ],
+    /* left / right: setas de navegação da biblioteca (substitui ‹ ›) */
+    left: [
+      "........",
+      "...G....",
+      "..GG....",
+      ".GGGGGG.",
+      ".GGGGGG.",
+      "..GG....",
+      "...G....",
+      "........",
+    ],
+    right: [
+      "........",
+      "....G...",
+      "....GG..",
+      ".GGGGGG.",
+      ".GGGGGG.",
+      "....GG..",
+      "....G...",
+      "........",
+    ],
+    /* close: X de fechar modal (substitui "X") */
+    close: [
+      "........",
+      ".GG..GG.",
+      "..GGGG..",
+      "...GG...",
+      "...GG...",
+      "..GGGG..",
+      ".GG..GG.",
+      "........",
+    ],
+  },
     UI_C = {
       G: "#f2c14e",
       g: "#a8741f",
@@ -13392,7 +13391,7 @@
         c.className = "wthumb";
         c.getContext("2d").drawImage(nxWorldThumb(i), 0, 0);
         x.insertBefore(c, x.firstChild);
-      } catch (e) {}
+      } catch (e) { }
     });
     host.querySelector("#prepD").textContent = curW().d;
   }
@@ -13660,7 +13659,7 @@
     const browserFallback = () => {
       try {
         if (navigator.vibrate) navigator.vibrate(ms);
-      } catch (e) {}
+      } catch (e) { }
     };
     // Native Capacitor must use the Haptics plugin; navigator.vibrate alone is unreliable in Android WebView.
     if (window.FeHaptics && typeof window.FeHaptics.vibrate === "function") {
@@ -13675,7 +13674,7 @@
           return;
         }
         if (result) return;
-      } catch (e) {}
+      } catch (e) { }
     }
     browserFallback();
   }
@@ -13775,8 +13774,8 @@
         (G.inf
           ? "Sua vigília chegou ao fim."
           : "Faltaram <b>" +
-            fmt(Math.max(0, WIN_T - G.t)) +
-            "</b> para o amanhecer.");
+          fmt(Math.max(0, WIN_T - G.t)) +
+          "</b> para o amanhecer.");
     if (!won && !ret)
       h += '<br><span class="end-tip">Dica: ' + pick(END_TIPS) + "</span>";
     el.innerHTML = h;
@@ -13875,10 +13874,10 @@
     const sdk = window.CrazyGames && window.CrazyGames.SDK;
     let fin = false;
     const start = () => {
-        ADS.busy = true;
-        SFX.on = false;
-        if (musTrk) musTrk.pause();
-      },
+      ADS.busy = true;
+      SFX.on = false;
+      if (musTrk) musTrk.pause();
+    },
       done = () => {
         if (fin) return;
         fin = true;
@@ -14225,7 +14224,7 @@
           try {
             const r = await FeIAP.info(PRODUCTS[key].sku || undefined);
             if (r && r.priceString) Billing.price[key] = r.priceString;
-          } catch (e) {}
+          } catch (e) { }
         }),
       );
     },
@@ -14283,13 +14282,13 @@
       if (!window.FeIAP) return;
       try {
         if (await FeIAP.owned()) Billing.grant("noads");
-      } catch (e) {}
+      } catch (e) { }
       for (const key of Object.keys(PRODUCTS)) {
         const P = PRODUCTS[key];
         if (P.kind !== "once" || !P.sku) continue;
         try {
           if (await FeIAP.owned(P.sku)) Billing.grant(key);
-        } catch (e) {}
+        } catch (e) { }
       }
       try {
         for (const it of (await FeIAP.pending()) || []) {
@@ -14298,9 +14297,9 @@
           Billing.grant(key, it.token);
           try {
             await FeIAP.consume(it.sku);
-          } catch (e) {}
+          } catch (e) { }
         }
-      } catch (e) {}
+      } catch (e) { }
     },
     async restore() {
       if (Billing.busy)
@@ -14364,10 +14363,10 @@
       return deny(
         bt,
         "Faltam " +
-          (cost - save.coins).toLocaleString("pt-BR") +
-          " moedas para desbloquear " +
-          HX[k].name +
-          ".",
+        (cost - save.coins).toLocaleString("pt-BR") +
+        " moedas para desbloquear " +
+        HX[k].name +
+        ".",
       );
     if (!bt.dataset.c) {
       bt.dataset.c = 1;
@@ -14399,10 +14398,10 @@
       return deny(
         bt,
         "Faltam " +
-          (cost - save.coins).toLocaleString("pt-BR") +
-          " moedas para desbloquear o ícone " +
-          it.name +
-          ".",
+        (cost - save.coins).toLocaleString("pt-BR") +
+        " moedas para desbloquear o ícone " +
+        it.name +
+        ".",
       );
     if (!bt.dataset.c) {
       bt.dataset.c = 1;
@@ -14421,7 +14420,7 @@
     persist();
     refreshMeta();
     try {
-    } catch (e) {}
+    } catch (e) { }
     SFX.play("coin");
     buyPop(
       "Ícone desbloqueado",
@@ -14475,9 +14474,9 @@
       main.insertAdjacentHTML(
         "beforeend",
         '<h3 class="shop-h">' +
-          title +
-          "</h3>" +
-          (note ? '<p class="shop-note">' + note + "</p>" : ""),
+        title +
+        "</h3>" +
+        (note ? '<p class="shop-note">' + note + "</p>" : ""),
       );
     const rail = () => {
       const r = document.createElement("div");
@@ -14615,16 +14614,16 @@
             n(STARTER.coins) +
             " moedas | herói Sansão | Deserto de Sur | sem anúncios intersticiais",
           cta: owned
-            ? cta("Adquirido", true, () => {})
+            ? cta("Adquirido", true, () => { })
             : cta(
-                Billing.priceOf("starter") || PRODUCTS.starter.fb,
-                false,
-                async () => {
-                  if (await Billing.buy("starter"))
-                    buyPop("Pacote inicial", "Pacote inicial liberado!");
-                  refresh();
-                },
-              ),
+              Billing.priceOf("starter") || PRODUCTS.starter.fb,
+              false,
+              async () => {
+                if (await Billing.buy("starter"))
+                  buyPop("Pacote inicial", "Pacote inicial liberado!");
+                refresh();
+              },
+            ),
         }),
       );
     }
@@ -14647,7 +14646,7 @@
               artCls: "hero-art",
               title: X.name,
               sub: X.role || "",
-              cta: cta("Desbloqueado", true, () => {}),
+              cta: cta("Desbloqueado", true, () => { }),
             }),
           );
           return;
@@ -14659,7 +14658,7 @@
               artCls: "hero-art",
               title: X.name,
               sub: "Conquiste em jogo",
-              cta: cta("Em breve", true, () => {}),
+              cta: cta("Em breve", true, () => { }),
             }),
           );
           return;
@@ -14686,8 +14685,8 @@
       head(
         "Skins de heróis",
         "Cada skin custa " +
-          n(SK_PRICE_DEFAULT) +
-          " moedas e traz um ícone de perfil exclusivo. Equipe aqui ou na tela de herói.",
+        n(SK_PRICE_DEFAULT) +
+        " moedas e traz um ícone de perfil exclusivo. Equipe aqui ou na tela de herói.",
       );
       const r = rail();
       Object.keys(HX).forEach((k) => {
@@ -14702,9 +14701,9 @@
             bt = cta(
               '<span class="uic i-lock"></span> Requer ' + X.name,
               true,
-              () => {},
+              () => { },
             );
-          else if (eq) bt = cta("Em uso", true, () => {});
+          else if (eq) bt = cta("Em uso", true, () => { });
           else if (own)
             bt = cta("Equipar", false, () => {
               skEquip(k, d.id);
@@ -14757,7 +14756,7 @@
             bt = cta(html, save.coins < cost ? "dim" : false, () =>
               buyIconShop(it, bt, html, cost, refresh),
             );
-          } else if (P.icon === it.id) bt = cta("Em uso", true, () => {});
+          } else if (P.icon === it.id) bt = cta("Em uso", true, () => { });
           else
             bt = cta("Usar no perfil", false, () => {
               P.icon = it.id;
@@ -14776,7 +14775,7 @@
                 ? "Desbloqueado"
                 : it.cat === "demon"
                   ? FE_CONTENT.libraryTips[it.id] ||
-                    "Ícone de demônio para seu perfil."
+                  "Ícone de demônio para seu perfil."
                   : "",
               cta: bt,
             }),
@@ -15440,14 +15439,14 @@
       ch = Math.min(
         sp.h,
         pad.y +
-          Math.min(h0, Math.max(8, Math.round(Math.min(w0, h0 * 0.55) * 1.05))),
+        Math.min(h0, Math.max(8, Math.round(Math.min(w0, h0 * 0.55) * 1.05))),
       );
     if (w0 <= ch * 1.1) return { cw: sp.w, ch, x0: 0 };
     let cx = sp.w >> 1;
     try {
       const A = skDetect(skFromSprite(sp));
       if (A) cx = A.hx;
-    } catch (e) {}
+    } catch (e) { }
     const cw = Math.min(sp.w, Math.round(ch * 1.15));
     return {
       cw,
@@ -15870,10 +15869,10 @@
       grid = p.ov.querySelector(".pf-pick-grid"),
       L = profIconList();
     const CATS = [
-        ["hero", "Heróis"],
-        ["demon", "Demônios"],
-        ["boss", "Chefes"],
-      ],
+      ["hero", "Heróis"],
+      ["demon", "Demônios"],
+      ["boss", "Chefes"],
+    ],
       n = (v) => v.toLocaleString("pt-BR");
     tabs.innerHTML = "";
     grid.innerHTML = "";
@@ -15921,8 +15920,8 @@
         bt.insertAdjacentHTML(
           "beforeend",
           '<span class="pf-ico-price"><span class="uic i-coin"></span> ' +
-            n(cost) +
-            "</span>",
+          n(cost) +
+          "</span>",
         );
       bt.onclick = () => {
         if (lk)
@@ -15930,10 +15929,10 @@
             bt,
             it.skin
               ? "Compre a skin " +
-                  it.name +
-                  " na Loja (" +
-                  n(cost) +
-                  " moedas) para usar este ícone."
+              it.name +
+              " na Loja (" +
+              n(cost) +
+              " moedas) para usar este ícone."
               : it.cat === "hero"
                 ? "Libere o herói " + it.name + " para usar este ícone."
                 : "Compre este ícone na Loja por " + n(cost) + " moedas.",
@@ -16038,7 +16037,7 @@
       try {
         inp.focus();
         inp.select();
-      } catch (e) {}
+      } catch (e) { }
     }, 60);
     return inp;
   }
@@ -16081,7 +16080,7 @@
       profBtnSync();
       try {
         starterMenu();
-      } catch (e) {}
+      } catch (e) { }
     };
     profNameForm(ov.querySelector(".pf-wel-form"), {
       value: "",
@@ -16389,8 +16388,8 @@
           t.insertAdjacentHTML(
             "beforeend",
             '<i class="bar"><u style="width:' +
-              Math.max(0, Math.min(100, bar)) +
-              '%"></u></i>',
+            Math.max(0, Math.min(100, bar)) +
+            '%"></u></i>',
           );
         gr.appendChild(t);
       }
@@ -16590,17 +16589,17 @@
     unlock(id) {
       try {
         if (window.FePGS) FePGS.unlock(id);
-      } catch (e) {}
+      } catch (e) { }
     },
     submit(k, v) {
       try {
         if (window.FePGS) FePGS.submit(k, v);
-      } catch (e) {}
+      } catch (e) { }
     },
     sync() {
       try {
         for (const id in save.ach) PGS.unlock(id);
-      } catch (e) {}
+      } catch (e) { }
     },
   };
   addEventListener("fepgs", () => {
@@ -16642,25 +16641,25 @@
       '</b></span></div><div class="hdg">SUAS MELHORES PARTIDAS</div>' +
       (top.length
         ? top
-            .map(
-              (r, i) =>
-                '<div class="rw"><span><b>' +
-                (i + 1) +
-                ". " +
-                fmt(r.t) +
-                "</b>" +
-                (r.w ? " (vitória)" : "") +
-                "<small>" +
-                r.k +
-                " abates | nível " +
-                r.l +
-                " | " +
-                ((HEROES[r.h] || {}).name || r.h) +
-                " | " +
-                fmtDate(r.d) +
-                "</small></span></div>",
-            )
-            .join("")
+          .map(
+            (r, i) =>
+              '<div class="rw"><span><b>' +
+              (i + 1) +
+              ". " +
+              fmt(r.t) +
+              "</b>" +
+              (r.w ? " (vitória)" : "") +
+              "<small>" +
+              r.k +
+              " abates | nível " +
+              r.l +
+              " | " +
+              ((HEROES[r.h] || {}).name || r.h) +
+              " | " +
+              fmtDate(r.d) +
+              "</small></span></div>",
+          )
+          .join("")
         : '<div class="rw"><span><small>Jogue uma partida para registrar seus recordes.</small></span></div>') +
       '<div class="hdg">GOOGLE PLAY GAMES</div><div id="rkGp"></div>';
     const box = b.querySelector("#rkGp");
@@ -16689,7 +16688,7 @@
             if (!ok)
               notify(
                 "Não foi possível entrar agora. Tente de novo mais tarde." +
-                  (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
+                (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
                 "warn",
               );
             else {
@@ -16705,7 +16704,7 @@
       if (!ok)
         notify(
           "Não foi possível abrir o Google Play Games." +
-            (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
+          (FePGS.lastError ? " [" + FePGS.lastError + "]" : ""),
           "warn",
         );
     };
@@ -16760,10 +16759,10 @@
       '</div><div class="row"><button type="button" class="btn" id="rtYes">Avaliar</button><button type="button" class="btn alt" id="rtNo">Agora não</button></div></div>';
     gameEl.appendChild(o);
     const close = (done) => {
-        save.rate.n = done ? RATE_AT.length : (save.rate.n || 0) + 1;
-        persist();
-        o.remove();
-      },
+      save.rate.n = done ? RATE_AT.length : (save.rate.n || 0) + 1;
+      persist();
+      o.remove();
+    },
       go = () => {
         close(true);
         if (window.FeReview) FeReview.store();
@@ -16982,11 +16981,11 @@
               : 0;
         const delta = dl
           ? '<i class="d' +
-            (dl < 0 ? " neg" : "") +
-            '">' +
-            (dl > 0 ? "+" : "−") +
-            statValue(k, Math.abs(dl)) +
-            "</i>"
+          (dl < 0 ? " neg" : "") +
+          '">' +
+          (dl > 0 ? "+" : "−") +
+          statValue(k, Math.abs(dl)) +
+          "</i>"
           : "";
         return (
           '<div class="st-r"><span class="st-lbl">' +
@@ -17122,7 +17121,7 @@
       AIM.sy = VH / 2; // sem arrastar: atira para a frente
       try {
         cv.setPointerCapture(e.pointerId);
-      } catch (x) {}
+      } catch (x) { }
       stick2.style.left = e.clientX - r.left + "px";
       stick2.style.top = e.clientY - r.top + "px";
       stick2.hidden = false;
@@ -17137,7 +17136,7 @@
     stick.dx = stick.dy = 0;
     try {
       cv.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    } catch (x) { }
     const el = $("#stick");
     el.style.left = e.clientX - r.left + "px";
     el.style.top = e.clientY - r.top + "px";
@@ -17249,7 +17248,7 @@
       for (const s of document.styleSheets) {
         try {
           strip(s);
-        } catch (e) {}
+        } catch (e) { }
       }
       /* sem hover, a dica do item aparece ao tocar nele */
       document.addEventListener("click", (e) => {
@@ -17265,9 +17264,9 @@
           IS_NATIVE && Capacitor.Plugins && Capacitor.Plugins.SystemBars;
         if (SB && SB.hide) {
           const p = SB.hide();
-          if (p && p.catch) p.catch(() => {});
+          if (p && p.catch) p.catch(() => { });
         }
-      } catch (e) {}
+      } catch (e) { }
     };
     immersive();
     document.addEventListener("visibilitychange", () => {
@@ -17304,19 +17303,19 @@
     const BOOT_SCENE_COUNT = 21;
     const bootScenes =
       ASSET_MANIFEST.loading &&
-      ASSET_MANIFEST.loading.scenes &&
-      ASSET_MANIFEST.loading.scenes.length
+        ASSET_MANIFEST.loading.scenes &&
+        ASSET_MANIFEST.loading.scenes.length
         ? ASSET_MANIFEST.loading.scenes.map((x) => ({
-            video: x.video ? ASSET_DIR + x.video : "",
-            image: x.image ? ASSET_DIR + x.image : "",
-          }))
+          video: x.video ? ASSET_DIR + x.video : "",
+          image: x.image ? ASSET_DIR + x.image : "",
+        }))
         : Array.from({ length: BOOT_SCENE_COUNT }, (_, i) => {
-            const id = "loading/loading_" + String(i + 1).padStart(2, "0");
-            return {
-              video: ASSET_DIR + id + ".mp4",
-              image: ASSET_DIR + id + ".png",
-            };
-          });
+          const id = "loading/loading_" + String(i + 1).padStart(2, "0");
+          return {
+            video: ASSET_DIR + id + ".mp4",
+            image: ASSET_DIR + id + ".png",
+          };
+        });
     let bootIdx = Math.floor(Math.random() * bootScenes.length);
     try {
       /* não repete a cena da abertura anterior */
@@ -17326,7 +17325,7 @@
           (bootIdx + 1 + Math.floor(Math.random() * (bootScenes.length - 1))) %
           bootScenes.length;
       localStorage.setItem("fe_bootScene", String(bootIdx));
-    } catch (e) {}
+    } catch (e) { }
     const scene = bootScenes[bootIdx],
       artEl = $("#bootArt");
     /* 1) imagem (fallback e fundo enquanto o vídeo carrega) */
@@ -17343,9 +17342,9 @@
       vidTimers = [],
       vidStarted = false;
     const vidClear = () => {
-        vidTimers.forEach(clearTimeout);
-        vidTimers = [];
-      },
+      vidTimers.forEach(clearTimeout);
+      vidTimers = [];
+    },
       killVideo = () => {
         vidClear();
         if (!bootVid) return;
@@ -17353,7 +17352,7 @@
           bootVid.pause();
           bootVid.removeAttribute("src");
           bootVid.load();
-        } catch (e) {}
+        } catch (e) { }
         bootVid.remove();
         bootVid = null;
       };
@@ -17448,11 +17447,11 @@
           if (G2.signed) return res(true);
           let done = 0;
           const fin = (ok) => {
-              if (!done) {
-                done = 1;
-                res(ok);
-              }
-            },
+            if (!done) {
+              done = 1;
+              res(ok);
+            }
+          },
             to = setTimeout(() => fin(!!G2.signed), 10000);
           addEventListener(
             "fepgs",
@@ -17523,7 +17522,7 @@
             syncNewsBadge();
             if (newsIsUnread() && !TUT.on) openNewsModal();
             else profWelcomeMaybe();
-          } catch (e) {}
+          } catch (e) { }
         }, 650);
       }, 350);
     };
@@ -17625,11 +17624,11 @@
         return a.t < a.tel
           ? W[a.t < a.tel * 0.55 ? 0 : 1]
           : T[
-              Math.min(
-                T.length - 1,
-                Math.floor(((a.t - a.tel) / a.dur) * T.length),
-              )
-            ];
+          Math.min(
+            T.length - 1,
+            Math.floor(((a.t - a.tel) / a.dur) * T.length),
+          )
+          ];
       if (a.k === "spiral") return T[Math.floor(t * 9) % T.length];
       if (a.k === "blink") return W[1];
     }
@@ -17706,8 +17705,8 @@
       if (!def || EA_CFG.handDrawn.includes(k) || !A.loop || A.std) continue;
       if (A2.boss && A2.boss[k]) continue;
       const arch =
-          EA_CFG.archetypes[k] ||
-          (def.fly ? "fly" : def.mv === "wave" ? "spirit" : "ground"),
+        EA_CFG.archetypes[k] ||
+        (def.fly ? "fly" : def.mv === "wave" ? "spirit" : "ground"),
         ST = EA_CFG.states[arch],
         L = A.loop,
         L0 = L[0],
@@ -17724,12 +17723,12 @@
         T
           ? mk(T[0], AT.followFromAttack)
           : mk(L0, {
-              sx: AT.follow.sx,
-              sy: AT.follow.sy,
-              lean: lg.lean + AT.follow.leanDelta,
-              dx: (lg.dx || 0) + AT.follow.dxDelta,
-              dy: lg.dy || 0,
-            }),
+            sx: AT.follow.sx,
+            sy: AT.follow.sy,
+            lean: lg.lean + AT.follow.leanDelta,
+            dx: (lg.dx || 0) + AT.follow.dxDelta,
+            dy: lg.dy || 0,
+          }),
         mk(L0, AT.recover),
       ];
       if (W && W.length === 1) attack[1] = mk(W[0], AT.anticipateSolo);
@@ -18981,27 +18980,27 @@
     const dash = e.ab === "dash",
       C = dash
         ? {
-            mn: 36,
-            mx: 150,
-            tel: 0.55,
-            dur: 0.4,
-            spd: 215,
-            rec: 0.75,
-            c0: 3.4,
-            c1: 4.8,
-            wk: 0.8,
-          }
+          mn: 36,
+          mx: 150,
+          tel: 0.55,
+          dur: 0.4,
+          spd: 215,
+          rec: 0.75,
+          c0: 3.4,
+          c1: 4.8,
+          wk: 0.8,
+        }
         : {
-            mn: 60,
-            mx: 170,
-            tel: 0.5,
-            dur: 0.5,
-            spd: 185,
-            rec: 0.55,
-            c0: 3,
-            c1: 4.2,
-            wk: 1,
-          };
+          mn: 60,
+          mx: 170,
+          tel: 0.5,
+          dur: 0.5,
+          spd: 185,
+          rec: 0.55,
+          c0: 3,
+          c1: 4.2,
+          wk: 1,
+        };
     const a = e.ai || (e.ai = { st: 0, t: rnd(1.2, 2.5), ang: 0, gh: 0 });
     a.t -= dt;
     if (a.st === 0) {
@@ -19120,9 +19119,9 @@
       }
       case "flank": {
         const k =
-            clamp((d - 26) / 110, 0, 1) *
-            0.7 *
-            (Math.sin(e.ph * 7) > 0 ? 1 : -1),
+          clamp((d - 26) / 110, 0, 1) *
+          0.7 *
+          (Math.sin(e.ph * 7) > 0 ? 1 : -1),
           c = Math.cos(k),
           s = Math.sin(k);
         return [(ux * c - uy * s) * sp, (ux * s + uy * c) * sp];
@@ -20928,9 +20927,9 @@
     return (
       d[i + 3] > 0 &&
       Math.abs(d[i] - SK_OUT[0]) +
-        Math.abs(d[i + 1] - SK_OUT[1]) +
-        Math.abs(d[i + 2] - SK_OUT[2]) <=
-        18
+      Math.abs(d[i + 1] - SK_OUT[1]) +
+      Math.abs(d[i + 2] - SK_OUT[2]) <=
+      18
     );
   }
   /* acha cabeça (topo do cabelo e centro) e pés; "unit" = espessura do contorno = tamanho do pixel de arte */
@@ -21345,10 +21344,10 @@
       return deny(
         bt,
         "Faltam " +
-          (cost - save.coins).toLocaleString("pt-BR") +
-          " moedas para a skin " +
-          d.name +
-          ".",
+        (cost - save.coins).toLocaleString("pt-BR") +
+        " moedas para a skin " +
+        d.name +
+        ".",
       );
     if (!bt.dataset.c) {
       bt.dataset.c = 1;
@@ -21371,9 +21370,9 @@
     buyPop(
       "Skin desbloqueada",
       d.name +
-        " já está equipada em " +
-        HX[h].name +
-        ". O ícone de perfil da skin também foi liberado.",
+      " já está equipada em " +
+      HX[h].name +
+      ". O ícone de perfil da skin também foi liberado.",
       "star",
     );
     done && done();
@@ -21735,11 +21734,11 @@
       if (!happy)
         try {
           g.filter = "grayscale(.5) brightness(.85)";
-        } catch (e) {}
+        } catch (e) { }
       g.drawImage(s.c, hx, hy, dw, dh);
       try {
         g.filter = "none";
-      } catch (e) {}
+      } catch (e) { }
       if (!fx) return;
       const top = hy / u,
         mid = top + dh / (2 * u);
@@ -22067,9 +22066,9 @@
         H = HFR[k];
       if (!H || !S.hero[k] || S.hero[k][0] !== H.base0) return;
       const sp =
-          hMenuT % 6 === 5
-            ? H.act
-            : H.idle[H.v2 ? hMenuT % H.idle.length : hMenuT & 1],
+        hMenuT % 6 === 5
+          ? H.act
+          : H.idle[H.v2 ? hMenuT % H.idle.length : hMenuT & 1],
         x = c.getContext("2d");
       x.clearRect(0, 0, c.width, c.height);
       x.drawImage(
@@ -22141,7 +22140,7 @@
       if (SFX.last[key] && now - SFX.last[key] < 110) return;
       SFX.last[key] = now;
       NX_SND[n] && NX_SND[n]();
-    } catch (e) {}
+    } catch (e) { }
   }
   const nxTree = (id) => {
     const t = G && G.weaponTrees && G.weaponTrees[id];
@@ -22349,10 +22348,10 @@
       tide = tr.p === "tide";
     w.cd = s.cd * m.cd * (tide && tr.t ? 0.85 : 1);
     const wall =
-        s.wall *
-        (tide ? (tr.t ? 1.45 : 1.25) : 1) *
-        (ev ? 1.25 : 1) *
-        (m.area || 1),
+      s.wall *
+      (tide ? (tr.t ? 1.45 : 1.25) : 1) *
+      (ev ? 1.25 : 1) *
+      (m.area || 1),
       speed = s.speed * (m.pspd || 1) * (tide ? 1.15 : 1),
       dist = s.dist * (1 + (m.rng - 90) / 400);
     const dmg = s.dmg * m.dmg,
@@ -22514,11 +22513,11 @@
     }
     w.cd = s.cd * m.cd;
     const n = Math.min(
-        7,
-        (ev
-          ? Math.max(3, s.count + 1)
-          : s.count + (tr.p === "twin" ? (tr.t ? 2 : 1) : 0)) + amountBonus(m),
-      ),
+      7,
+      (ev
+        ? Math.max(3, s.count + 1)
+        : s.count + (tr.p === "twin" ? (tr.t ? 2 : 1) : 0)) + amountBonus(m),
+    ),
       a0 = Math.atan2(list[0].y - p.y, list[0].x - p.x);
     const reach = s.reach * (1 + (m.rng - 90) / 320) * (ev ? 1.15 : 1),
       heavy = tr.p === "heavy",
@@ -22902,10 +22901,10 @@
     w.cd = s.cd * m.cd;
     const n = Math.min(6, s.count + (ev ? 1 : 0) + amountBonus(m));
     const dur =
-        s.dur *
-        (heroWeaponMods.durationMultiplier || 1) *
-        (ev ? 1.2 : 1) *
-        (m.duration || 1),
+      s.dur *
+      (heroWeaponMods.durationMultiplier || 1) *
+      (ev ? 1.2 : 1) *
+      (m.duration || 1),
       r =
         s.r *
         (heroWeaponMods.radiusMultiplier || 1) *
@@ -23069,9 +23068,9 @@
     }
     w.cd = s.cd * m.cd * (ev ? 0.9 : 1);
     const nets = Math.min(
-        4,
-        1 + (tr.p === "cast" ? (tr.t ? 2 : 1) : 0) + amountBonus(m),
-      ),
+      4,
+      1 + (tr.p === "cast" ? (tr.t ? 2 : 1) : 0) + amountBonus(m),
+    ),
       used = [],
       rad =
         s.r *
@@ -23095,9 +23094,9 @@
       if (!best) break;
       used.push(best);
       const hold =
-          (s.hold + (tr.p === "tight" && tr.t ? 0.6 : 0)) *
-          (ev ? 1.4 : 1) *
-          (m.duration || 1),
+        (s.hold + (tr.p === "tight" && tr.t ? 0.6 : 0)) *
+        (ev ? 1.4 : 1) *
+        (m.duration || 1),
         haul = tr.p === "haul" || ev ? (tr.t || ev ? 2 : 1) : 0;
       g.fx.push({
         wid: damageSrc || null,
@@ -23264,8 +23263,8 @@
       n = Math.min(
         WT.maxLashes,
         s.count +
-          (cr >= 0 ? WT.cords.lashes[cr] : 0) +
-          (ev ? WT.supremeExtraLashes : 0),
+        (cr >= 0 ? WT.cords.lashes[cr] : 0) +
+        (ev ? WT.supremeExtraLashes : 0),
       );
     for (let i = 0; i < n; i++)
       g.fx.push({
@@ -23499,9 +23498,9 @@
     }
     w.cd = s.cd * m.cd;
     const waves = Math.min(
-        4,
-        s.waves + (tr.p === "wheel" ? (tr.t ? 2 : 1) : 0) + (ev ? 1 : 0),
-      ),
+      4,
+      s.waves + (tr.p === "wheel" ? (tr.t ? 2 : 1) : 0) + (ev ? 1 : 0),
+    ),
       half = 0.72 * (m.duration || 1),
       burn = tr.p === "burn" || ev;
     for (let i = 0; i < waves; i++)
@@ -23535,9 +23534,9 @@
       f.hit = new Set();
     }
     const k = Math.max(
-        0,
-        Math.min(1, f.back ? (f.life - f.t) / f.half : f.t / f.half),
-      ),
+      0,
+      Math.min(1, f.back ? (f.life - f.t) / f.half : f.t / f.half),
+    ),
       ease = 1 - (1 - k) * (1 - k);
     f.r = 4 + (f.maxr - 4) * ease;
     for (const e of g.enemies) {
@@ -23709,11 +23708,11 @@
       ev = nxHas(id),
       n = ev ? 7 : Math.min(7, s.beams + amountBonus(m));
     const len =
-        s.range *
-        (tr.p === "radiance" ? (tr.t ? 1.5 : 1.3) : 1) *
-        (ev ? 1.25 : 1) *
-        (1 + (m.rng - 90) / 500) *
-        (m.area || 1),
+      s.range *
+      (tr.p === "radiance" ? (tr.t ? 1.5 : 1.3) : 1) *
+      (ev ? 1.25 : 1) *
+      (1 + (m.rng - 90) / 500) *
+      (m.area || 1),
       wid =
         3.2 * (tr.p === "radiance" ? (tr.t ? 1.7 : 1.35) : 1) * (m.area || 1);
     return { n, len, wid, tr, ev, rev: tr.p === "revolve" };
@@ -24087,7 +24086,7 @@
         if (free) rrb.innerHTML = "Novas Bênçãos (" + g.hm.rr + " grátis)";
         else if (rrb.dataset.nxd) rrb.innerHTML = rrb.dataset.nxd;
       }
-    } catch (e) {}
+    } catch (e) { }
     refreshChoiceToolUI();
   };
   rrb.dataset.nxd = rrb.innerHTML;
@@ -24537,8 +24536,8 @@
           dirty = true;
           toast(
             "Evolução Suprema pronta: " +
-              NX_EVO[id].n +
-              "! Ela aparece na próxima Arca",
+            NX_EVO[id].n +
+            "! Ela aparece na próxima Arca",
           );
           SFX.play("level");
         }
@@ -24597,17 +24596,17 @@
       D.evo.push([
         "Evolução Suprema",
         E.n +
-          " — " +
-          E.d +
-          " Requer: " +
-          PASSIVES[E.dom].name +
-          " Nv " +
-          NXV.domLv +
-          "+ | " +
-          WEAPONS[e.id].name +
-          " Nv " +
-          MAXW +
-          ". A Arca revela a evolução.",
+        " — " +
+        E.d +
+        " Requer: " +
+        PASSIVES[E.dom].name +
+        " Nv " +
+        NXV.domLv +
+        "+ | " +
+        WEAPONS[e.id].name +
+        " Nv " +
+        MAXW +
+        ". A Arca revela a evolução.",
       ]);
     }
     return D;
@@ -24996,43 +24995,43 @@
     IS_NATIVE || !/[?&]debug\b/.test(location.search)
       ? null
       : {
-          NX_EVO,
-          NX_SIG,
-          nxEligible,
-          nxApplyEvo,
-          nxCarmel,
-          nxWaters,
-          nxDecree,
-          nxState,
-          WEAPONS,
-          PASSIVES,
-          EVOLUTION_TREES,
-          HX,
-          HU,
-          statsFor,
-          addWeapon,
-          MAXW,
-          rollChoices,
-          get curChoices() {
-            return curChoices;
-          },
-          get SLOT_W() {
-            return SLOT_W;
-          },
-          get LV_LOCK() {
-            return LV_LOCK;
-          },
-          openLevelUp,
-          spawnEnemy,
-          draw: () => draw(),
-          buildHTML,
-          buildRack,
-          FXR,
-          libEntries,
-          libDetail,
-          iconURL,
-          evolutionIconURL,
-        };
+        NX_EVO,
+        NX_SIG,
+        nxEligible,
+        nxApplyEvo,
+        nxCarmel,
+        nxWaters,
+        nxDecree,
+        nxState,
+        WEAPONS,
+        PASSIVES,
+        EVOLUTION_TREES,
+        HX,
+        HU,
+        statsFor,
+        addWeapon,
+        MAXW,
+        rollChoices,
+        get curChoices() {
+          return curChoices;
+        },
+        get SLOT_W() {
+          return SLOT_W;
+        },
+        get LV_LOCK() {
+          return LV_LOCK;
+        },
+        openLevelUp,
+        spawnEnemy,
+        draw: () => draw(),
+        buildHTML,
+        buildRack,
+        FXR,
+        libEntries,
+        libDetail,
+        iconURL,
+        evolutionIconURL,
+      };
 
   /* ================= v0.50: Mundos com identidade própria =================
      Cada mundo agora tem terreno, decoração, luz/sombras, clima, inimigo exclusivo e um evento próprio:
@@ -26606,10 +26605,10 @@
           gr.addColorStop(
             0,
             "rgba(" +
-              col +
-              "," +
-              (wi === 1 ? 0.1 : wi === 2 ? 0.13 : 0.24) +
-              ")",
+            col +
+            "," +
+            (wi === 1 ? 0.1 : wi === 2 ? 0.13 : 0.24) +
+            ")",
           );
           gr.addColorStop(1, "rgba(" + col + ",0)");
           c.fillStyle = gr;
@@ -26767,12 +26766,12 @@
       const N = fx ? 44 : 14;
       for (let i = 0; i < N; i++) {
         const x =
-            (((hz(i, 1) * VW +
-              Math.sin(T * 0.5 + i) * 10 -
-              camx * (0.3 + hz(i, 5) * 0.4)) %
-              VW) +
-              VW) %
-            VW,
+          (((hz(i, 1) * VW +
+            Math.sin(T * 0.5 + i) * 10 -
+            camx * (0.3 + hz(i, 5) * 0.4)) %
+            VW) +
+            VW) %
+          VW,
           y =
             (((hz(i, 3) * VH + T * (7 + hz(i, 2) * 12) - camy * 0.2) % VH) +
               VH) %
@@ -27199,7 +27198,7 @@
           NXA.report.ok.push(nm);
           return;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     NXA.report.miss.push(def.f);
   }
@@ -27214,7 +27213,7 @@
           "| usando som sintetizado:",
           NXA.report.miss.join(", ") || "(nenhum)",
         );
-      } catch (e) {}
+      } catch (e) { }
     });
   }
   const _nxaInit = SFX.init;
@@ -27250,9 +27249,9 @@
     if (NXA.active >= NXA.maxVoices && def.pri < 4) return "skip";
     NXA.lastT[ev] = now;
     const rate = Math.max(
-        0.4,
-        Math.min(2.4, o.rate != null ? o.rate : nxaRate(def, ev)),
-      ),
+      0.4,
+      Math.min(2.4, o.rate != null ? o.rate : nxaRate(def, ev)),
+    ),
       t = c.currentTime + (o.delay || 0),
       dur = A.dur / rate;
     const src = c.createBufferSource();
@@ -27558,7 +27557,7 @@
         o.rate =
           (0.94 +
             0.12 *
-              Math.max(0, Math.min(1, g.p.hp / Math.max(1, g.mods.maxhp)))) *
+            Math.max(0, Math.min(1, g.p.hp / Math.max(1, g.mods.maxhp)))) *
           (1 + (Math.random() - 0.5) * 0.05);
     },
     footstep(o) {
@@ -27596,8 +27595,8 @@
         o.gain = 0.7;
       }
     },
-    victory() {},
-    defeat() {},
+    victory() { },
+    defeat() { },
   };
   const NXA_LAYER = {
     boss_alert() {
@@ -27656,7 +27655,7 @@
         nxaGo(ev, o);
         return;
       }
-    } catch (e) {}
+    } catch (e) { }
     return _nxaPlay.call(this, n);
   };
   NXA.cT = -9;
@@ -27688,10 +27687,10 @@
   const _nxaCI = chooseIdx;
   chooseIdx = function (i) {
     const banishing = !!(
-        G &&
-        G.choiceTools &&
-        G.choiceTools.action === "banish"
-      ),
+      G &&
+      G.choiceTools &&
+      G.choiceTools.action === "banish"
+    ),
       c =
         !banishing && state === "levelup" && performance.now() >= LV_LOCK
           ? curChoices[i]
@@ -27795,7 +27794,7 @@
     if (G && !G.over && G.p) {
       try {
         nxaWorld(dt);
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -27834,7 +27833,7 @@
       a._f = from + (to - from) * k;
       try {
         a.volume = clamp(save.set.mvol * nxMusMul(a), 0, 1);
-      } catch (e) {}
+      } catch (e) { }
       if (k >= 1) {
         clearInterval(a._fi);
         if (done) done();
@@ -27850,7 +27849,7 @@
       if (musTrk) {
         try {
           musTrk.volume = clamp(save.set.mvol * nxMusMul(musTrk), 0, 1);
-        } catch (e) {}
+        } catch (e) { }
       }
     };
     apply();
@@ -27935,151 +27934,151 @@
   }
   try {
     syncNewsBadge();
-  } catch (e) {}
+  } catch (e) { }
   bootScreen();
   window.__dbg =
     IS_NATIVE || !/[?&]debug\b/.test(location.search)
       ? {
-          get state() {
-            return state;
-          },
-        } /* sem ?debug: só o estado (botão Voltar do app) */
+        get state() {
+          return state;
+        },
+      } /* sem ?debug: só o estado (botão Voltar do app) */
       : {
-          /* ganchos de teste da economia (só com ?debug no navegador; nunca no app nativo) */
-          eco: {
-            ECO,
-            PRODUCTS,
-            STARTER,
-            grant: (k, t, f) => Billing.grant(k, t, f),
-            coinMul,
-            mapCoinMul,
-            runCoinMul,
-            vigFactor,
-            ecoGain,
-            harvestTick,
-            runCoins,
-            runCoinsRaw,
-            dailyBonus,
-            adGoldUsed,
-            wOpen,
-            worldHint,
-            ecoReport,
-            skipXpAmount,
-            offerShown,
-            newRun: (h) => newRun(h),
-            dayKey: () => dayKey(),
-            yday: (k) => yday(k),
-            endRun: (w, r, q) =>
-              _erD(
-                w,
-                r,
-                q,
-              ) /* encerra direto (sem as animações de morte/amanhecer) */,
-            checkAch: () => checkAch(),
-            snapPre: (g) => snapPre(g),
-            doRevive: () => doRevive(),
-            startDaily: () => startDaily(),
-            get G() {
-              return G;
-            },
-            get RUN() {
-              return RUN;
-            },
-            WORLDS,
-          },
-          solidAt,
-          seed: (n) => {
-            _rg = mul(n);
-            _rf = mul(n ^ 0x9e3779b9);
-          },
-          unseed: () => {
-            _rg = _rf = Math.random;
-          },
-          unlockInf: () => {
-            save.winH = save.winH || {};
-            save.winH.davi = 1;
-            persist();
-            return "Vigília liberada";
-          },
-          lockInf: () => {
-            save.winH = {};
-            persist();
-            return "Vigília bloqueada";
-          },
-          useAct: (i) => useAct(i),
-          get choices() {
-            return curChoices;
-          },
-          get slots() {
-            return [SLOT_W, SLOT_P, MAXA];
-          },
-          bossTime: (i) => bossTime(i),
-          get save() {
-            return save;
-          },
-          HEROES,
-          WORLDS,
-          RUN,
-          WIN_T,
-          BOSS_T,
-          MAXW,
-          SLOT_W,
-          SLOT_P,
-          ACT,
-          stick,
-          goRun: (p) => goRun(p),
-          setHero: (h) => {
-            selHero = h;
-          },
-          toMenu: () => {
-            state = "menu";
-            G = null;
-          },
-          recalc: () => recalc(),
-          get ACH() {
-            return ACH;
-          },
-          get S() {
-            return S;
-          },
-          ICONS,
-          UI_URL,
-          ASSET_LOG,
+        /* ganchos de teste da economia (só com ?debug no navegador; nunca no app nativo) */
+        eco: {
+          ECO,
+          PRODUCTS,
+          STARTER,
+          grant: (k, t, f) => Billing.grant(k, t, f),
+          coinMul,
+          mapCoinMul,
+          runCoinMul,
+          vigFactor,
+          ecoGain,
+          harvestTick,
+          runCoins,
+          runCoinsRaw,
+          dailyBonus,
+          adGoldUsed,
+          wOpen,
+          worldHint,
+          ecoReport,
+          skipXpAmount,
+          offerShown,
+          newRun: (h) => newRun(h),
+          dayKey: () => dayKey(),
+          yday: (k) => yday(k),
+          endRun: (w, r, q) =>
+            _erD(
+              w,
+              r,
+              q,
+            ) /* encerra direto (sem as animações de morte/amanhecer) */,
+          checkAch: () => checkAch(),
+          snapPre: (g) => snapPre(g),
+          doRevive: () => doRevive(),
+          startDaily: () => startDaily(),
           get G() {
             return G;
           },
-          get state() {
-            return state;
+          get RUN() {
+            return RUN;
           },
-          startRun,
-          chooseIdx,
-          setT: (t) => {
-            if (G) G.t = t;
-          },
-          update: (dt) => update(dt),
-          perfLvl: (n) => {
-            PERF.lvl = n | 0;
-            PERF.off = n != null;
-          },
-          perf: () => PERF,
-          updHud: () => updHud(),
-          dblSetup: (n) => dblSetup(n),
-          grantTest: (k, t, f) => Billing.grant(k, t, f),
-          tapXY: (x, y) => {
-            const r = cv.getBoundingClientRect();
-            return {
-              x: r.left + ((x - camx) / VW) * r.width,
-              y: r.top + ((y - camy) / VH) * r.height,
-            };
-          },
-          keys,
-          gainAct,
-          buildActs,
-          buildRack,
-          openLevelUp,
-          toast,
-          notify,
-        };
+          WORLDS,
+        },
+        solidAt,
+        seed: (n) => {
+          _rg = mul(n);
+          _rf = mul(n ^ 0x9e3779b9);
+        },
+        unseed: () => {
+          _rg = _rf = Math.random;
+        },
+        unlockInf: () => {
+          save.winH = save.winH || {};
+          save.winH.davi = 1;
+          persist();
+          return "Vigília liberada";
+        },
+        lockInf: () => {
+          save.winH = {};
+          persist();
+          return "Vigília bloqueada";
+        },
+        useAct: (i) => useAct(i),
+        get choices() {
+          return curChoices;
+        },
+        get slots() {
+          return [SLOT_W, SLOT_P, MAXA];
+        },
+        bossTime: (i) => bossTime(i),
+        get save() {
+          return save;
+        },
+        HEROES,
+        WORLDS,
+        RUN,
+        WIN_T,
+        BOSS_T,
+        MAXW,
+        SLOT_W,
+        SLOT_P,
+        ACT,
+        stick,
+        goRun: (p) => goRun(p),
+        setHero: (h) => {
+          selHero = h;
+        },
+        toMenu: () => {
+          state = "menu";
+          G = null;
+        },
+        recalc: () => recalc(),
+        get ACH() {
+          return ACH;
+        },
+        get S() {
+          return S;
+        },
+        ICONS,
+        UI_URL,
+        ASSET_LOG,
+        get G() {
+          return G;
+        },
+        get state() {
+          return state;
+        },
+        startRun,
+        chooseIdx,
+        setT: (t) => {
+          if (G) G.t = t;
+        },
+        update: (dt) => update(dt),
+        perfLvl: (n) => {
+          PERF.lvl = n | 0;
+          PERF.off = n != null;
+        },
+        perf: () => PERF,
+        updHud: () => updHud(),
+        dblSetup: (n) => dblSetup(n),
+        grantTest: (k, t, f) => Billing.grant(k, t, f),
+        tapXY: (x, y) => {
+          const r = cv.getBoundingClientRect();
+          return {
+            x: r.left + ((x - camx) / VW) * r.width,
+            y: r.top + ((y - camy) / VH) * r.height,
+          };
+        },
+        keys,
+        gainAct,
+        buildActs,
+        buildRack,
+        openLevelUp,
+        toast,
+        notify,
+      };
   musSet(musWant()); /* música do menu já na abertura */
   raf = requestAnimationFrame(loop);
 
