@@ -553,6 +553,33 @@
     },
   };
 
+  /* ---- Compartilhar imagem da run (requer @capacitor/share e @capacitor/filesystem instalados e sincronizados) ----
+     Grava o PNG (base64) no cache do app e abre a folha de compartilhamento do Android com a imagem e o texto. */
+  window.FeShare = {
+    async image(base64, text, title) {
+      const FS = P("Filesystem"),
+        SH = P("Share");
+      if (!FS || !SH)
+        throw new Error("Plugins Share/Filesystem não registrados no Android.");
+      const r = await T(
+        FS.writeFile({
+          path: "fe-survivor-run.png",
+          data: base64,
+          directory: "CACHE",
+        }),
+        15000,
+        "gravar imagem",
+      );
+      await SH.share({
+        title: title || "Fé Survivor",
+        text: text || "",
+        files: [r.uri],
+        dialogTitle: "Compartilhar minha run",
+      });
+      return true;
+    },
+  };
+
   /* ---- Diagnóstico: no console do chrome://inspect, rode  FeDiag().then(console.log)  ---- */
   window.FeDiag = async () => {
     const r = {},
@@ -585,6 +612,8 @@
           document.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
           );
+      if (visible($("#sharePrev")))
+        return $("#sharePrev").querySelector('[data-a="close"]').click();
       if (visible($("#newsModal"))) return $("#newsBack").click();
       if (visible($("#libDet"))) return $("#libDet").click();
       if (visible($("#confirm"))) return $("#cfNo").click();
