@@ -10006,3 +10006,361 @@ body::-webkit-scrollbar,
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   TELA FINAL (fim de partida) — redesign
+   Duas colunas em paisagem: relatório (esquerda) | herói + ações (direita).
+   Mantém os IDs usados pelo game.js: #end #endT #endV #endNote #endSum
+   #sumCoins #endBuild #endHero #revBtn #dblBtn #againBtn #endMenuBtn.
+   ========================================================================== */
+
+/* fundo: vinheta com a cor do resultado (derrota, vitória, interrompida) */
+#end {
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(64, 14, 36, 0.55),
+    rgba(5, 3, 12, 0.94) 74%
+  );
+}
+#end.end-win {
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(84, 62, 8, 0.55),
+    rgba(5, 3, 12, 0.94) 74%
+  );
+}
+#end.end-ret {
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(40, 32, 100, 0.5),
+    rgba(5, 3, 12, 0.94) 74%
+  );
+}
+
+#end .ov-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: clamp(10px, 2vw, 22px);
+  align-items: center;
+  width: min(100%, 940px);
+  max-width: none;
+  margin: auto;
+  text-align: center;
+}
+
+/* ---- painel do relatório ---- */
+#end .end-l {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.5vh, 10px);
+  padding: clamp(8px, 1.8vh, 14px) clamp(10px, 1.8vw, 16px);
+  background: linear-gradient(#1d1733, #110c22);
+  border: 2px solid #05030c;
+  box-shadow:
+    inset 0 0 0 2px rgba(242, 193, 78, 0.28),
+    0 6px 0 #05030c;
+}
+
+/* título + divisória dourada */
+#end h2 {
+  margin: 0;
+  font-size: clamp(15px, 3.6vh, 22px);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  text-shadow:
+    0 3px 0 var(--gold-d),
+    0 5px 0 #000;
+}
+#end h2::after {
+  content: "";
+  display: block;
+  height: 8px;
+  margin: 8px auto 0;
+  width: min(72%, 280px);
+  background: linear-gradient(
+      90deg,
+      transparent,
+      var(--gold-d) 22%,
+      var(--gold) 50%,
+      var(--gold-d) 78%,
+      transparent
+    )
+    center / 100% 2px no-repeat;
+}
+#end.end-lose h2 {
+  color: #ff7a8a;
+  text-shadow:
+    0 3px 0 #7a1f33,
+    0 5px 0 #000;
+}
+#end.end-ret h2 {
+  color: #c9b6ff;
+  text-shadow:
+    0 3px 0 #4a3a8a,
+    0 5px 0 #000;
+}
+
+#end .verse {
+  margin: 0;
+  max-width: none;
+  font-size: clamp(9px, 1.9vh, 12px);
+  line-height: 1.4;
+  color: var(--parch);
+}
+#end .verse b {
+  color: var(--gold);
+}
+
+/* causa da queda + dica */
+#end #endNote {
+  margin: 0;
+  font-size: clamp(9px, 1.8vh, 11px);
+  line-height: 1.45;
+  color: var(--mute);
+}
+#end #endNote b {
+  color: var(--parch);
+}
+#end .end-tip {
+  display: block;
+  margin-top: 6px;
+  padding: 5px 8px;
+  text-align: left;
+  color: #ffe08a;
+  background: rgba(242, 193, 78, 0.08);
+  border-left: 3px solid var(--gold);
+}
+
+/* ---- estatísticas: ícone + número + rótulo ---- */
+#end .sumgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+#end .sumgrid > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  text-align: left;
+  background: linear-gradient(#2a2050, #1b1438);
+  border: 2px solid var(--line);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.07);
+}
+#end .sumgrid .uic {
+  flex: none;
+  width: clamp(16px, 3.4vh, 24px);
+  height: clamp(16px, 3.4vh, 24px);
+  image-rendering: pixelated;
+}
+#end .sumgrid .st-tx {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+#end .sumgrid b {
+  margin: 0;
+  font-size: clamp(11px, 2.5vh, 16px);
+  line-height: 1.1;
+}
+#end .sumgrid small {
+  font-size: clamp(8px, 1.6vh, 10px);
+  color: var(--mute);
+}
+#end #sumCoins {
+  border-color: var(--gold-d);
+}
+#end #sumCoins b {
+  color: #ffe08a;
+}
+#end .newrec {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 4px;
+  font-size: 7px;
+  color: #0c0918;
+  background: var(--holy);
+}
+
+/* ---- build: armas e dons em grupos ---- */
+#end .build {
+  --sl: clamp(34px, 7.2vh, 44px);
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  justify-content: stretch;
+}
+#end .end-grp {
+  display: grid;
+  gap: 3px;
+}
+#end .end-lbl {
+  font-family: var(--f-title);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  text-align: left;
+  color: var(--mute);
+}
+#end .end-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+#end .build .slot {
+  width: var(--sl);
+  height: var(--sl);
+}
+#end .build .slot img {
+  width: calc(var(--sl) - 10px);
+  height: calc(var(--sl) - 10px);
+}
+
+/* ---- coluna direita: herói + ações ---- */
+#end .end-r {
+  min-width: 0;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+#end #endHero {
+  position: relative;
+  margin: 0 auto;
+}
+#end #endHero::before {
+  /* sombra no chão */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 72%;
+  height: 14px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
+}
+#end #endHero::after {
+  /* brilho atrás do herói */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 60%,
+    rgba(242, 193, 78, 0.16),
+    transparent 65%
+  );
+}
+#end #endHero canvas {
+  position: relative;
+  z-index: 1;
+  width: min(120px, 24vh);
+}
+
+/* botões: hierarquia clara (reviver > reiniciar > moedas > menu) */
+#end .end-r .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: clamp(9px, 2vh, 12px);
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: center;
+}
+#end .ab-tx {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+#end .ab-tx b {
+  font-weight: 400;
+  font-size: inherit;
+}
+#end .ab-tx small {
+  font-family: var(--f-body);
+  font-size: 0.78em;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.85;
+}
+
+#end #revBtn {
+  min-height: 48px;
+  color: #0c2a12;
+  background: linear-gradient(#8ff09a, #4fbf5e);
+  border-bottom-color: #2f7a3a;
+  animation: revPulse 1.6s ease-in-out infinite;
+}
+@keyframes revPulse {
+  50% {
+    box-shadow:
+      0 0 0 3px #000,
+      0 0 14px rgba(126, 224, 138, 0.55);
+  }
+}
+
+#end #dblBtn {
+  min-height: 38px;
+  color: #ffe08a;
+  background: linear-gradient(#2a2050, #1b1438);
+  border: 2px solid var(--gold-d);
+  border-bottom-width: 4px;
+}
+#end #dblBtn.is-limit {
+  color: var(--mute);
+  border-style: dashed;
+  border-color: var(--line);
+  opacity: 0.7;
+}
+
+#end .end-r .row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0;
+}
+#end #againBtn {
+  flex: 1.7 1 0;
+  min-height: 50px;
+  font-size: clamp(10px, 2.3vh, 13px);
+}
+#end #endMenuBtn {
+  flex: 1 1 0;
+}
+
+/* entrada suave */
+#end:not([hidden]) .end-l {
+  animation: endIn 0.35s ease-out both;
+}
+#end:not([hidden]) .end-r {
+  animation: endIn 0.35s 0.1s ease-out both;
+}
+@keyframes endIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #end:not([hidden]) .end-l,
+  #end:not([hidden]) .end-r,
+  #end #revBtn {
+    animation: none;
+  }
+}
+
+/* telas estreitas: empilha (não ocorre em paisagem de celular) */
+@media (max-width: 640px) {
+  #end .ov-in {
+    grid-template-columns: 1fr;
+  }
+}

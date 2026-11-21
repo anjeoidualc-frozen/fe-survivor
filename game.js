@@ -5500,6 +5500,22 @@
         h += '<div class="slot empty" data-tip="Espaço de dom livre"></div>';
     return h;
   }
+  /* tela final: armas e dons em grupos rotulados (a pausa e a HUD continuam com buildHTML) */
+  function endBuildHTML() {
+    let w = "",
+      p = "";
+    for (const id in G.W) w += slotHTML(id, G.W[id].lvl, true);
+    for (const id in G.P) p += slotHTML(id, G.P[id], false);
+    const grp = (lbl, h) =>
+      h
+        ? '<div class="end-grp"><small class="end-lbl">' +
+          lbl +
+          '</small><div class="end-slots">' +
+          h +
+          "</div></div>"
+        : "";
+    return grp("ARMAS", w) + grp("DONS", p);
+  }
   function buildRack() {
     H$.rack.innerHTML = buildHTML();
   }
@@ -5710,19 +5726,35 @@
           ? "Vigília encerrada"
           : "A fé fraquejou";
     $("#endV").innerHTML = "“" + v[0] + "” <b>" + v[1] + "</b>";
+    {
+      /* estado visual da tela final (cor do título e do fundo) */
+      const E = $("#end");
+      E.classList.remove("end-win", "end-lose", "end-ret");
+      E.classList.add(ret ? "end-ret" : won ? "end-win" : "end-lose");
+    }
+    const endTile = (ic, val, lbl, extra, id) =>
+      "<div" +
+      (id ? ' id="' + id + '"' : "") +
+      ' class="st"><span class="uic ' +
+      ic +
+      '"></span><span class="st-tx"><b>' +
+      val +
+      "</b><small>" +
+      lbl +
+      "</small>" +
+      (extra || "") +
+      "</span></div>";
     $("#endSum").innerHTML =
-      "<div><b>" +
-      fmt(G.t) +
-      "</b>Tempo" +
-      (newBest && !won ? '<br><span class="newrec">NOVO RECORDE</span>' : "") +
-      "</div><div><b>" +
-      G.kills +
-      "</b>Derrotados</div><div><b>" +
-      G.lvl +
-      '</b>Nível de fé</div><div id="sumCoins"><b>' +
-      runCoins() +
-      "</b>Moedas</div>";
-    $("#endBuild").innerHTML = buildHTML();
+      endTile(
+        "i-hourglass",
+        fmt(G.t),
+        "Tempo",
+        newBest && !won ? '<span class="newrec">NOVO RECORDE</span>' : "",
+      ) +
+      endTile("i-kills", G.kills, "Derrotados") +
+      endTile("i-star", G.lvl, "Nível de fé") +
+      endTile("i-coin", runCoins(), "Moedas", "", "sumCoins");
+    $("#endBuild").innerHTML = endBuildHTML();
     $("#againBtn").textContent = won ? "Reiniciar" : "Reiniciar";
     endNote(won, ret);
     reviveSetup(won, ret);
@@ -5734,6 +5766,11 @@
     }
     refreshMeta();
     dblSetup(runCoins());
+    try {
+      shareSetup(won, ret, newBest);
+    } catch (e) {
+      console.warn("[share]", e);
+    }
   }
   function pauseGame() {
     if (state !== "play") return;
@@ -9755,16 +9792,15 @@
     dbl.hidden = already;
     if (already) return;
     dbl.disabled = left <= 0;
+    dbl.classList.toggle("is-limit", left <= 0);
     dbl.innerHTML =
       left <= 0
-        ? '<span class="uic i-play"></span> +' +
-        u +
-        " moedas | limite de hoje atingido"
-        : '<span class="uic i-play"></span> +' +
-        u +
-        " moedas | ad (restam " +
-        left +
-        " hoje)";
+        ? '<span class="ab-tx"><b>Limite diário</b><small>anúncios de moedas</small></span>'
+        : '<span class="uic i-play"></span><span class="ab-tx"><b>+' +
+          u +
+          " moedas</b><small>anúncio · restam " +
+          left +
+          " hoje</small></span>";
     dbl.onclick = () => {
       if (adGoldUsed() >= AD_COIN_MAX || (G && (G.dblPaid || 0) > 0)) return;
       ADS.rewarded((ok) => {
@@ -13777,7 +13813,7 @@
           fmt(Math.max(0, WIN_T - G.t)) +
           "</b> para o amanhecer.");
     if (!won && !ret)
-      h += '<br><span class="end-tip">Dica: ' + pick(END_TIPS) + "</span>";
+      h += '<span class="end-tip">Dica: ' + pick(END_TIPS) + "</span>";
     el.innerHTML = h;
   }
   /* ---- clima da partida: vida baixa, marcos, avisos e dicas iniciais ---- */
@@ -16431,7 +16467,8 @@
     const g = G;
     rev.hidden = !(g && g.pre && !won && !ret && !g.revived);
     rev.disabled = false;
-    rev.innerHTML = '<span class="uic i-play"></span> Reviver? | ad';
+    rev.innerHTML =
+      '<span class="uic i-play"></span><span class="ab-tx"><b>Reviver</b><small>assistir anúncio</small></span>';
   }
   rev.onclick = () =>
     ADS.rewarded((ok) => {
@@ -28684,6 +28721,700 @@
       });
     };
   })();
+
+  /* ================= Compartilhar a run =================
+     Durante a partida o jogo guarda a "foto" do momento mais frenético (muitos inimigos, tiros e números de dano,
+     chefe em cena, vida baixa). Na tela final, o botão Compartilhar monta um cartão .png de 1080x1350 com o título do
+     jogo, a foto, o herói (nome e sprite), nível, estatísticas, armas, dons, ativas e o link da Play Store, e abre a
+     folha de compartilhamento do Android (WhatsApp, Instagram, etc.).
+     Envio, em ordem: plugins Share + Filesystem do Capacitor (app) > Web Share API com arquivo > pré-visualização. */
+  const SHARE_URL = "https://play.google.com/store/apps/details?id=" + PLAY_APP_ID;
+  const SHARE = {
+    g: null /* partida a que a foto pertence */,
+    shot: null /* canvas com a foto */,
+    score: 0,
+    t: 0 /* segundo da partida em que a foto foi tirada */,
+    at: -1e9,
+    busy: false,
+    res: null /* { won, ret, newBest } da partida que acabou */,
+  };
+  const shareSt = document.createElement("style");
+  shareSt.id = "shareCss";
+  shareSt.textContent =
+    "#end .end-r #shareBtn{min-height:38px}" +
+    "#end .end-r #shareBtn[disabled]{opacity:.65;pointer-events:none}" +
+    ".share-prev-act a.btn{display:block;text-align:center;text-decoration:none;box-sizing:border-box}" +
+    ".share-prev{position:absolute;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;" +
+    "background:rgba(6,4,16,.92);padding:10px;box-sizing:border-box}" +
+    ".share-prev-box{display:flex;flex-direction:row;align-items:center;gap:18px;max-width:100%;max-height:100%}" +
+    ".share-prev-box img{height:calc(var(--gh,360px) - 28px);max-height:calc(100vh - 28px);width:auto;max-width:56vw;" +
+    "image-rendering:auto;border:3px solid #f2c14e;box-sizing:border-box}" +
+    ".share-prev-act{display:flex;flex-direction:column;gap:10px;min-width:190px;max-width:260px}" +
+    ".share-prev-act p{margin:0 0 4px;color:#f1e4c3;font-size:14px;line-height:1.35}" +
+    ".share-prev-act .btn{width:100%}" +
+    "@media (orientation:portrait){.share-prev-box{flex-direction:column}" +
+    ".share-prev-box img{height:auto;width:min(86vw,60vh * .8);max-height:62vh}}";
+  document.head.appendChild(shareSt);
+  /* ícone do botão (8x8, mesmo formato dos ícones de UI) */
+  UI_M.share = [
+    ".....WW.",
+    ".....WW.",
+    "....W...",
+    "WWWW....",
+    "WWWW....",
+    "....W...",
+    ".....WW.",
+    ".....WW.",
+  ];
+  UI_URL.share = mk(8, 8, (g) =>
+    UI_M.share.forEach((r, y) =>
+      [...r].forEach((c, x) => {
+        if (UI_C[c]) {
+          g.fillStyle = UI_C[c];
+          g.fillRect(x, y, 1, 1);
+        }
+      }),
+    ),
+  ).toDataURL();
+  uiCss();
+
+  /* ---- 1) foto do momento mais frenético ---- */
+  function shareScore(g) {
+    const x0 = camx - 16,
+      x1 = camx + VW + 16,
+      y0 = camy - 16,
+      y1 = camy + VH + 16;
+    let en = 0,
+      dn = 0;
+    for (const e of g.enemies) {
+      if (e.dead) continue;
+      if (e.x > x0 && e.x < x1 && e.y > y0 && e.y < y1) en++;
+    }
+    for (const f of g.fx) if (f.k === "dmg") dn++;
+    const sh = g.shots ? g.shots.length : 0,
+      es = g.eshots ? g.eshots.length : 0,
+      pt = g.parts ? g.parts.length : 0;
+    let s =
+      en +
+      Math.min(dn, 40) * 0.6 +
+      Math.min(sh, 60) * 0.25 +
+      Math.min(es, 60) * 0.35 +
+      Math.min(pt, 300) * 0.03;
+    if (g.boss && !g.boss.dead) s += 18;
+    const mx = (g.mods && g.mods.maxhp) || 1;
+    s *= 1 + Math.max(0, Math.min(1, 1 - g.p.hp / mx)) * 0.5;
+    return s;
+  }
+  function shareSample() {
+    const g = G;
+    if (!g || state !== "play" || g.over || g.dying || g.dawn || TUT.on) return;
+    const now = performance.now();
+    if (now - SHARE.at < 450) return;
+    SHARE.at = now;
+    if (SHARE.g !== g) {
+      SHARE.g = g;
+      SHARE.shot = null;
+      SHARE.score = 0;
+      SHARE.t = 0;
+    }
+    if (g.t < 8 || g.p.hp <= 0) return;
+    const sc = shareScore(g);
+    if (sc < SHARE.score) return;
+    let c = SHARE.shot;
+    if (!c || c.width !== cv.width || c.height !== cv.height) {
+      c = document.createElement("canvas");
+      c.width = cv.width;
+      c.height = cv.height;
+    }
+    const k = c.getContext("2d");
+    k.clearRect(0, 0, c.width, c.height);
+    k.drawImage(cv, 0, 0);
+    SHARE.shot = c;
+    SHARE.score = sc;
+    SHARE.t = g.t;
+  }
+  const _drawShare = draw;
+  draw = function () {
+    _drawShare();
+    try {
+      shareSample();
+    } catch (e) { }
+  };
+
+  /* ---- 2) dados da run ---- */
+  function shareRunData() {
+    const g = G,
+      res = SHARE.res || {},
+      won = !!res.won,
+      ret = !!res.ret,
+      hero = HEROES[g.hk] || g.hero || {};
+    const flag = (it) => {
+      let ev = null;
+      try {
+        ev = selectedEvolution(it.id, it.group);
+      } catch (e) { }
+      it.mast = !!(ev && ev.tier);
+      it.sup = !!(it.group === "weapon" && g.evo && g.evo[it.id]);
+      it.col = null;
+      if (ev)
+        try {
+          it.col = evoAccent(it.id, ev.path, !!ev.tier);
+        } catch (e) { }
+      it.url = "";
+      try {
+        it.url = gameIconURL(it.id, it.group);
+      } catch (e) { }
+      return it;
+    };
+    const weapons = [],
+      gifts = [],
+      actives = [];
+    for (const id of Object.keys(g.W || {})) {
+      const df = WEAPONS[id];
+      weapons.push(
+        flag({ id, group: "weapon", lvl: g.W[id].lvl, name: (df && df.name) || id }),
+      );
+    }
+    for (const id of Object.keys(g.P || {})) {
+      const df = PASSIVES[id];
+      gifts.push(
+        flag({ id, group: "passive", lvl: g.P[id], name: (df && df.name) || id }),
+      );
+    }
+    for (const id of g.A || []) {
+      const df = ACT[id];
+      actives.push(
+        flag({ id, group: "active", lvl: (g.al && g.al[id]) || 1, name: (df && df.n) || id }),
+      );
+    }
+    let world = "";
+    try {
+      world = ((RUN.world || curW()) || {}).n || "";
+    } catch (e) { }
+    const mode = g.inf ? "Vigília Eterna" : RUN.daily ? "Desafio do Dia" : "";
+    let kind, title, sub;
+    if (ret) {
+      kind = "ret";
+      title = "JORNADA INTERROMPIDA";
+      sub = "Cheguei a " + fmt(g.t) + " nesta jornada.";
+    } else if (won) {
+      kind = "win";
+      title = "VITÓRIA NA FÉ!";
+      sub = "Sobrevivi à noite inteira e derrotei " + g.kills + " demônios. Amanheceu!";
+    } else if (g.inf) {
+      kind = "lose";
+      title = "VIGÍLIA ENCERRADA";
+      sub =
+        (g.hitBy ? "Caí para " + g.hitBy + " aos " + fmt(g.t) + ". " : "") +
+        "Resisti por " + fmt(g.t) + " na vigília.";
+    } else {
+      kind = "lose";
+      title = "A FÉ FRAQUEJOU";
+      sub =
+        (g.hitBy ? "Caí para " + g.hitBy + " aos " + fmt(g.t) + ". " : "") +
+        "Faltaram " + fmt(Math.max(0, WIN_T - g.t)) + " para o amanhecer.";
+    }
+    return {
+      kind,
+      title,
+      sub,
+      heroName: hero.name || "Herói",
+      t: g.t,
+      kills: g.kills,
+      lvl: g.lvl,
+      coins: runCoins(),
+      world,
+      mode,
+      newBest: !!res.newBest && !won,
+      snapT: SHARE.g === g && SHARE.shot ? SHARE.t : g.t,
+      verse: (($("#endV") || {}).textContent || "").trim(),
+      weapons,
+      gifts,
+      actives,
+      won,
+    };
+  }
+  function shareText(d) {
+    const L = [];
+    L.push("✦ Fé Survivor | " + d.heroName + " | " + d.title.charAt(0) + d.title.slice(1).toLowerCase());
+    L.push(
+      "Tempo " + fmt(d.t) + " | Nível de fé " + d.lvl + " | " + d.kills + " derrotados",
+    );
+    const nm = (a) => a.map((i) => i.name + " Nv" + i.lvl).join(", ");
+    if (d.weapons.length) L.push("Armas: " + nm(d.weapons));
+    if (d.gifts.length) L.push("Dons: " + nm(d.gifts));
+    if (d.actives.length) L.push("Ativas: " + nm(d.actives));
+    L.push("");
+    L.push("Resista às trevas, evolua sua fé e sobreviva até o amanhecer!");
+    L.push("Jogue grátis no Android: " + SHARE_URL);
+    return L.join("\n");
+  }
+
+  /* ---- 3) cartão .png ---- */
+  const shareImg = (url) =>
+    new Promise((res) => {
+      if (!url) return res(null);
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => res(null);
+      im.src = url;
+    });
+  async function shareDrawCard(o) {
+    const d = shareRunData(),
+      CW = 1080,
+      CH = 1350,
+      M = 48,
+      IW = CW - M * 2;
+    const c = document.createElement("canvas");
+    c.width = CW;
+    c.height = CH;
+    const x = c.getContext("2d");
+    x.imageSmoothingEnabled = false;
+    const FT = CF.title,
+      FB = CF.body;
+    try {
+      await Promise.all([
+        document.fonts.load('24px "Press Start 2P"'),
+        document.fonts.load('24px "Pixelify Sans"'),
+      ]);
+    } catch (e) { }
+    const C = {
+      bg0: "#0d0a1f",
+      bg1: "#221640",
+      panel: "#1b1639",
+      panel2: "#2a2352",
+      line: "#4a3f7a",
+      gold: "#f2c14e",
+      goldD: "#a8741f",
+      cream: "#f1e4c3",
+      dim: "#a99fcf",
+      ink: "#14102a",
+    };
+    const acc = { win: "#ffd24a", lose: "#ff6b7f", ret: "#9fb4ff" }[d.kind] || C.gold;
+    const hs = (n) => {
+      const v = Math.sin(n * 12.9898 + 4.1414) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    const box = (px, py, pw, ph, fill, line, lw) => {
+      x.fillStyle = line;
+      x.fillRect(px, py, pw, ph);
+      x.fillStyle = fill;
+      x.fillRect(px + lw, py + lw, pw - lw * 2, ph - lw * 2);
+    };
+    const T = (s, px, py, size, col, al, font) => {
+      x.font = size + "px " + (font || FB);
+      x.textAlign = al || "left";
+      x.textBaseline = "alphabetic";
+      x.fillStyle = col;
+      x.fillText(s, px, py);
+    };
+    const fitT = (s, px, py, maxW, size, col, al, font) => {
+      let z = size;
+      x.font = z + "px " + (font || FB);
+      while (z > 12 && x.measureText(s).width > maxW) {
+        z -= 2;
+        x.font = z + "px " + (font || FB);
+      }
+      T(s, px, py, z, col, al, font);
+      return z;
+    };
+    /* fundo */
+    const bg = x.createLinearGradient(0, 0, 0, CH);
+    bg.addColorStop(0, C.bg0);
+    bg.addColorStop(0.55, C.bg1);
+    bg.addColorStop(1, "#2a1230");
+    x.fillStyle = bg;
+    x.fillRect(0, 0, CW, CH);
+    for (let i = 0; i < 70; i++) {
+      x.fillStyle = i % 3 ? "rgba(241,228,195,.35)" : "rgba(242,193,78,.55)";
+      const z = i % 5 === 0 ? 4 : 2;
+      x.fillRect(Math.round(hs(i * 3.1) * CW), Math.round(hs(i * 5.7) * 760), z, z);
+    }
+    /* chamas na base */
+    for (let px = 0; px < CW; px += 12) {
+      const h1 = 14 + Math.floor(hs(px * 0.31) * 26),
+        h2 = Math.floor(h1 * 0.6),
+        h3 = Math.floor(h1 * 0.3);
+      x.fillStyle = "#6e1a24";
+      x.fillRect(px, CH - h1, 12, h1);
+      x.fillStyle = "#c4421c";
+      x.fillRect(px, CH - h2, 12, h2);
+      x.fillStyle = "#f4a22a";
+      x.fillRect(px, CH - h3, 12, h3);
+    }
+    /* título */
+    T("FÉ SURVIVOR", CW / 2, 92, 60, C.gold, "center", FT);
+    x.fillStyle = C.goldD;
+    x.fillRect(M + 40, 116, 250, 4);
+    x.fillRect(CW - M - 40 - 250, 116, 250, 4);
+    T("ROGUELIKE BÍBLICO", CW / 2, 126, 22, C.dim, "center", FB);
+    /* foto do momento mais frenético */
+    const FY = 150,
+      FH = 430,
+      fx = M + 6,
+      fy = FY + 6,
+      fw = IW - 12,
+      fh = FH - 12;
+    box(M, FY, IW, FH, "#000", C.gold, 6);
+    let shot = SHARE.g === G && SHARE.shot ? SHARE.shot : cv;
+    if (!o.noShot) {
+      const sw = shot.width,
+        sh = shot.height,
+        k = Math.max(1, Math.floor(fw / sw)),
+        tmp = document.createElement("canvas");
+      tmp.width = sw * k;
+      tmp.height = sh * k;
+      const tx = tmp.getContext("2d");
+      tx.imageSmoothingEnabled = false;
+      tx.drawImage(shot, 0, 0, tmp.width, tmp.height);
+      const sc = Math.max(fw / tmp.width, fh / tmp.height),
+        dw = tmp.width * sc,
+        dh = tmp.height * sc;
+      x.save();
+      x.beginPath();
+      x.rect(fx, fy, fw, fh);
+      x.clip();
+      x.imageSmoothingEnabled = true;
+      x.imageSmoothingQuality = "high";
+      x.drawImage(tmp, fx + (fw - dw) / 2, fy + (fh - dh) / 2, dw, dh);
+      x.restore();
+      x.imageSmoothingEnabled = false;
+    } else {
+      const gr = x.createLinearGradient(0, fy, 0, fy + fh);
+      gr.addColorStop(0, "#1a1236");
+      gr.addColorStop(1, "#3a1630");
+      x.fillStyle = gr;
+      x.fillRect(fx, fy, fw, fh);
+    }
+    const chip = (txt, px, py, al, bgc, fgc) => {
+      x.font = "22px " + FB;
+      const w = Math.ceil(x.measureText(txt).width) + 28,
+        h = 38,
+        rx = al === "right" ? px - w : px;
+      x.fillStyle = bgc;
+      x.fillRect(rx, py, w, h);
+      x.fillStyle = fgc;
+      x.fillRect(rx, py, 4, h);
+      T(txt, rx + 16, py + 27, 22, fgc, "left", FB);
+    };
+    chip(
+      "NO AUGE DA BATALHA | " + fmt(d.snapT),
+      fx + 14,
+      fy + 14,
+      "left",
+      "rgba(13,10,31,.82)",
+      C.gold,
+    );
+    if (d.newBest) chip("NOVO RECORDE", fx + fw - 14, fy + 14, "right", C.gold, C.ink);
+    chip(
+      d.world + (d.mode ? " | " + d.mode : ""),
+      fx + 14,
+      fy + fh - 52,
+      "left",
+      "rgba(13,10,31,.82)",
+      C.cream,
+    );
+    /* resultado */
+    fitT(d.title, CW / 2, 644, IW, 46, acc, "center", FT);
+    fitT(d.sub, CW / 2, 686, IW, 26, C.cream, "center", FB);
+    /* herói + estatísticas */
+    const HY = 712,
+      HH = 164;
+    box(M, HY, IW, HH, C.panel, C.line, 4);
+    box(M + 14, HY + 14, 136, 136, C.panel2, C.goldD, 4);
+    if (!o.noImg) {
+      let fr = null;
+      try {
+        fr = endHeroFrames(G.hk);
+      } catch (e) { }
+      const s = fr && (d.won ? fr.up : fr.idle);
+      if (s && s.c) {
+        const k = Math.max(1, Math.floor(104 / Math.max(s.w, s.h))),
+          dw = s.w * k,
+          dh = s.h * k;
+        x.imageSmoothingEnabled = false;
+        x.drawImage(s.c, M + 14 + 68 - dw / 2, HY + 14 + 128 - dh, dw, dh);
+      }
+    }
+    const tx0 = M + 170,
+      twd = IW - 170 - 18;
+    fitT(d.heroName.toUpperCase(), tx0, HY + 52, twd, 38, C.gold, "left", FT);
+    const tw = Math.floor((twd - 3 * 10) / 4),
+      tiles = [
+        ["Tempo", fmt(d.t)],
+        ["Derrotados", String(d.kills)],
+        ["Nível de fé", String(d.lvl)],
+        ["Moedas", String(d.coins)],
+      ];
+    tiles.forEach((t, i) => {
+      const px = tx0 + i * (tw + 10),
+        py = HY + 74;
+      box(px, py, tw, 76, C.panel2, C.line, 3);
+      fitT(t[1], px + tw / 2, py + 40, tw - 14, 28, C.cream, "center", FT);
+      fitT(t[0], px + tw / 2, py + 64, tw - 14, 18, C.dim, "center", FB);
+    });
+    /* armas, dons e ativas */
+    const loaded = new Map();
+    if (!o.noImg) {
+      const all = d.weapons.concat(d.gifts, d.actives);
+      const imgs = await Promise.all(all.map((i) => shareImg(i.url)));
+      all.forEach((i, n) => loaded.set(i, imgs[n]));
+    }
+    const slots = (label, list, px, py, pw) => {
+      const ph = 128;
+      box(px, py, pw, ph, C.panel, C.line, 4);
+      T(label, px + 16, py + 28, 20, C.gold, "left", FB);
+      if (!list.length) {
+        T("nenhum", px + 16, py + 84, 22, C.dim, "left", FB);
+        return;
+      }
+      const avail = pw - 32,
+        n = list.length;
+      let s = 72,
+        gap = 10;
+      if (n * s + (n - 1) * gap > avail) s = 48;
+      if (n * s + (n - 1) * gap > avail) {
+        gap = 6;
+        s = Math.max(24, Math.floor((avail - (n - 1) * gap) / n));
+      }
+      list.forEach((it, i) => {
+        const sx0 = px + 16 + i * (s + gap),
+          sy0 = py + 42;
+        box(sx0, sy0, s, s, C.panel2, it.sup ? C.gold : it.col || C.line, it.mast || it.sup ? 4 : 3);
+        const im = loaded.get(it);
+        if (im) {
+          x.imageSmoothingEnabled = false;
+          x.drawImage(im, sx0 + 4, sy0 + 4, s - 8, s - 8);
+        } else {
+          T(it.name.charAt(0).toUpperCase(), sx0 + s / 2, sy0 + s * 0.66, Math.floor(s * 0.5), C.cream, "center", FT);
+        }
+        const bs = Math.max(18, Math.floor(s * 0.3));
+        x.font = bs + "px " + FB;
+        const lw = Math.ceil(x.measureText(String(it.lvl)).width) + 10;
+        x.fillStyle = "rgba(13,10,31,.92)";
+        x.fillRect(sx0 + s - lw, sy0 + s - bs - 4, lw, bs + 4);
+        T(String(it.lvl), sx0 + s - lw / 2, sy0 + s - 5, bs, it.mast || it.sup ? C.gold : C.cream, "center", FB);
+      });
+    };
+    const BY = HY + HH + 18,
+      cw = Math.floor((IW - 16) / 2);
+    slots("ARMAS", d.weapons, M, BY, cw);
+    slots("DONS", d.gifts, M + cw + 16, BY, cw);
+    let py = BY + 128 + 14;
+    if (d.actives.length) {
+      slots("ATIVAS", d.actives, M, py, IW);
+      py += 128 + 14;
+    } else if (d.verse) {
+      /* sem ativas: o versículo da tela final ocupa o espaço livre */
+      let z = 24,
+        ln = [];
+      for (; z >= 18; z -= 2) {
+        x.font = z + "px " + FB;
+        ln = [];
+        let cur = "";
+        for (const w of d.verse.split(/\s+/)) {
+          const t = cur ? cur + " " + w : w;
+          if (x.measureText(t).width > IW - 80 && cur) {
+            ln.push(cur);
+            cur = w;
+          } else cur = t;
+        }
+        if (cur) ln.push(cur);
+        if (ln.length <= 3) break;
+      }
+      const lh = z + 8,
+        y0 = py + 16 + z + (3 - Math.min(3, ln.length)) * lh * 0.5;
+      ln.slice(0, 3).forEach((t, i) => T(t, CW / 2, y0 + i * lh, z, C.cream, "center", FB));
+      py += 112;
+    }
+    /* chamada para a Play Store */
+    const PH = CH - 46 - py;
+    box(M, py, IW, PH, C.panel, C.gold, 4);
+    const cy0 = py + PH / 2,
+      big = PH > 110;
+    fitT("Resista às trevas até o amanhecer!", CW / 2, cy0 - (big ? 18 : 14), IW - 40, big ? 30 : 24, C.cream, "center", FB);
+    fitT("Baixe grátis na Play Store e prove sua fé:", CW / 2, cy0 + (big ? 16 : 12), IW - 40, big ? 26 : 22, C.dim, "center", FB);
+    fitT(SHARE_URL, CW / 2, cy0 + (big ? 52 : 40), IW - 40, big ? 24 : 21, C.gold, "center", FB);
+    return c;
+  }
+  async function shareBuildCard() {
+    let err = null;
+    /* se o WebView marcar o canvas como "contaminado", tenta de novo sem a foto e depois sem nenhuma imagem */
+    for (const o of [{}, { noShot: 1 }, { noShot: 1, noImg: 1 }]) {
+      try {
+        const cnv = await shareDrawCard(o),
+          dataUrl = cnv.toDataURL("image/png");
+        return { dataUrl, blob: shareBlob(dataUrl) };
+      } catch (e) {
+        err = e;
+        console.warn("[share] tentativa falhou", e);
+      }
+    }
+    throw err || new Error("share");
+  }
+  function shareBlob(url) {
+    const b = atob(url.split(",")[1]),
+      u = new Uint8Array(b.length);
+    for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+    return new Blob([u], { type: "image/png" });
+  }
+
+  /* ---- 4) envio ---- */
+  const sharePlug = (name) => {
+    try {
+      const cap = window.Capacitor;
+      if (!cap) return null;
+      return (cap.Plugins && cap.Plugins[name]) || (cap.registerPlugin && cap.registerPlugin(name)) || null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const shareCanceled = (e) => /cancel|abort/i.test(String((e && (e.name + " " + e.message)) || e || ""));
+  /* devolve "native" | "web" | "cancel" | "none" */
+  async function shareSend(card, text) {
+    if (IS_NATIVE && window.FeShare && window.FeShare.image) {
+      try {
+        await window.FeShare.image(card.dataUrl.split(",")[1], text, "Fé Survivor");
+        return "native";
+      } catch (e) {
+        if (shareCanceled(e)) return "cancel";
+        console.warn("[share] FeShare", e);
+      }
+    }
+    if (IS_NATIVE) {
+      const FS = sharePlug("Filesystem"),
+        SH = sharePlug("Share");
+      if (FS && SH) {
+        try {
+          const r = await FS.writeFile({
+            path: "fe-survivor-run.png",
+            data: card.dataUrl.split(",")[1],
+            directory: "CACHE",
+          });
+          await SH.share({
+            title: "Fé Survivor",
+            text,
+            files: [r.uri],
+            dialogTitle: "Compartilhar minha run",
+          });
+          return "native";
+        } catch (e) {
+          if (shareCanceled(e)) return "cancel";
+          console.warn("[share] plugin Share/Filesystem", e);
+        }
+      }
+    }
+    try {
+      const file = new File([card.blob], "fe-survivor-run.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Fé Survivor", text });
+        return "web";
+      }
+    } catch (e) {
+      if (shareCanceled(e)) return "cancel";
+      console.warn("[share] Web Share", e);
+    }
+    return "none";
+  }
+  function shareClosePreview() {
+    const o = $("#sharePrev");
+    if (o) o.remove();
+  }
+  function sharePreview(card, text) {
+    shareClosePreview();
+    const ov = document.createElement("div");
+    ov.id = "sharePrev";
+    ov.className = "share-prev";
+    ov.innerHTML =
+      '<div class="share-prev-box"><img alt="Imagem da run" src="' +
+      card.dataUrl +
+      '"><div class="share-prev-act"><p>Sua imagem está pronta. Use os botões abaixo para enviá-la.</p>' +
+      '<button type="button" class="btn" data-a="send">Compartilhar</button>' +
+      '<a class="btn" data-a="save" download="fe-survivor-run.png" href="' +
+      card.dataUrl +
+      '">Salvar imagem</a>' +
+      '<button type="button" class="btn" data-a="copy">Copiar texto</button>' +
+      '<button type="button" class="btn" data-a="close">Fechar</button></div></div>';
+    ov.addEventListener("click", async (ev) => {
+      const a = ev.target.closest && ev.target.closest("[data-a]");
+      if (!a) {
+        if (ev.target === ov) shareClosePreview();
+        return;
+      }
+      const k = a.dataset.a;
+      if (k === "close") shareClosePreview();
+      else if (k === "send") {
+        const r = await shareSend(card, text);
+        if (r === "none") notify("Compartilhar não está disponível neste aparelho. Copie o texto.", "warn");
+      } else if (k === "copy") {
+        try {
+          await navigator.clipboard.writeText(text);
+          notify("Texto copiado!", "ok");
+        } catch (e) {
+          const t = document.createElement("textarea");
+          t.value = text;
+          t.style.cssText = "position:fixed;opacity:0";
+          document.body.appendChild(t);
+          t.select();
+          let ok = false;
+          try {
+            ok = document.execCommand("copy");
+          } catch (e2) { }
+          t.remove();
+          notify(ok ? "Texto copiado!" : "Não foi possível copiar.", ok ? "ok" : "warn");
+        }
+      }
+    });
+    gameEl.appendChild(ov);
+  }
+  async function shareRun() {
+    const b = $("#shareBtn");
+    if (SHARE.busy || !G || !G.over) return;
+    SHARE.busy = true;
+    if (b) {
+      b.disabled = true;
+      b.textContent = "Gerando imagem…";
+    }
+    try {
+      vib(15);
+      const card = await shareBuildCard(),
+        text = shareText(shareRunData()),
+        how = await shareSend(card, text);
+      if (how === "none") sharePreview(card, text);
+    } catch (e) {
+      console.warn("[share]", e);
+      notify("Não foi possível gerar a imagem.", "warn");
+    } finally {
+      SHARE.busy = false;
+      if (b) {
+        b.disabled = false;
+        b.textContent = "Compartilhar";
+      }
+    }
+  }
+  /* chamado ao fim de cada partida (endRun): cria o botão na tela final, abaixo de Reiniciar / Menu */
+  function shareSetup(won, ret, newBest) {
+    SHARE.res = { won: !!won, ret: !!ret, newBest: !!newBest };
+    const again = $("#againBtn"),
+      row = again && again.parentNode;
+    if (!row || !row.parentNode) return;
+    let b = $("#shareBtn");
+    if (!b) {
+      b = document.createElement("button");
+      b.id = "shareBtn";
+      b.type = "button";
+      const m = $("#endMenuBtn");
+      b.className =
+        (((m && m.className) || "btn ib").replace(/\bi-[\w-]+/g, "").trim() || "btn ib") +
+        " i-share";
+      b.addEventListener("click", shareRun);
+      row.insertAdjacentElement("afterend", b);
+    }
+    b.hidden = !!TUT.on;
+    b.disabled = false;
+    b.textContent = "Compartilhar";
+    shareClosePreview();
+  }
 
   /* ================= v0.46: transições de entrada e saída de telas ================= */
   (function screenTransitions() {
