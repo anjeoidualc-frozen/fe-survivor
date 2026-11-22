@@ -10416,11 +10416,15 @@ body::-webkit-scrollbar,
   box-shadow: inset 4px 0 0 var(--gold);
 }
 
+.set-nav,
 .set-body {
-  overflow-y: auto;
-  height: 100vh;
+  max-height: calc(var(--gh, 100vh) - 96px); /* mesma altura do #sB */
+  overflow-y: auto;                          /* auto, não scroll */
+  min-height: 0;
+}
+
+.set-body {
   padding-right: 4px;
-  -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   overscroll-behavior: contain;
 }

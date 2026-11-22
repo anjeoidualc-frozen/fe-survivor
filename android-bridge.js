@@ -167,7 +167,12 @@
           console.warn("[consent]", e);
         }
         await T(
-          AdMob.initialize({ initializeForTesting: CFG.testing }),
+          AdMob.initialize({
+            initializeForTesting: CFG.testing,
+
+            // Classificação máxima: conteúdo adequado ao público geral.
+            maxAdContentRating: "General",
+          }),
           15000,
           "admob.initialize",
         );
