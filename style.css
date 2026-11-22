@@ -10364,3 +10364,152 @@ body::-webkit-scrollbar,
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Configurações em seções (menu inicial e pausa) ===== */
+.subscreen-panel.wide-settings {
+  max-width: 780px;
+}
+
+#sB.set-grid {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  overflow: hidden;
+  max-height: calc(var(--gh, 100vh) - 96px);
+  text-align: left;
+}
+
+.set-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: calc(var(--gh, 100vh) - 96px);
+  padding: 2px;
+  touch-action: pan-y;
+}
+
+.set-tab {
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  color: var(--mute);
+  font: 12px var(--f-body);
+  text-align: left;
+  padding: 0 12px;
+  height: 32px;
+  font-weight: bold;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.set-tab:hover {
+  color: var(--parch);
+  border-color: var(--gold-d);
+}
+
+.set-tab.on {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: var(--panel-2);
+  box-shadow: inset 4px 0 0 var(--gold);
+}
+
+.set-body {
+  overflow-y: auto;
+  height: 100vh;
+  padding-right: 4px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+.set-body > .rw:first-child,
+.set-body > .hdg:first-child {
+  margin-top: 0;
+}
+
+.set-body .mb.is-confirming {
+  color: var(--blood);
+  border-color: var(--blood);
+}
+
+.set-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+
+.set-social .soc-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 76px;
+  padding: 10px 8px;
+}
+
+.set-social .soc-btn .uic {
+  width: 32px;
+  height: 32px;
+}
+
+.set-social .soc-btn small {
+  font: 11px var(--f-body);
+  color: var(--parch);
+}
+
+@media (max-width: 560px) {
+  #sB.set-grid {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .set-tab {
+    font-size: 11px;
+    padding: 8px 7px;
+  }
+}
+
+/* ===== Joystick fixo e lado do joystick ===== */
+#stickGhost {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  margin: -50px 0 0 -50px;
+  border: 3px solid #ffffff2a;
+  border-radius: 50%;
+  pointer-events: none;
+  background: #ffffff08;
+}
+
+#stickGhost i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: #ffffff33;
+  border: 3px solid #ffffff44;
+}
+
+.dying #stickGhost {
+  display: none;
+}
+
+/* joystick à direita: os botões de habilidade passam para a esquerda */
+.joy-right #acts {
+  right: auto;
+  left: calc(var(--sal) + 16px);
+}
+
+/* em telas baixas o botão Voltar fica no canto superior esquerdo do painel: a coluna de seções desce para não ficar embaixo dele */
+@media (max-height: 520px) {
+  .set-nav {
+    /* padding-top: 34px; */
+  }
+}

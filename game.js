@@ -224,6 +224,7 @@
   /* ===== VERSÃO DO JOGO (manual) =====
      Altere APP_VER abaixo para atualizar a versão na tela inicial e nas Configurações.
      (Ponto único de verdade — não fica no HTML.) */
+  const FROZEN_PX = 8; /* tamanho do pickup Gelo do Céu na tela (px) */
   const APP_VER = "0.69"; // Desempenho e estabilidade: sprites em 1 chamada, chão/sombras/chamas em cache, qualidade adaptativa, telemetria e áudio seguros (anterior: 0.68 Skins)
   /* ===== NOTÍCIAS / NOTAS DA VERSÃO =====
      Como atualizar em cada release:
@@ -312,7 +313,8 @@
     const idEl = document.getElementById("buildId");
     /* Texto da versão no idioma-base do jogo. */
     if (ver) ver.textContent = "versão: " + APP_VER;
-    if (idEl) idEl.textContent = "id: " + ensurePlayerId();
+    const pid = ensurePlayerId(); /* o ID é criado aqui; agora é exibido em Configurações > Conta */
+    if (idEl) idEl.textContent = "id: " + pid;
   }
 
   /* ================= áudio ================= */
@@ -5026,7 +5028,7 @@
     return (m[key] = base);
   }
   function spr(s, x, y, sc, flash, flip, syy, alpha, sxx, rim) {
-    const useRim = rim && RIM_ON && s.c ? rim : null,
+    const useRim = rim && RIM_ON && GFX < 2 && s.c ? rim : null,
       v = sprVar(s, flash, flip, useRim),
       kx = sc * (sxx || 1),
       ky = sc * (syy || 1),
@@ -5541,6 +5543,14 @@
      cada 2 quadros; 2 = sem brilhos aditivos, sem faíscas da arena, névoa a cada 3 quadros. Sobe de volta quando
      fica estável por ~12 s. Não mexe na jogabilidade (só em efeitos visuais) e respeita "Efeitos visuais" e o limite de FPS. */
   const PERF = { lvl: 0, ema: 16.7, slow: 0, fast: 0, t0: 0, fogN: 0 };
+  /* Qualidade gráfica (Configurações > Vídeo): 0 Alta, 1 Média, 2 Economia. O nível escolhido é o PISO da qualidade
+     adaptativa (PERF.lvl nunca fica abaixo dele). Na Economia, os contornos dos sprites também ficam desligados. */
+  let GFX = 0;
+  function gfxApply(reset) {
+    GFX = clamp(save.set.gfx | 0, 0, 2);
+    if (reset || PERF.lvl < GFX) PERF.lvl = GFX;
+    PERF.slow = PERF.fast = 0;
+  }
   function perfTick(now, expect) {
     const d = now - PERF.t0;
     PERF.t0 = now;
@@ -5557,7 +5567,7 @@
       }
     } else if (r < 1.12) {
       PERF.slow = 0;
-      if (++PERF.fast > 720 && PERF.lvl > 0) {
+      if (++PERF.fast > 720 && PERF.lvl > GFX) {
         PERF.lvl--;
         PERF.fast = 0;
       }
@@ -5771,6 +5781,9 @@
     } catch (e) {
       console.warn("[share]", e);
     }
+    try {
+      Cloud.auto();
+    } catch (e) { }
   }
   function pauseGame() {
     if (state !== "play") return;
@@ -5844,10 +5857,15 @@
       showfps: 0,
       fog: 1,
       sysfont: 0,
+      vib: 1 /* vibração ligada */,
+      vibi: 1 /* intensidade: 0 fraca, 1 normal, 2 forte */,
+      gfx: 0 /* qualidade gráfica: 0 alta, 1 média, 2 economia */,
+      cloudauto: 1 /* backup automático na nuvem (Google Play Games) */,
     },
     save.set || {},
   );
   applyFont();
+  gfxApply(true);
   SFX.on = !!save.set.sound;
   SFX.vol = save.set.vol;
   const LEGACY_SHOP = [
@@ -6649,7 +6667,7 @@
 
     // Limpa estilos e classes específicas da tela anterior.
     body.removeAttribute("style");
-    body.classList.remove("mode-grid");
+    body.classList.remove("mode-grid", "set-grid");
 
     // Renderiza a tela atual.
     fn(body);
@@ -7090,7 +7108,86 @@
     el.addEventListener("input", f);
     return el;
   }
+  /* ================= Configurações em seções (menu inicial e pausa) =================
+     Links: preencha SOCIAL_LINKS e TERMS_URL. Link vazio = o botão avisa "em breve".
+     Ícones das redes: assets/ui/instagram.png, youtube.png, tiktok.png e discord.png (opcionais). */
+  const SOCIAL_LINKS = { instagram: "", youtube: "", tiktok: "", discord: "" };
+  const SOCIAL_LABEL = {
+    instagram: "Instagram",
+    youtube: "YouTube",
+    tiktok: "TikTok",
+    discord: "Discord",
+  };
+  const TERMS_URL = "";
+  const SET_TABS = [
+    ["audio", "Áudio"],
+    ["video", "Vídeo"],
+    ["controls", "Controles"],
+    ["access", "Acessibilidade"],
+    ["lang", "Idioma"],
+    ["about", "Sobre"],
+    ["account", "Conta"],
+  ];
+  const SET_TABS_RUN = ["audio", "video", "controls"]; /* na pausa: só o que vale durante a partida */
+  let setTab = "audio",
+    setTabPrev = "";
+  /* joystick: fixo ou flutuante; lado esquerdo ou direito (a mira manual fica no lado oposto) */
+  const joyFixed = () => save.set.joyfix === 1;
+  const joyRight = () => save.set.joyside === 1;
   function renderSet(b) {
+    const menu = state === "menu",
+      tabs = SET_TABS.filter((t) => menu || SET_TABS_RUN.includes(t[0]));
+    if (!tabs.some((t) => t[0] === setTab)) setTab = tabs[0][0];
+    const prev = b.querySelector(".set-body"),
+      keep = prev && setTabPrev === setTab ? prev.scrollTop : 0;
+    setTabPrev = setTab;
+    b.innerHTML = "";
+    b.classList.add("set-grid");
+    const nav = document.createElement("div"),
+      body = document.createElement("div");
+    nav.className = "set-nav";
+    nav.setAttribute("role", "tablist");
+    body.className = "set-body";
+    body.setAttribute("role", "tabpanel");
+    tabs.forEach(([k, l]) => {
+      const t = document.createElement("button");
+      t.type = "button";
+      t.className = "set-tab" + (k === setTab ? " on" : "");
+      t.setAttribute("role", "tab");
+      t.setAttribute("aria-selected", k === setTab ? "true" : "false");
+      t.textContent = l;
+      t.onclick = () => {
+        if (k === setTab) return;
+        setTab = k;
+        renderSet(b);
+      };
+      nav.appendChild(t);
+    });
+    b.append(nav, body);
+    const again = () => renderSet(b);
+    const row = (title, desc, ctl, cls) => {
+      const d = document.createElement("div");
+      d.className = "rw" + (cls ? " " + cls : "");
+      d.innerHTML =
+        "<span>" + title + (desc ? "<small>" + desc + "</small>" : "") + "</span>";
+      if (ctl) d.appendChild(ctl);
+      body.appendChild(d);
+      return d;
+    };
+    const btn = (txt, fn) => {
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "mb";
+      x.textContent = txt;
+      x.onclick = fn;
+      return x;
+    };
+    const hdg = (txt) => {
+      const h = document.createElement("div");
+      h.className = "hdg";
+      h.textContent = txt;
+      body.appendChild(h);
+    };
     const T = (l, k) => {
       const d = document.createElement("div");
       d.className = "rw";
@@ -7115,13 +7212,14 @@
           } catch (e) { }
         }
         persist();
-        if (k === "fx") renderSet(b);
+        if (k === "vib" && save.set.vib) vib(40); /* teste ao ligar */
+        if (k === "fx" || k === "vib") again();
         else pxToggleSet(bt, !!save.set[k]);
       };
       d.appendChild(bt);
+      body.appendChild(d);
       return d;
     };
-    b.innerHTML = "";
     const R = (l, k, cb) => {
       const d = document.createElement("div");
       d.className = "rw";
@@ -7139,174 +7237,313 @@
         cb && cb();
         persist();
       };
+      body.appendChild(d);
       return d;
     };
-    b.appendChild(R("Música", "mvol", musApply));
-    const v = document.createElement("div");
-    v.className = "rw";
-    v.innerHTML =
-      "<span>SFX <b>" +
-      Math.round(save.set.vol * 100) +
-      '%</b></span><input type="range" min="0" max="100" value="' +
-      Math.round(save.set.vol * 100) +
-      '" class="setting-range">';
-    pxRange(v.querySelector("input")).oninput = (e) => {
-      save.set.vol = e.target.value / 100;
-      SFX.vol = save.set.vol;
-      if (SFX._m) SFX._m.gain.value = SFX.vol;
-      try {
-        wxSyncRainVol();
-      } catch (e) { }
-      v.querySelector("b").textContent = e.target.value + "%";
-      persist();
-    };
-    v.querySelector("input").onchange = () => SFX.play("coin");
-    b.appendChild(v);
-    b.appendChild(T("Pausa automática", "auto"));
-    if (state === "menu")
-      b.appendChild(
+    const S_ = {
+      /* ---------- Áudio ---------- */
+      audio() {
+        R("Música", "mvol", musApply);
+        const v = document.createElement("div");
+        v.className = "rw";
+        v.innerHTML =
+          "<span>SFX <b>" +
+          Math.round(save.set.vol * 100) +
+          '%</b></span><input type="range" min="0" max="100" value="' +
+          Math.round(save.set.vol * 100) +
+          '" class="setting-range">';
+        pxRange(v.querySelector("input")).oninput = (e) => {
+          save.set.vol = e.target.value / 100;
+          SFX.vol = save.set.vol;
+          if (SFX._m) SFX._m.gain.value = SFX.vol;
+          try {
+            wxSyncRainVol();
+          } catch (e) { }
+          v.querySelector("b").textContent = e.target.value + "%";
+          persist();
+        };
+        v.querySelector("input").onchange = () => SFX.play("coin");
+        body.appendChild(v);
+      },
+      /* ---------- Vídeo ---------- */
+      video() {
+        const GL = [
+          ["ALTA", "Visual completo. Reduz sozinha se o aparelho engasgar."],
+          ["MÉDIA", "Menos partículas, sombras suaves e névoa mais leve."],
+          [
+            "ECONOMIA",
+            "Mais desempenho e bateria: sem brilhos aditivos e com contornos simples.",
+          ],
+        ];
+        const gi = clamp(save.set.gfx | 0, 0, 2);
+        row(
+          "Qualidade gráfica",
+          GL[gi][1],
+          btn(GL[gi][0], () => {
+            save.set.gfx = (gi + 1) % 3;
+            gfxApply(true);
+            persist();
+            again();
+          }),
+        );
+        T(
+          "Efeitos visuais<small>Tremor, neblina, flashes e partículas</small>",
+          "fx",
+        );
+        /* Neblina: só na pausa; mínimo 30%; desabilitada se Efeitos visuais OFF (fogPass já depende de fx) */
+        if (state === "paused") {
+          const fogVal = clamp(save.set.fog == null ? 1 : save.set.fog, 0.3, 1),
+            fogOn = !!save.set.fx,
+            fogRow = document.createElement("div");
+          fogRow.className = "rw" + (fogOn ? "" : " is-disabled");
+          fogRow.innerHTML =
+            "<span>Neblina<small>" +
+            (fogOn
+              ? "Mínimo 30% (chefe e Hora Final)"
+              : "Ative Efeitos visuais para ajustar") +
+            "</small> <b>" +
+            Math.round(fogVal * 100) +
+            '%</b></span><input type="range" min="30" max="100" value="' +
+            Math.round(fogVal * 100) +
+            '" class="setting-range"' +
+            (fogOn ? "" : " disabled") +
+            ">";
+          pxRange(fogRow.querySelector("input"));
+          if (fogOn)
+            fogRow.querySelector("input").oninput = (e) => {
+              save.set.fog = Math.max(0.3, e.target.value / 100);
+              fogRow.querySelector("b").textContent =
+                Math.round(save.set.fog * 100) + "%";
+              persist();
+            };
+          body.appendChild(fogRow);
+        }
+        const FP = [0, 60, 45, 30];
+        row(
+          "Limite de FPS",
+          "Ajuda em celulares e PCs fracos",
+          btn(save.set.fps ? save.set.fps + " FPS" : "SEM LIMITE", () => {
+            save.set.fps = FP[(FP.indexOf(save.set.fps || 0) + 1) % FP.length];
+            persist();
+            again();
+          }),
+        );
+        T(
+          "Mostrar FPS<small>Contador de quadros por segundo na tela de jogo</small>",
+          "showfps",
+        );
+      },
+      /* ---------- Controles ---------- */
+      controls() {
+        const tch = isTouch ? "" : "is-disabled",
+          only = isTouch ? "" : " (vale para telas de toque)";
+        const ab = btn(atkLbl(), () => {
+          toggleAtk();
+          joySync();
+          again();
+        });
+        ab.id = "atkBtn";
+        row(
+          "Ataque",
+          isTouch
+            ? "Manual: um lado move, o outro mira e atira"
+            : "Manual: mire com o mouse e clique (segure para repetir)",
+          ab,
+        );
+        row(
+          "Joystick",
+          "Flutuante aparece onde você toca. Fixo fica sempre no mesmo lugar." + only,
+          btn(joyFixed() ? "FIXO" : "FLUTUANTE", () => {
+            save.set.joyfix = joyFixed() ? 0 : 1;
+            persist();
+            joySync();
+            again();
+          }),
+          tch,
+        );
+        row(
+          "Lado do joystick",
+          "Esquerda: move na esquerda, mira na direita. Direita inverte os lados (e os botões de habilidade)." +
+          only,
+          btn(joyRight() ? "DIREITA" : "ESQUERDA", () => {
+            save.set.joyside = joyRight() ? 0 : 1;
+            persist();
+            joySync();
+            again();
+          }),
+          tch,
+        );
+        T(
+          "Vibração<small>Dano, habilidades e avisos no celular</small>",
+          "vib",
+        );
+        const VL = ["FRACA", "NORMAL", "FORTE"],
+          vi = clamp(save.set.vibi == null ? 1 : save.set.vibi, 0, 2);
+        row(
+          "Intensidade da vibração",
+          "Duração dos toques de vibração.",
+          btn(VL[vi], () => {
+            save.set.vibi = (vi + 1) % 3;
+            persist();
+            vib(40);
+            again();
+          }),
+          save.set.vib ? "" : "is-disabled",
+        );
+        T(
+          "Pausa automática<small>Pausa a partida ao sair do jogo ou trocar de app</small>",
+          "auto",
+        );
+        if (menu)
+          row(
+            "Tutorial",
+            "Reveja a partida de introdução. Nada é salvo.",
+            btn("JOGAR", () => TUT.start(false)),
+          );
+        row("Como jogar", "Controles e objetivo", btn("ABRIR", () => showHelp()));
+      },
+      /* ---------- Acessibilidade ---------- */
+      access() {
         T(
           "Fonte sem serifa<small>Troca a fonte do jogo pela Inter, sans-serif mais legível em textos pequenos</small>",
           "sysfont",
-        ),
-      );
-    if (state === "menu") {
-      const d = document.createElement("div");
-      d.className = "rw";
-      d.innerHTML =
-        "<span>Tutorial<small>Reveja a partida de introdução. Nada é salvo.</small></span>";
-      const tb = document.createElement("button");
-      tb.type = "button";
-      tb.className = "mb";
-      tb.textContent = "JOGAR";
-      tb.onclick = () => TUT.start(false);
-      d.appendChild(tb);
-      b.appendChild(d);
-    }
-    {
-      const d = document.createElement("div");
-      d.className = "rw";
-      d.innerHTML =
-        "<span>Ataque<small>" +
-        (isTouch
-          ? "Manual: esquerda move, direita mira e atira"
-          : "Manual: mire com o mouse e clique (segure para repetir)") +
-        "</small></span>";
-      const bt = document.createElement("button");
-      bt.className = "mb";
-      bt.textContent = atkLbl();
-      bt.onclick = () => {
-        toggleAtk();
-        renderSet(b);
-      };
-      d.appendChild(bt);
-      b.appendChild(d);
-    }
-    b.appendChild(
-      T(
-        "Efeitos visuais<small>Tremor, neblina, flashes e partículas</small>",
-        "fx",
-      ),
-    );
-    /* Neblina: só na pausa; mínimo 30%; desabilitada se Efeitos visuais OFF (fogPass já depende de fx) */
-    if (state === "paused") {
-      const fogVal = clamp(save.set.fog == null ? 1 : save.set.fog, 0.3, 1);
-      const fogOn = !!save.set.fx;
-      const fogRow = document.createElement("div");
-      fogRow.className = "rw" + (fogOn ? "" : " is-disabled");
-      fogRow.innerHTML =
-        "<span>Neblina<small>" +
-        (fogOn
-          ? "Mínimo 30% (chefe e Hora Final)"
-          : "Ative Efeitos visuais para ajustar") +
-        "</small> <b>" +
-        Math.round(fogVal * 100) +
-        '%</b></span><input type="range" min="30" max="100" value="' +
-        Math.round(fogVal * 100) +
-        '" class="setting-range"' +
-        (fogOn ? "" : " disabled") +
-        ">";
-      pxRange(fogRow.querySelector("input"));
-      if (fogOn)
-        fogRow.querySelector("input").oninput = (e) => {
-          save.set.fog = Math.max(0.3, e.target.value / 100);
-          fogRow.querySelector("b").textContent =
-            Math.round(save.set.fog * 100) + "%";
-          persist();
-        };
-      b.appendChild(fogRow);
-    }
-    {
-      const f = document.createElement("div");
-      f.className = "rw";
-      f.innerHTML =
-        "<span>Limite de FPS<small>Ajuda em celulares e PCs fracos</small></span>";
-      const FP = [0, 60, 45, 30],
-        bt = document.createElement("button");
-      bt.className = "mb";
-      bt.textContent = save.set.fps ? save.set.fps + " FPS" : "SEM LIMITE";
-      bt.onclick = () => {
-        save.set.fps = FP[(FP.indexOf(save.set.fps || 0) + 1) % FP.length];
-        persist();
-        renderSet(b);
-      };
-      f.appendChild(bt);
-      b.appendChild(f);
-    }
-    b.appendChild(
-      T(
-        "Mostrar FPS<small>Contador de quadros por segundo na tela de jogo</small>",
-        "showfps",
-      ),
-    );
-    {
-      const d = document.createElement("div");
-      d.className = "rw";
-      d.innerHTML =
-        "<span>Como jogar<small>Controles e objetivo</small></span>";
-      const hb = document.createElement("button");
-      hb.type = "button";
-      hb.className = "mb";
-      hb.textContent = "ABRIR";
-      hb.onclick = () => showHelp();
-      d.appendChild(hb);
-      b.appendChild(d);
-    }
-    if (state === "menu") {
-      const l = document.createElement("div");
-      l.className = "set-links";
-      l.innerHTML =
-        '<button type="button" id="lnkSup">Suporte ou feedback</button><button type="button" id="lnkPriv">Política de privacidade</button><button type="button" id="lnkRate">Avaliar o jogo</button>';
-      b.appendChild(l);
-      l.querySelector("#lnkSup").onclick = () =>
-        openExt("mailto:" + SUPPORT_EMAIL);
-      l.querySelector("#lnkPriv").onclick = () => openExt(PRIVACY_URL);
-      l.querySelector("#lnkRate").onclick = () =>
-        openExt(
-          IS_NATIVE
-            ? "market://details?id=" + PLAY_APP_ID
-            : "https://play.google.com/store/apps/details?id=" + PLAY_APP_ID,
         );
-    }
-    {
-      const d = document.createElement("div");
-      d.className = "settings-footer";
-      d.innerHTML = "<span>Fé Survivor v" + APP_VER + "</span>";
-      if (state === "menu") {
-        const r = document.createElement("button");
-        r.type = "button";
-        r.textContent = "Apagar progresso";
-        r.className = "progress-reset";
+      },
+      /* ---------- Idioma (futuro) ---------- */
+      lang() {
+        row(
+          "Idioma",
+          "Mais idiomas em breve",
+          btn("PORTUGUÊS (BR)", () => { }),
+          "is-disabled",
+        );
+      },
+      /* ---------- Sobre: documentos, avaliação e redes ---------- */
+      about() {
+        hdg("Documentos");
+        row(
+          "Termos de Serviço",
+          "",
+          btn("ABRIR", () =>
+            TERMS_URL
+              ? openExt(TERMS_URL)
+              : notify("Termos de Serviço em breve.", "warn"),
+          ),
+        );
+        row(
+          "Política de privacidade",
+          "",
+          btn("ABRIR", () => openExt(PRIVACY_URL)),
+        );
+        hdg("Ajuda e avaliação");
+        row(
+          "Avaliar o jogo",
+          "Sua avaliação na Play Store ajuda muito",
+          btn("AVALIAR", () =>
+            openExt(
+              IS_NATIVE
+                ? "market://details?id=" + PLAY_APP_ID
+                : "https://play.google.com/store/apps/details?id=" + PLAY_APP_ID,
+            ),
+          ),
+        );
+        row(
+          "Suporte ou feedback",
+          "Fale com a gente por e-mail",
+          btn("ENVIAR", () => openExt("mailto:" + SUPPORT_EMAIL)),
+        );
+        hdg("Redes sociais");
+        const soc = document.createElement("div");
+        soc.className = "set-social";
+        Object.keys(SOCIAL_LINKS).forEach((k) => {
+          const x = document.createElement("button");
+          x.type = "button";
+          x.className = "mb soc-btn";
+          x.setAttribute("aria-label", SOCIAL_LABEL[k]);
+          x.innerHTML =
+            (UI_URL[k] ? '<span class="uic i-' + k + '"></span>' : "") +
+            "<small>" +
+            SOCIAL_LABEL[k] +
+            "</small>";
+          x.onclick = () =>
+            SOCIAL_LINKS[k]
+              ? openExt(SOCIAL_LINKS[k])
+              : notify(SOCIAL_LABEL[k] + ": link em breve.", "warn");
+          soc.appendChild(x);
+        });
+        body.appendChild(soc);
+      },
+      /* ---------- Conta: versão, ID e apagar progresso ---------- */
+      account() {
+        const run = (x, busy, fn) => {
+          x.onclick = async () => {
+            x.disabled = true;
+            x.textContent = busy;
+            try {
+              await fn();
+            } catch (e) {
+              console.warn(e);
+            }
+            if (x.isConnected) again();
+          };
+          return x;
+        };
+        hdg("Conta");
+        const ver = document.createElement("b");
+        ver.textContent = "v" + APP_VER;
+        row("Versão do app", "", ver);
+        const id = ensurePlayerId();
+        row(
+          "ID do jogador",
+          "Informe este ID ao falar com o suporte. Toque para copiar.",
+          btn(id, () => shareCopy(id, "ID copiado!")),
+        );
+        hdg("Backup na nuvem");
+        const cOk = Cloud.can(),
+          off = cOk ? "" : "is-disabled",
+          st = !cOk
+            ? "Disponível apenas no aplicativo instalado."
+            : "Google Play Games: " +
+            (window.FePGS && FePGS.signed ? "conectado" : "não conectado") +
+            ". " +
+            (save.set.cloudAt
+              ? "Último backup: " + cloudDate(save.set.cloudAt) + "."
+              : "Nenhum backup feito neste aparelho.");
+        row(
+          "Salvar na nuvem",
+          st,
+          run(btn("SALVAR"), "SALVANDO…", () => Cloud.save(true)),
+          off,
+        );
+        row(
+          "Restaurar da nuvem",
+          "Substitui o progresso deste aparelho pelo backup. As compras são mantidas.",
+          run(btn("RESTAURAR"), "BUSCANDO…", () => Cloud.restore()),
+          off,
+        );
+        {
+          const tr = T(
+            "Backup automático<small>Salva sozinho ao fim de cada partida</small>",
+            "cloudauto",
+          );
+          if (!cOk) tr.classList.add("is-disabled");
+        }
+        hdg("Compras");
+        row(
+          "Restaurar compras",
+          "Recupere \"Remover anúncios\" e pacotes comprados nesta conta Google.",
+          run(btn("RESTAURAR"), "VERIFICANDO…", () => Billing.restore()),
+        );
+        hdg("Dados");
         let t = 0;
-        r.onclick = () => {
+        const r = btn("APAGAR", () => {
           if (!t) {
-            r.textContent =
-              "Toque de novo para apagar o progresso (compras são mantidas)";
+            r.textContent = "TOQUE DE NOVO";
             r.classList.add("is-confirming");
             t = setTimeout(() => {
               t = 0;
               if (r.isConnected) {
-                r.textContent = "Apagar progresso";
+                r.textContent = "APAGAR";
                 r.classList.remove("is-confirming");
               }
             }, 3500);
@@ -7314,11 +7551,16 @@
           }
           clearTimeout(t);
           wipeProgress();
-        };
-        d.appendChild(r);
-      }
-      b.appendChild(d);
-    }
+        });
+        row(
+          "Apagar progresso",
+          "Remove o progresso deste aparelho. As compras são mantidas.",
+          r,
+        );
+      },
+    };
+    S_[setTab]();
+    body.scrollTop = keep;
   }
   $("#playBtn").insertAdjacentHTML(
     "afterend",
@@ -7531,8 +7773,25 @@
     Object.assign(ui, {
       hourglass: "ui/hourglass.png",
       kills: "ui/kills.png",
+      share: "ui/share.png",
+      /* redes sociais (Configurações > Sobre): assets/ui/<nome>.png */
+      instagram: "ui/instagram.png",
+      youtube: "ui/youtube.png",
+      tiktok: "ui/tiktok.png",
+      discord: "ui/discord.png",
     });
     for (const k in spr) loadImg(spr[k], (im) => setSprite(k, im));
+    /* Gelo do Céu (pickup): assets/ui/frozen.png substitui o desenho de código.
+       O PNG é reduzido para FROZEN_PX (mesmo tamanho dos outros pickups, 8x8 no template). */
+    loadImg("ui/frozen.png", (im) => {
+      const P = FROZEN_PX,
+        c = mk(P, P, (g) => {
+          g.imageSmoothingEnabled = true;
+          g.imageSmoothingQuality = "high";
+          g.drawImage(im, 0, 0, P, P);
+        });
+      setSprite("frozen", c);
+    });
     for (const k in ico)
       loadImg(ico[k], (im) => {
         ICON_FILE.add(k);
@@ -12384,9 +12643,9 @@
     K("Esc") +
     "</span></div>";
   const HLP_TOUCH =
-    '<div class="hr"><b>Mover</b><span>Arraste o dedo no <b>lado esquerdo</b> da tela.<small>O joystick aparece onde você toca.</small></span></div>' +
-    '<div class="hr"><b>Mirar e atirar</b><span>Arraste no <b>lado direito</b>: a arma mira e atira para onde você arrasta. Um toque atira para a frente.<small>Em Configurações, o Ataque pode ser Automático (toque em qualquer lugar para mover).</small></span></div>' +
-    '<div class="hr"><b>Habilidades ativas</b><span>Toque nos botões grandes à direita da tela, perto do polegar.</span></div>' +
+    '<div class="hr"><b>Mover</b><span>Arraste o dedo no <b class="jl-move">lado esquerdo</b> da tela.<small class="jl-note">O joystick aparece onde você toca.</small></span></div>' +
+    '<div class="hr"><b>Mirar e atirar</b><span>Arraste no <b class="jl-aim">lado direito</b>: a arma mira e atira para onde você arrasta. Um toque atira para a frente.<small>Em Configurações, o Ataque pode ser Automático (toque em qualquer lugar para mover).</small></span></div>' +
+    '<div class="hr"><b>Habilidades ativas</b><span>Toque nos botões grandes <b class="jl-acts">à direita</b> da tela, perto do polegar.</span></div>' +
     '<div class="hr"><b>Bênçãos</b><span>' +
     "A cada nível, toque na carta que quiser. Use Banir para remover uma opção desta partida ou Pular para continuar sem escolher; ambos têm usos limitados." +
     "</span></div>" +
@@ -12410,6 +12669,22 @@
 
   const showHelp = (cb) => {
     hCb = cb || null;
+    {
+      /* textos de toque seguem as opções de joystick (Configurações > Controles) */
+      const q = (c, t) => {
+        const el = HLP.querySelector(c);
+        if (el) el.textContent = t;
+      };
+      q(".jl-move", joyRight() ? "lado direito" : "lado esquerdo");
+      q(".jl-aim", joyRight() ? "lado esquerdo" : "lado direito");
+      q(".jl-acts", joyRight() ? "à esquerda" : "à direita");
+      q(
+        ".jl-note",
+        joyFixed()
+          ? "O joystick fica sempre no mesmo lugar: comece o toque nele."
+          : "O joystick aparece onde você toca.",
+      );
+    }
     HLP.hidden = false;
     resetScrollTree(HLP);
     $("#hOk").focus({ preventScroll: true });
@@ -13371,6 +13646,7 @@
   scr = function (t, fn) {
     const panel = SCR.firstElementChild;
     panel.classList.toggle("wide-modes", fn === renderModes);
+    panel.classList.toggle("wide-settings", fn === renderSet);
     panel.classList.toggle("wide-prep", fn === renderPrep);
     panel.classList.toggle("wide-runes", fn === renderShop);
     panel.classList.toggle(
@@ -13690,8 +13966,14 @@
     clearTimeout(notify.t);
     notify.t = setTimeout(() => d.remove(), 2800);
   }
-  /* Hápticos de gameplay (dano, dash, etc.). Sem toggle em Configurações. */
+  /* Hápticos de gameplay (dano, dash, etc.). Liga/desliga e intensidade em Configurações > Controles. */
+  const VIB_MUL = [0.6, 1, 1.6]; /* fraca, normal, forte */
   function vib(ms) {
+    if (save.set.vib === 0) return; /* Configurações > Controles > Vibração */
+    const k = VIB_MUL[save.set.vibi == null ? 1 : save.set.vibi] || 1,
+      sc = (v) => Math.max(5, Math.min(500, Math.round(v * k)));
+    /* padrão em lista: posições pares vibram, ímpares são pausas (só as vibrações mudam de intensidade) */
+    ms = Array.isArray(ms) ? ms.map((v, i) => (i % 2 ? v : sc(v))) : sc(ms);
     const browserFallback = () => {
       try {
         if (navigator.vibrate) navigator.vibrate(ms);
@@ -14314,17 +14596,24 @@
       }
     },
     /* confere o que a conta Google já possui (restaurar) e entrega pacotes pagos que não chegaram a ser consumidos */
+    /* devolve { fail }: true se a consulta à Google Play falhou (sem rede, Play indisponível, tempo esgotado) */
     async sync() {
-      if (!window.FeIAP) return;
+      const res = { fail: false };
+      if (!window.FeIAP) return res;
       try {
         if (await FeIAP.owned()) Billing.grant("noads");
-      } catch (e) { }
+      } catch (e) {
+        res.fail = true;
+        return res; /* a Play não respondeu: não repete a consulta para cada produto (cada uma esperaria o tempo limite) */
+      }
       for (const key of Object.keys(PRODUCTS)) {
         const P = PRODUCTS[key];
         if (P.kind !== "once" || !P.sku) continue;
         try {
           if (await FeIAP.owned(P.sku)) Billing.grant(key);
-        } catch (e) { }
+        } catch (e) {
+          res.fail = true;
+        }
       }
       try {
         for (const it of (await FeIAP.pending()) || []) {
@@ -14335,7 +14624,10 @@
             await FeIAP.consume(it.sku);
           } catch (e) { }
         }
-      } catch (e) { }
+      } catch (e) {
+        res.fail = true;
+      }
+      return res;
     },
     async restore() {
       if (Billing.busy)
@@ -14346,13 +14638,18 @@
       try {
         const snap = () => JSON.stringify([save.noAds, save.iap, save.coins]);
         const before = snap();
-        await Billing.sync();
+        const res = await Billing.sync();
         const changed = snap() !== before;
         /* direitos já ativos neste aparelho (ex.: após reinstalar ou apagar o progresso) */
         const hasRights =
           !!save.noAds ||
           Object.keys(save.iap || {}).some((k) => !!save.iap[k]);
         if (changed) notify("Compras restauradas!", "ok");
+        else if (res && res.fail)
+          notify(
+            "Não foi possível consultar a Google Play agora. Verifique a conexão e tente de novo.",
+            "warn",
+          );
         else if (hasRights)
           notify("Suas compras já estão ativas neste aparelho.", "ok");
         else notify("Nenhuma compra encontrada nesta conta.", "info");
@@ -14365,7 +14662,7 @@
   };
   /* Compras só são consultadas ao abrir a Loja (nada de chamadas nativas de compra na abertura do jogo) */
 
-  /* ---- tela LOJA: pacotes de moedas + remover anúncios + restaurar ---- */
+  /* ---- tela LOJA: pacotes de moedas + remover anúncios (restaurar compras: Configurações > Conta) ---- */
   /* Store styles moved to style.css. */
   /* ---- LOJA (v0.66): menu lateral de seções + cartões. Seções: Moedas, Pacote inicial, Heróis, Skins, Anúncios e compras. ---- */
   let shopSec = "coins";
@@ -14856,18 +15153,7 @@
           ),
         }),
       );
-      r.appendChild(
-        item({
-          art: ico("bag"),
-          artCls: "store-art",
-          title: "Restaurar compras",
-          sub: "Já comprou algo? Recupere aqui.",
-          cta: cta("Restaurar", false, async () => {
-            await Billing.restore();
-            refresh();
-          }),
-        }),
-      );
+      /* "Restaurar compras" fica em Configurações > Conta */
     }
   }
   $("#topRight").insertAdjacentHTML(
@@ -17135,10 +17421,56 @@
   AIM.id = null;
   AIM.ox = 0;
   AIM.oy = 0;
-  const aimSide = (e) =>
-    manualOn() &&
-    e.pointerType !== "mouse" &&
-    e.clientX > gameEl.getBoundingClientRect().left + gameEl.clientWidth / 2;
+  /* joystick fixo/flutuante e lado (esquerda/direita): ver Configurações > Controles.
+     A mira manual fica sempre no lado oposto ao do joystick. */
+  const stickGhost = document.createElement("div");
+  stickGhost.id = "stickGhost";
+  stickGhost.hidden = true;
+  stickGhost.innerHTML = "<i></i>";
+  gameEl.appendChild(stickGhost);
+  function joyBase() {
+    /* centro do joystick fixo, em coordenadas de tela */
+    const r = gameEl.getBoundingClientRect(),
+      ox = clamp(r.width * 0.13, 84, 140),
+      oy = clamp(r.height * 0.26, 76, 110);
+    return { x: joyRight() ? r.right - ox : r.left + ox, y: r.bottom - oy };
+  }
+  function joySync() {
+    gameEl.classList.toggle("joy-right", joyRight());
+    const show = isTouch && joyFixed() && state === "play" && !stick.on;
+    stickGhost.hidden = !show;
+    if (show) {
+      const c = joyBase(),
+        r = gameEl.getBoundingClientRect();
+      stickGhost.style.left = c.x - r.left + "px";
+      stickGhost.style.top = c.y - r.top + "px";
+    }
+  }
+  setInterval(joySync, 250);
+  addEventListener("resize", joySync);
+  joySync();
+  const aimSide = (e) => {
+    if (!manualOn() || e.pointerType === "mouse") return false;
+    const mid = gameEl.getBoundingClientRect().left + gameEl.clientWidth / 2;
+    return joyRight() ? e.clientX < mid : e.clientX > mid;
+  };
+  function stickUpdate(cx, cy) {
+    let dx = cx - stick.ox,
+      dy = cy - stick.oy;
+    const d = Math.hypot(dx, dy),
+      max = 50;
+    if (d > max) {
+      dx = (dx / d) * max;
+      dy = (dy / d) * max;
+    }
+    stick.dx = dx / max;
+    stick.dy = dy / max;
+    if (Math.hypot(stick.dx, stick.dy) < 0.15) {
+      stick.dx = stick.dy = 0;
+    }
+    $("#stick").firstElementChild.style.transform =
+      "translate(" + dx + "px," + dy + "px)";
+  }
   cv.addEventListener("pointerdown", (e) => {
     if (state !== "play") return;
     if (manualOn() && e.pointerType === "mouse") {
@@ -17165,39 +17497,34 @@
       stick2.firstElementChild.style.transform = "translate(0,0)";
       return;
     }
-    if (stick.on) return; // lado esquerdo (ou modo automático): movimento
+    if (stick.on) return; // lado do joystick (ou modo automático): movimento
+    let ox = e.clientX,
+      oy = e.clientY;
+    if (joyFixed() && e.pointerType !== "mouse") {
+      /* joystick fixo: só pega o toque que começa perto da base */
+      const c = joyBase();
+      if (Math.hypot(ox - c.x, oy - c.y) > 110) return;
+      ox = c.x;
+      oy = c.y;
+    }
     stick.on = true;
     stick.id = e.pointerId;
-    stick.ox = e.clientX;
-    stick.oy = e.clientY;
+    stick.ox = ox;
+    stick.oy = oy;
     stick.dx = stick.dy = 0;
     try {
       cv.setPointerCapture(e.pointerId);
     } catch (x) { }
     const el = $("#stick");
-    el.style.left = e.clientX - r.left + "px";
-    el.style.top = e.clientY - r.top + "px";
+    el.style.left = ox - r.left + "px";
+    el.style.top = oy - r.top + "px";
     el.hidden = false;
     el.firstElementChild.style.transform = "translate(0,0)";
+    stickGhost.hidden = true;
+    stickUpdate(e.clientX, e.clientY);
   });
   cv.addEventListener("pointermove", (e) => {
-    if (stick.on && e.pointerId === stick.id) {
-      let dx = e.clientX - stick.ox,
-        dy = e.clientY - stick.oy;
-      const d = Math.hypot(dx, dy),
-        max = 50;
-      if (d > max) {
-        dx = (dx / d) * max;
-        dy = (dy / d) * max;
-      }
-      stick.dx = dx / max;
-      stick.dy = dy / max;
-      if (Math.hypot(stick.dx, stick.dy) < 0.15) {
-        stick.dx = stick.dy = 0;
-      }
-      $("#stick").firstElementChild.style.transform =
-        "translate(" + dx + "px," + dy + "px)";
-    }
+    if (stick.on && e.pointerId === stick.id) stickUpdate(e.clientX, e.clientY);
     if (e.pointerId === AIM.id) {
       let dx = e.clientX - AIM.ox,
         dy = e.clientY - AIM.oy;
@@ -29428,6 +29755,219 @@
     b.textContent = "Compartilhar";
     shareClosePreview();
   }
+
+  /* ================= Backup na nuvem (Google Play Games > Jogos salvos) =================
+     Guarda o progresso (save) num arquivo de Jogos salvos da conta Google; o mesmo login do ranking/conquistas.
+     Fica de fora (é do aparelho): configurações (set), ID do jogador e tokens de compra. Compras voltam pela Play
+     (Configurações > Conta > Restaurar compras). Requer o plugin nativo FeCloudSave (FeCloudSavePlugin.java). */
+  const CLOUD_SKIP = ["set", "pid", "iapTok", "newsVer"];
+  const cloudDate = (t) => {
+    try {
+      return new Date(t).toLocaleString("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+    } catch (e) {
+      return "";
+    }
+  };
+  /* caixa de confirmação própria (usa o visual do diálogo de confirmação do jogo) */
+  function askBox(title, html, yes, no) {
+    return new Promise((res) => {
+      const ov = document.createElement("div");
+      ov.className = "ov confirm-overlay";
+      ov.setAttribute("role", "alertdialog");
+      ov.setAttribute("aria-modal", "true");
+      ov.innerHTML =
+        '<div class="ov-in confirm-dialog"><h2></h2><p class="verse"></p><div class="row">' +
+        '<button class="btn" type="button" data-r="0"></button>' +
+        '<button class="btn alt danger" type="button" data-r="1"></button></div></div>';
+      ov.querySelector("h2").textContent = title;
+      ov.querySelector(".verse").innerHTML = html;
+      ov.querySelector('[data-r="0"]').textContent = no;
+      ov.querySelector('[data-r="1"]').textContent = yes;
+      ov.addEventListener("click", (e) => {
+        const b = e.target.closest && e.target.closest("[data-r]");
+        if (!b) return;
+        ov.remove();
+        res(b.dataset.r === "1");
+      });
+      gameEl.appendChild(ov);
+    });
+  }
+  const Cloud = {
+    busy: false,
+    warned: false,
+    last: 0,
+    can: () => !!window.FeCloud,
+    pack() {
+      const o = {};
+      for (const k of Object.keys(save)) if (!CLOUD_SKIP.includes(k)) o[k] = save[k];
+      return JSON.stringify({
+        v: 1,
+        app: APP_VER,
+        t: Date.now(),
+        runs: save.runs || 0,
+        best: save.best || 0,
+        coins: save.coins || 0,
+        save: o,
+      });
+    },
+    /* lê o backup da nuvem: { err } | { none } | { bad } | { j } */
+    async remote() {
+      const r = await FeCloud.load();
+      if (!r || !r.ok) return { err: FeCloud.lastError || "falha" };
+      if (r.empty) return { none: true };
+      try {
+        const j = JSON.parse(r.data);
+        return j && j.save ? { j } : { bad: true };
+      } catch (e) {
+        return { bad: true };
+      }
+    },
+    why() {
+      return /entre|sign.?in|login|auth/i.test(FeCloud.lastError || "")
+        ? "Entre no Google Play Games e tente de novo."
+        : "Verifique a conexão e tente de novo.";
+    },
+    async save(manual) {
+      if (!Cloud.can()) {
+        if (manual) notify("Disponível apenas no aplicativo instalado.", "warn");
+        return false;
+      }
+      if (Cloud.busy) return false;
+      Cloud.busy = true;
+      try {
+        const rm = await Cloud.remote();
+        if (rm.err) {
+          if (manual) notify("Não foi possível acessar o backup. " + Cloud.why(), "warn");
+          return false;
+        }
+        /* nunca troca um backup com mais progresso por um save menor sem perguntar (ex.: reinstalou o jogo) */
+        if (rm.j && (rm.j.runs || 0) > (save.runs || 0)) {
+          if (!manual) {
+            if (!Cloud.warned) {
+              Cloud.warned = true;
+              notify(
+                "Há um backup na nuvem com mais progresso. Veja em Configurações > Conta.",
+                "info",
+              );
+            }
+            return false;
+          }
+          const yes = await askBox(
+            "Substituir o backup?",
+            "O backup na nuvem (<b>" +
+            cloudDate(rm.j.t) +
+            "</b>) tem <b>" +
+            rm.j.runs +
+            "</b> partidas e este aparelho tem <b>" +
+            (save.runs || 0) +
+            "</b>. Salvar agora troca o backup por um progresso menor.",
+            "Substituir",
+            "Cancelar",
+          );
+          if (!yes) return false;
+        }
+        const ok = await FeCloud.save(
+          Cloud.pack(),
+          "Fé Survivor | " + (save.runs || 0) + " partidas",
+        );
+        if (ok) {
+          save.set.cloudAt = Date.now();
+          persist();
+          if (manual) notify("Backup salvo na nuvem!", "ok");
+        } else if (manual)
+          notify("Não foi possível salvar o backup. " + Cloud.why(), "warn");
+        return ok;
+      } finally {
+        Cloud.busy = false;
+      }
+    },
+    async restore() {
+      if (!Cloud.can())
+        return notify("Disponível apenas no aplicativo instalado.", "warn");
+      if (Cloud.busy) return;
+      Cloud.busy = true;
+      let j = null;
+      try {
+        const rm = await Cloud.remote();
+        if (rm.err)
+          return notify("Não foi possível acessar o backup. " + Cloud.why(), "warn");
+        if (rm.none)
+          return notify("Nenhum backup encontrado nesta conta do Google Play Games.", "info");
+        if (rm.bad)
+          return notify("O backup da nuvem está ilegível. Salve um novo backup.", "warn");
+        j = rm.j;
+      } finally {
+        Cloud.busy = false;
+      }
+      const yes = await askBox(
+        "Restaurar o backup?",
+        "Backup de <b>" +
+        cloudDate(j.t) +
+        "</b>: " +
+        (j.runs || 0) +
+        " partidas, melhor tempo " +
+        fmt(j.best || 0) +
+        ", " +
+        (j.coins || 0) +
+        " moedas.<br>Este aparelho: " +
+        (save.runs || 0) +
+        " partidas, melhor tempo " +
+        fmt(save.best || 0) +
+        ".<br>O progresso deste aparelho será substituído.",
+        "Restaurar",
+        "Cancelar",
+      );
+      if (yes) Cloud.apply(j);
+    },
+    /* grava o backup no lugar do save e recarrega o jogo (mesmo caminho do "Apagar progresso") */
+    apply(j) {
+      const c = j.save || {},
+        loc = save,
+        m = Object.assign({}, c);
+      m.set = loc.set;
+      m.pid = loc.pid;
+      m.iapTok = Array.from(new Set([].concat(loc.iapTok || [], c.iapTok || []))).slice(-40);
+      m.iap = Object.assign({}, c.iap || {}, loc.iap || {});
+      if (loc.noAds || c.noAds) m.noAds = 1;
+      m.unl = Object.assign({}, c.unl || {});
+      if (m.iap.starter) {
+        m.unl[STARTER.hero] = 1;
+        m.st = "done";
+      }
+      /* moedas compradas depois do backup não se perdem ao restaurar */
+      const extra = Math.max(0, (loc.paid || 0) - (c.paid || 0));
+      m.coins = (c.coins || 0) + extra;
+      m.paid = Math.min((c.paid || 0) + extra, m.coins);
+      window.__wiping = true;
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(m));
+      } catch (e) {
+        window.__wiping = false;
+        return notify("Não foi possível restaurar o backup agora. Tente de novo.", "warn");
+      }
+      location.reload();
+    },
+    /* backup silencioso ao fim da partida (no máximo 1 a cada 2 min) */
+    auto() {
+      if (!Cloud.can() || save.set.cloudauto === 0 || TUT.on) return;
+      if (!(window.FePGS && FePGS.signed)) return;
+      if (Date.now() - Cloud.last < 120000) return;
+      Cloud.last = Date.now();
+      Cloud.save(false).catch(() => { });
+    },
+    /* instalação nova com backup na nuvem: avisa onde restaurar (uma vez por abertura) */
+    async hint() {
+      if (!Cloud.can() || !(window.FePGS && FePGS.signed)) return;
+      if ((save.runs || 0) > 0 || save.set.cloudAt || state !== "menu") return;
+      const rm = await Cloud.remote();
+      if (rm.j && (rm.j.runs || 0) > 0)
+        notify("Backup na nuvem encontrado! Restaure em Configurações > Conta.", "info");
+    },
+  };
+  setTimeout(() => Cloud.hint().catch(() => { }), 8000);
 
   /* ================= v0.46: transições de entrada e saída de telas ================= */
   (function screenTransitions() {

@@ -539,6 +539,49 @@
   FePGS.ready =
     FePGS.signIn(); /* login automático ao abrir o jogo; a tela de carregamento espera por esta promessa. Se falhar, o jogo segue normalmente */
 
+  /* ---- Backup na nuvem: Google Play Games > Jogos salvos (plugin nativo próprio "FeCloudSave", FeCloudSavePlugin.java) ----
+     Usa o mesmo login do ranking/conquistas (FePGS). Contrato usado pelo jogo (game.js > Cloud):
+       save(json, descricao) -> true/false          load() -> { ok, empty } | { ok, data, modified } | { ok:false }
+     Em caso de falha, FeCloud.lastError traz o motivo. */
+  window.FeCloud = {
+    lastError: "",
+    async ready() {
+      if (FePGS.signed) return true;
+      if (await FePGS.signIn()) return true;
+      FeCloud.lastError = "Entre no Google Play Games.";
+      return false;
+    },
+    async save(json, description) {
+      FeCloud.lastError = "";
+      if (!(await FeCloud.ready())) return false;
+      try {
+        await T(
+          P("FeCloudSave").save({ data: json, description: description || "Fé Survivor" }),
+          30000,
+          "cloud.save",
+        );
+        return true;
+      } catch (e) {
+        console.warn("[cloud] save", e);
+        FeCloud.lastError = errTxt(e);
+        return false;
+      }
+    },
+    async load() {
+      FeCloud.lastError = "";
+      if (!(await FeCloud.ready())) return { ok: false };
+      try {
+        const r = await T(P("FeCloudSave").load(), 30000, "cloud.load");
+        if (!r || r.empty || !r.data) return { ok: true, empty: true };
+        return { ok: true, data: r.data, modified: r.modified };
+      } catch (e) {
+        console.warn("[cloud] load", e);
+        FeCloud.lastError = errTxt(e);
+        return { ok: false };
+      }
+    },
+  };
+
   /* ---- Avaliação (Play In-App Review: @capacitor-community/in-app-review 7.x) ---- */
   window.FeReview = {
     async inApp() {
