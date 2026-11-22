@@ -553,20 +553,26 @@
     },
   };
 
-  /* ---- Compartilhar imagem da run (requer @capacitor/share e @capacitor/filesystem instalados e sincronizados) ----
-     Grava o PNG (base64) no cache do app e abre a folha de compartilhamento do Android com a imagem e o texto. */
+  /* ---- Compartilhar imagem da run ----
+     1) Plugin nativo próprio "FeShare" (FeSharePlugin.java): envia imagem + texto no mesmo envio (ACTION_SEND), então o
+        WhatsApp e outros apps usam o texto como legenda. 2) Reserva: @capacitor/filesystem + @capacitor/share. Esse plugin
+        envia a imagem em modo "múltiplos arquivos" e o WhatsApp descarta o texto; nesse caso retorna { caption: false }
+        e o jogo copia o texto para o usuário colar. */
   window.FeShare = {
     async image(base64, text, title) {
+      try {
+        await P("FeShare").shareImage({ data: base64, text: text || "", title: title || "Fé Survivor" });
+        return { caption: true };
+      } catch (e) {
+        if (!/unimplemented|not implemented|not available|not registered/i.test(String((e && (e.code + " " + e.message)) || e)))
+          throw e;
+      }
       const FS = P("Filesystem"),
         SH = P("Share");
       if (!FS || !SH)
-        throw new Error("Plugins Share/Filesystem não registrados no Android.");
+        throw new Error("Plugins de compartilhamento não registrados no Android.");
       const r = await T(
-        FS.writeFile({
-          path: "fe-survivor-run.png",
-          data: base64,
-          directory: "CACHE",
-        }),
+        FS.writeFile({ path: "fe-survivor-run.png", data: base64, directory: "CACHE" }),
         15000,
         "gravar imagem",
       );
@@ -576,7 +582,7 @@
         files: [r.uri],
         dialogTitle: "Compartilhar minha run",
       });
-      return true;
+      return { caption: false };
     },
   };
 

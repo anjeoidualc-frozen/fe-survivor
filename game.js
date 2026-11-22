@@ -28935,18 +28935,17 @@
     };
   }
   function shareText(d) {
+    const g = G,
+      who = g.hitBy ? " contra " + g.hitBy : "";
     const L = [];
-    L.push("✦ Fé Survivor | " + d.heroName + " | " + d.title.charAt(0) + d.title.slice(1).toLowerCase());
-    L.push(
-      "Tempo " + fmt(d.t) + " | Nível de fé " + d.lvl + " | " + d.kills + " derrotados",
-    );
-    const nm = (a) => a.map((i) => i.name + " Nv" + i.lvl).join(", ");
-    if (d.weapons.length) L.push("Armas: " + nm(d.weapons));
-    if (d.gifts.length) L.push("Dons: " + nm(d.gifts));
-    if (d.actives.length) L.push("Ativas: " + nm(d.actives));
-    L.push("");
-    L.push("Resista às trevas, evolua sua fé e sobreviva até o amanhecer!");
-    L.push("Jogue grátis no Android: " + SHARE_URL);
+    if (d.kind === "win")
+      L.push("Sobrevivi até o amanhecer no Fé Survivor com " + d.heroName + "! " + d.kills + " derrotados, nível de fé " + d.lvl + ".");
+    else if (d.kind === "ret")
+      L.push("Cheguei a " + fmt(d.t) + " no Fé Survivor com " + d.heroName + ", nível de fé " + d.lvl + ".");
+    else
+      L.push("Resisti " + fmt(d.t) + who + " no Fé Survivor com " + d.heroName + " (nível de fé " + d.lvl + "). Você aguenta mais?");
+    L.push("Resista às trevas até o amanhecer! Baixe grátis na Play Store:");
+    L.push(SHARE_URL);
     return L.join("\n");
   }
 
@@ -29141,17 +29140,28 @@
     fitT(d.heroName.toUpperCase(), tx0, HY + 52, twd, 38, C.gold, "left", FT);
     const tw = Math.floor((twd - 3 * 10) / 4),
       tiles = [
-        ["Tempo", fmt(d.t)],
-        ["Derrotados", String(d.kills)],
-        ["Nível de fé", String(d.lvl)],
-        ["Moedas", String(d.coins)],
+        ["Tempo", fmt(d.t), "hourglass"],
+        ["Derrotados", String(d.kills), "kills"],
+        ["Nível de fé", String(d.lvl), "star"],
+        ["Moedas", String(d.coins), "coin"],
       ];
+    const tIco = {};
+    if (!o.noImg)
+      await Promise.all(
+        ["hourglass", "kills", "star", "coin"].map(async (k) => (tIco[k] = await shareImg(UI_URL[k]))),
+      );
     tiles.forEach((t, i) => {
       const px = tx0 + i * (tw + 10),
-        py = HY + 74;
+        py = HY + 74,
+        im = tIco[t[2]],
+        ix = im ? 46 : 0; /* espaço do ícone à esquerda */
       box(px, py, tw, 76, C.panel2, C.line, 3);
-      fitT(t[1], px + tw / 2, py + 40, tw - 14, 28, C.cream, "center", FT);
-      fitT(t[0], px + tw / 2, py + 64, tw - 14, 18, C.dim, "center", FB);
+      if (im) {
+        x.imageSmoothingEnabled = false;
+        x.drawImage(im, px + 10, py + 20, 36, 36);
+      }
+      fitT(t[1], px + ix + (tw - ix) / 2, py + 40, tw - ix - 14, 28, C.cream, "center", FT);
+      fitT(t[0], px + ix + (tw - ix) / 2, py + 64, tw - ix - 14, 18, C.dim, "center", FB);
     });
     /* armas, dons e ativas */
     const loaded = new Map();
@@ -29274,7 +29284,8 @@
   async function shareSend(card, text) {
     if (IS_NATIVE && window.FeShare && window.FeShare.image) {
       try {
-        await window.FeShare.image(card.dataUrl.split(",")[1], text, "Fé Survivor");
+        const r = await window.FeShare.image(card.dataUrl.split(",")[1], text, "Fé Survivor");
+        if (r && r.caption === false) shareCopy(text, "Texto copiado! Cole na legenda da imagem.");
         return "native";
       } catch (e) {
         if (shareCanceled(e)) return "cancel";
@@ -29316,6 +29327,25 @@
     }
     return "none";
   }
+  async function shareCopy(text, msg) {
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch (e) {
+      const t = document.createElement("textarea");
+      t.value = text;
+      t.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(t);
+      t.select();
+      try {
+        ok = document.execCommand("copy");
+      } catch (e2) { }
+      t.remove();
+    }
+    notify(ok ? msg || "Texto copiado!" : "Não foi possível copiar.", ok ? "ok" : "warn");
+    return ok;
+  }
   function shareClosePreview() {
     const o = $("#sharePrev");
     if (o) o.remove();
@@ -29346,24 +29376,7 @@
       else if (k === "send") {
         const r = await shareSend(card, text);
         if (r === "none") notify("Compartilhar não está disponível neste aparelho. Copie o texto.", "warn");
-      } else if (k === "copy") {
-        try {
-          await navigator.clipboard.writeText(text);
-          notify("Texto copiado!", "ok");
-        } catch (e) {
-          const t = document.createElement("textarea");
-          t.value = text;
-          t.style.cssText = "position:fixed;opacity:0";
-          document.body.appendChild(t);
-          t.select();
-          let ok = false;
-          try {
-            ok = document.execCommand("copy");
-          } catch (e2) { }
-          t.remove();
-          notify(ok ? "Texto copiado!" : "Não foi possível copiar.", ok ? "ok" : "warn");
-        }
-      }
+      } else if (k === "copy") shareCopy(text);
     });
     gameEl.appendChild(ov);
   }
