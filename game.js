@@ -2561,7 +2561,7 @@
     if (e.boss) {
       burst(e.x, e.y, 40, e.col, 120);
       bossDisintegrate(e);
-    } else enemyDeathFx(e);
+    } else if (!enemyCrumble(e)) enemyDeathFx(e);
     SFX.play("kill");
     if (e.boss) {
       G.boss = null;
@@ -4697,6 +4697,7 @@
     g.flash = Math.max(0, g.flash - dt);
     g.hurtFlash = Math.max(0, g.hurtFlash - dt);
     stepBossDust(dt);
+    stepCrumble(dt);
     g.freezeT = Math.max(0, (g.freezeT || 0) - dt);
 
     if (p.hp <= 0) return endRun(false);
@@ -5145,6 +5146,7 @@
     }
     // inimigos (no chão: ordenados com o cenário; voadores por cima)
     sortByKey(g.enemies, "y");
+    LEG.list.length = 0;
     {
       const air = AIR_BUF;
       air.length = 0;
@@ -5156,6 +5158,7 @@
           e.y > camy + VH + 60
         )
           continue;
+        LEG.list.push(e);
         if (e.fly) {
           air.push(e);
           continue;
@@ -5164,6 +5167,8 @@
       }
       for (const e of air) frzDraw(e, g, true);
     }
+    drawCrumble();
+    legPrep();
     // jogador
     flushDecor(p.y + 8);
     {
@@ -5179,7 +5184,12 @@
           WEAPONS[weaponId] &&
           WEAPONS[weaponId].behavior === "aura_pulse"
         )
+        {
+          legDim(LEG.mul);
+          LEG.cover = 1;
           drawAura(g, p, weaponId);
+          legUndim();
+        }
       if (g.mods.rng) {
         ctx.save();
         ctx.strokeStyle = "rgba(255,255,255,.10)";
@@ -5235,39 +5245,11 @@
       ctx.fillRect(sx(pool.x) + 3, sy(pool.y) + 2, 2, 1);
       ctx.globalAlpha = 1;
     }
-    for (const q of g.eshots) {
-      if (q.k === "poison_flask") {
-        const x = sx(q.x),
-          y = sy(q.y - q.z);
-        ctx.fillStyle = "#203b24";
-        ctx.fillRect(x - 2, y - 3, 5, 6);
-        ctx.fillRect(x - 1, y - 5, 3, 2);
-        ctx.fillStyle = "#3a8b36";
-        ctx.fillRect(x - 1, y - 2, 3, 4);
-        ctx.fillStyle = "#b5f05e";
-        ctx.fillRect(x, y - 1, 1, 2);
-        continue;
-      }
-      if (q.red ? S.eshotr : S.eshot) {
-        spr(q.red ? S.eshotr : S.eshot, q.x, q.y, 1);
-        continue;
-      }
-      ctx.fillStyle = q.red ? "#4a0a0a" : "#2a0a3a";
-      ctx.beginPath();
-      ctx.arc(sx(q.x), sy(q.y), 4, 0, 6.3);
-      ctx.fill();
-      ctx.fillStyle = q.red ? "#ff4a3a" : "#c04dff";
-      ctx.beginPath();
-      ctx.arc(sx(q.x), sy(q.y), 2.5, 0, 6.3);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(sx(q.x), sy(q.y) - 1, 1, 1);
-    }
     // fx
     for (const f of g.fx) {
       if (f.wait > 0) continue;
       const k = f.t / f.life;
-      if (FXR[f.k]) FXR[f.k](f, k, g);
+      if (FXR[f.k]) legFx(f, k, g);
       else if (f.k === "txt") drawText(f.s, sx(f.x), sy(f.y - k * 10), f.col);
       else if (f.k === "ghost") {
         const hs = S.hero[g.hk] && S.hero[g.hk][0];
@@ -5288,7 +5270,7 @@
         ctx.fillRect(sx(q.x), sy(q.y), q.sz, q.sz);
       }
     }
-    ctx.globalAlpha = 1;
+    legPass(g); /* contorno dos inimigos, tiros inimigos e hitboxes: por cima de todos os efeitos */
     // atmosfera: anoitece com o tempo
     const night = NIGHT_A * (1 - dawnK());
     if (night > 0.01 && save.set.fx) {
@@ -5861,6 +5843,8 @@
       vibi: 1 /* intensidade: 0 fraca, 1 normal, 2 forte */,
       gfx: 0 /* qualidade gráfica: 0 alta, 1 média, 2 economia */,
       cloudauto: 1 /* backup automático na nuvem (Google Play Games) */,
+      leg: 1 /* legibilidade do combate: 0 padrão, 1 reforçada */,
+      hitbox: 0 /* mostrar hitboxes */,
     },
     save.set || {},
   );
@@ -7111,14 +7095,14 @@
   /* ================= Configurações em seções (menu inicial e pausa) =================
      Links: preencha SOCIAL_LINKS e TERMS_URL. Link vazio = o botão avisa "em breve".
      Ícones das redes: assets/ui/instagram.png, youtube.png, tiktok.png e discord.png (opcionais). */
-  const SOCIAL_LINKS = { instagram: "", youtube: "", tiktok: "", discord: "" };
+  const SOCIAL_LINKS = { instagram: "https://www.instagram.com/fe_survivor_roguelike?lqvp=MTkyaDRmb2xkb2M0ag==", youtube: "https://youtube.com/@fesurvivorroguelikebiblico?si=Bnrd0pjYNIUICpS1", tiktok: "https://www.tiktok.com/@fe_survivor_roguelike?_r=1&_t=ZS-9BbxSISJKUM", discord: "" };
   const SOCIAL_LABEL = {
     instagram: "Instagram",
     youtube: "YouTube",
     tiktok: "TikTok",
     discord: "Discord",
   };
-  const TERMS_URL = "";
+  const TERMS_URL = "https://anjeoidualc-frozen.github.io/fe-survivor-docs/";
   const SET_TABS = [
     ["audio", "Áudio"],
     ["video", "Vídeo"],
@@ -7285,6 +7269,27 @@
             persist();
             again();
           }),
+        );
+        const LG = [
+          ["PADRÃO", "Efeitos das suas armas com opacidade normal."],
+          [
+            "REFORÇADA",
+            "Com muitos inimigos, seus efeitos de área ficam mais transparentes e o contorno dos inimigos aparece por cima deles.",
+          ],
+        ];
+        const li = save.set.leg === 0 ? 0 : 1;
+        row(
+          "Legibilidade do combate",
+          LG[li][1],
+          btn(LG[li][0], () => {
+            save.set.leg = li ? 0 : 1;
+            persist();
+            again();
+          }),
+        );
+        T(
+          "Mostrar hitboxes<small>Círculos de colisão: inimigos (branco), tiros inimigos (laranja) e herói (verde)</small>",
+          "hitbox",
         );
         T(
           "Efeitos visuais<small>Tremor, neblina, flashes e partículas</small>",
@@ -19912,6 +19917,10 @@
       syy *= ty / hh;
       sxx = tx / ww;
     }
+    e.$s = s;
+    e.$y = yy;
+    e.$sx = sxx;
+    e.$sy = syy;
     spr(s, e.x, yy, e.sc, e.flash > 0, e.face < 0, syy, al, sxx, RIM_FOE);
   }
 
@@ -29968,6 +29977,405 @@
     },
   };
   setTimeout(() => Cloud.hint().catch(() => { }), 8000);
+
+  /* ================= Morte dos inimigos: esfarelar (v0.70) =================
+     Substitui o clarão + quadros de morte dos inimigos comuns. O sprite vira blocos (2x2, 3x3... pixels) que se soltam de
+     cima para baixo e voam em ~0,45 s. Pensado para muitos inimigos morrendo ao mesmo tempo:
+       - o desenho do sprite (cores quantizadas, blocos ordenados por cor) é calculado UMA vez por sprite e guardado em cache;
+       - todas as partículas vivem num pool único de arrays tipados (sem objetos por partícula, sem alocação por morte);
+       - desenho: só fillRect, sem alfa por partícula e com troca de cor apenas quando muda (blocos ordenados por cor);
+       - limite global de partículas ativas (cai com a qualidade gráfica) e redução automática de blocos por morte. */
+  const CR_CAP = 1024,
+    CR_COLS = [],
+    CR_IDX = new Map(),
+    CRT = new WeakMap();
+  const crLimit = () => 640 >> PERF.lvl; /* partículas ativas ao mesmo tempo: 640 / 320 / 160 */
+  function crCol(r, g, b) {
+    const q = (v) => Math.min(255, ((v >> 5) << 5) + 16),
+      R = q(r),
+      G_ = q(g),
+      B = q(b),
+      key = (R << 16) | (G_ << 8) | B;
+    let i = CR_IDX.get(key);
+    if (i === undefined) {
+      i = CR_COLS.length;
+      CR_COLS.push("rgb(" + R + "," + G_ + "," + B + ")");
+      CR_IDX.set(key, i);
+    }
+    return i;
+  }
+  /* blocos do sprite: posição relativa ao centro, cor (índice quantizado) e tamanho; ordenados por cor */
+  function crTemplate(s) {
+    let t = CRT.get(s.c);
+    if (t !== undefined) return t;
+    t = null;
+    try {
+      const cw = s.c.width,
+        ch = s.c.height,
+        px = s.c.getContext("2d").getImageData(0, 0, cw, ch).data;
+      let n = 0;
+      for (let i = 3; i < px.length; i += 4) if (px[i] >= 128) n++;
+      if (n > 0) {
+        const cs = clamp(Math.round(Math.sqrt(n / 40)), 1, 4),
+          need = Math.max(1, Math.ceil((cs * cs) / 2)),
+          out = [];
+        for (let by = 0; by < ch; by += cs)
+          for (let bx = 0; bx < cw; bx += cs) {
+            let c = 0,
+              r = 0,
+              g = 0,
+              b = 0;
+            for (let y = by; y < Math.min(ch, by + cs); y++)
+              for (let x = bx; x < Math.min(cw, bx + cs); x++) {
+                const i = (y * cw + x) * 4;
+                if (px[i + 3] < 128) continue;
+                c++;
+                r += px[i];
+                g += px[i + 1];
+                b += px[i + 2];
+              }
+            if (c < need) continue;
+            out.push({
+              dx: bx + cs / 2 - cw / 2,
+              dy: by + cs / 2 - ch / 2,
+              ci: crCol((r / c) | 0, (g / c) | 0, (b / c) | 0),
+            });
+          }
+        out.sort((a, b) => a.ci - b.ci);
+        const m = out.length;
+        t = {
+          n: m,
+          cs,
+          cw,
+          ch,
+          dx: new Float32Array(m),
+          dy: new Float32Array(m),
+          ci: new Uint16Array(m),
+        };
+        out.forEach((o, i) => {
+          t.dx[i] = o.dx;
+          t.dy[i] = o.dy;
+          t.ci[i] = o.ci;
+        });
+      }
+    } catch (err) {
+      t = null; /* canvas protegido: sem esfarelar, usa o efeito antigo */
+    }
+    CRT.set(s.c, t);
+    return t;
+  }
+  function crPool(g) {
+    return (
+      g.cr ||
+      (g.cr = {
+        n: 0,
+        x: new Float32Array(CR_CAP),
+        y: new Float32Array(CR_CAP),
+        vx: new Float32Array(CR_CAP),
+        vy: new Float32Array(CR_CAP),
+        d: new Float32Array(CR_CAP) /* espera até se soltar */,
+        life: new Float32Array(CR_CAP),
+        l0: new Float32Array(CR_CAP),
+        sz: new Uint8Array(CR_CAP),
+        ci: new Uint16Array(CR_CAP),
+      })
+    );
+  }
+  /* devolve true se tratou a morte (inclui "efeitos desligados"); false = usar o efeito antigo */
+  function enemyCrumble(e) {
+    const g = G;
+    if (!save.set.fx) return true;
+    if (!g || !e || e.boss) return false;
+    if (
+      e.x < camx - 40 ||
+      e.x > camx + VW + 40 ||
+      e.y < camy - 40 ||
+      e.y > camy + VH + 40
+    )
+      return true; /* fora da tela: ninguém vê */
+    const base = (EA[e.spr] && EA[e.spr].std && EA[e.spr].std.base) || null,
+      s = base && base.c ? base : eSpr(e, g);
+    if (!s || !s.c) return false;
+    const t = crTemplate(s);
+    if (!t) return false;
+    const P = crPool(g),
+      room = Math.min(CR_CAP, crLimit()) - P.n;
+    if (room < 8) {
+      burst(e.x, e.y, 4, CR_COLS[t.ci[0]], 50);
+      return true;
+    }
+    const stride = Math.max(1 + PERF.lvl, Math.ceil(t.n / room)),
+      k = e.sc || 1,
+      fl = e.face < 0 ? -1 : 1,
+      sz = Math.max(1, Math.round(t.cs * k)),
+      hw = t.cw / 2,
+      hh = t.ch / 2;
+    let n = P.n;
+    for (let i = 0; i < t.n && n < CR_CAP; i += stride) {
+      const dx = t.dx[i] * fl,
+        dy = t.dy[i],
+        ox = dx / hw,
+        oy = dy / hh;
+      P.x[n] = e.x + dx * k;
+      P.y[n] = e.y + dy * k;
+      P.vx[n] = ox * rndFx(12, 36) + rndFx(-8, 8);
+      P.vy[n] = oy * rndFx(6, 18) + rndFx(-46, -12);
+      P.d[n] = 0.015 + (dy / t.ch + 0.5) * 0.09 + rngFx() * 0.05; /* solta de cima para baixo */
+      P.l0[n] = P.life[n] = rndFx(0.16, 0.3);
+      P.sz[n] = sz;
+      P.ci[n] = t.ci[i];
+      n++;
+    }
+    P.n = n;
+    return true;
+  }
+  function stepCrumble(dt) {
+    const P = G && G.cr;
+    if (!P || !P.n) return;
+    const n = P.n,
+      g = 70 * dt;
+    let j = 0;
+    for (let i = 0; i < n; i++) {
+      let d = P.d[i],
+        life = P.life[i];
+      if (d > 0) {
+        d -= dt;
+        if (d <= 0) d = 0;
+      } else {
+        life -= dt;
+        if (life <= 0) continue;
+        P.vy[i] += g;
+        P.x[i] += P.vx[i] * dt;
+        P.y[i] += P.vy[i] * dt;
+      }
+      if (j !== i) {
+        P.x[j] = P.x[i];
+        P.y[j] = P.y[i];
+        P.vx[j] = P.vx[i];
+        P.vy[j] = P.vy[i];
+        P.l0[j] = P.l0[i];
+        P.sz[j] = P.sz[i];
+        P.ci[j] = P.ci[i];
+      }
+      P.d[j] = d;
+      P.life[j] = life;
+      j++;
+    }
+    P.n = j;
+  }
+  /* desenha por cima do chão e abaixo do herói e dos efeitos (é "resto" do inimigo, não pode cobrir a ação) */
+  function drawCrumble() {
+    const P = G && G.cr;
+    if (!P || !P.n) return;
+    const n = P.n;
+    let last = -1;
+    for (let i = 0; i < n; i++) {
+      const ci = P.ci[i];
+      if (ci !== last) {
+        ctx.fillStyle = CR_COLS[ci];
+        last = ci;
+      }
+      let s = P.sz[i];
+      if (P.d[i] <= 0 && s > 1 && P.life[i] < P.l0[i] * 0.35) s--; /* some encolhendo, sem alfa */
+      ctx.fillRect(Math.round(P.x[i] - camx), Math.round(P.y[i] - camy), s, s);
+    }
+  }
+
+  /* ================= Legibilidade do combate (v0.70) =================
+     Em momentos de muita densidade, os efeitos das suas armas não podem esconder os inimigos nem os ataques deles.
+     Modo "Reforçada" (Configurações > Vídeo):
+       1) transparência: os efeitos de ÁREA das suas armas (golpes, anéis, chamas, auras...) ficam mais transparentes
+          quanto mais inimigos há na tela (até 55%);
+       2) profundidade: o CONTORNO dos inimigos é redesenhado por cima dos efeitos, então o corpo/hitbox continua visível;
+       3) os ataques inimigos (tiros) são sempre desenhados por último, com borda escura, acima de qualquer efeito seu
+          (isto vale também no modo Padrão).
+     "Mostrar hitboxes": círculos de colisão de inimigos, tiros inimigos e herói, para testar a leitura da cena. */
+  const LEG = { mul: 1, cover: 0, list: [] };
+  const LEG_DIM = {
+    slash: 1,
+    ring: 1,
+    flame: 1,
+    pulse: 1,
+    signalZone: 1,
+    sea: 1,
+    pillar: 1,
+    fwall: 1,
+    net: 1,
+    jzone: 1,
+  };
+  const LEG_RING = "rgba(255,92,120,.9)",
+    LEG_SHOT_RIM = "rgba(8,2,16,.9)";
+  const legOn = () => save.set.leg !== 0;
+  /* multiplicador de opacidade: o jogo define ctx.globalAlpha em muitos efeitos; este "regulador" multiplica qualquer
+     valor definido enquanto FXMUL < 1 (só dentro das janelas de legDim/legUndim; instalado na 1ª vez que é usado) */
+  let FXMUL = 1,
+    gaOn = false;
+  function gaInstall() {
+    if (gaOn) return true;
+    const d = Object.getOwnPropertyDescriptor(
+      CanvasRenderingContext2D.prototype,
+      "globalAlpha",
+    );
+    if (!d || !d.get || !d.set) return false;
+    Object.defineProperty(ctx, "globalAlpha", {
+      configurable: true,
+      get() {
+        const v = d.get.call(this);
+        return FXMUL === 1 ? v : v / FXMUL;
+      },
+      set(v) {
+        d.set.call(this, FXMUL === 1 ? v : v * FXMUL);
+      },
+    });
+    return (gaOn = true);
+  }
+  function legDim(m) {
+    if (m >= 0.995 || !gaInstall()) return;
+    FXMUL = m;
+    ctx.globalAlpha = 1;
+  }
+  function legUndim() {
+    if (FXMUL === 1) return;
+    FXMUL = 1;
+    ctx.globalAlpha = 1;
+  }
+  /* chamado uma vez por quadro, depois de desenhar os inimigos: mede a densidade e suaviza a transparência */
+  function legPrep() {
+    const n = LEG.list.length,
+      tgt = legOn() ? clamp(1 - ((n - 14) / 70) * 0.45, 0.55, 1) : 1;
+    LEG.mul += (tgt - LEG.mul) * 0.2;
+    if (Math.abs(LEG.mul - tgt) < 0.01) LEG.mul = tgt;
+    LEG.cover = 0;
+  }
+  function legFx(f, k, g) {
+    const heavy = LEG_DIM[f.k] === 1;
+    if (heavy) {
+      LEG.cover = 1;
+      if (LEG.mul < 0.995) legDim(LEG.mul);
+    }
+    FXR[f.k](f, k, g);
+    if (heavy) legUndim();
+  }
+  /* contorno dos inimigos (só o anel de 1 px, sem o corpo), em cache por sprite */
+  const RINGC = new WeakMap();
+  function ringVar(s, flip) {
+    let m = RINGC.get(s.c);
+    if (!m) RINGC.set(s.c, (m = {}));
+    const k = flip ? 1 : 0;
+    if (m[k]) return m[k];
+    const rc = rimOf(s, LEG_RING);
+    let v = mk(rc.width, rc.height, (g) => {
+      g.drawImage(rc, 0, 0);
+      g.globalCompositeOperation = "destination-out";
+      g.drawImage(s.c, 1, 1);
+    });
+    if (flip) {
+      const src = v;
+      v = mk(src.width, src.height, (g) => {
+        g.translate(src.width, 0);
+        g.scale(-1, 1);
+        g.drawImage(src, 0, 0);
+      });
+    }
+    return (m[k] = v);
+  }
+  function legRings() {
+    const list = LEG.list;
+    let n = 0;
+    for (let i = 0; i < list.length && n < 120; i++) {
+      const e = list[i],
+        s = e.$s;
+      if (e.dead || !s || !s.c) continue;
+      const v = ringVar(s, e.face < 0),
+        kx = (e.sc || 1) * (e.$sx || 1),
+        ky = (e.sc || 1) * (e.$sy || 1),
+        dw = (s.w + 2) * kx,
+        dh = (s.h + 2) * ky;
+      ctx.drawImage(
+        v,
+        sx(e.x) - dw / 2,
+        sy(e.$y != null ? e.$y : e.y) - dh / 2,
+        dw,
+        dh,
+      );
+      n++;
+    }
+  }
+  /* tiros inimigos: por último, acima de todos os efeitos, com borda escura para destacar em qualquer fundo */
+  function legEshots(g) {
+    for (const q of g.eshots) {
+      if (q.k === "poison_flask") {
+        const x = sx(q.x),
+          y = sy(q.y - q.z);
+        ctx.fillStyle = "#07050f";
+        ctx.fillRect(x - 3, y - 4, 7, 8);
+        ctx.fillRect(x - 2, y - 6, 5, 2);
+        ctx.fillStyle = "#203b24";
+        ctx.fillRect(x - 2, y - 3, 5, 6);
+        ctx.fillRect(x - 1, y - 5, 3, 2);
+        ctx.fillStyle = "#3a8b36";
+        ctx.fillRect(x - 1, y - 2, 3, 4);
+        ctx.fillStyle = "#b5f05e";
+        ctx.fillRect(x, y - 1, 1, 2);
+        continue;
+      }
+      if (q.red ? S.eshotr : S.eshot) {
+        spr(q.red ? S.eshotr : S.eshot, q.x, q.y, 1, false, false, 1, 1, 1, LEG_SHOT_RIM);
+        continue;
+      }
+      ctx.fillStyle = "#07050f";
+      ctx.beginPath();
+      ctx.arc(sx(q.x), sy(q.y), 5.5, 0, 6.3);
+      ctx.fill();
+      ctx.fillStyle = q.red ? "#4a0a0a" : "#2a0a3a";
+      ctx.beginPath();
+      ctx.arc(sx(q.x), sy(q.y), 4, 0, 6.3);
+      ctx.fill();
+      ctx.fillStyle = q.red ? "#ff4a3a" : "#c04dff";
+      ctx.beginPath();
+      ctx.arc(sx(q.x), sy(q.y), 2.5, 0, 6.3);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(sx(q.x), sy(q.y) - 1, 1, 1);
+    }
+  }
+  function legHitboxes(g) {
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,.75)";
+    ctx.beginPath();
+    for (const e of LEG.list) {
+      if (e.dead) continue;
+      const x = sx(e.x),
+        y = sy(e.y),
+        r = e.r || 6;
+      ctx.moveTo(x + r, y);
+      ctx.arc(x, y, r, 0, 6.2832);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,150,40,.9)";
+    ctx.beginPath();
+    for (const q of g.eshots) {
+      if (q.dead) continue;
+      const x = sx(q.x),
+        y = sy(q.y),
+        r = (q.r || 3) + 5; /* o dano acontece a q.r + 5 do herói */
+      ctx.moveTo(x + r, y);
+      ctx.arc(x, y, r, 0, 6.2832);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(110,255,140,.95)";
+    ctx.beginPath();
+    ctx.arc(sx(g.p.x), sy(g.p.y), 5, 0, 6.2832);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function legPass(g) {
+    ctx.globalAlpha = 1;
+    if (legOn() && LEG.cover && PERF.lvl < 2 && GFX < 2) legRings();
+    legEshots(g);
+    if (save.set.hitbox) legHitboxes(g);
+  }
 
   /* ================= v0.46: transições de entrada e saída de telas ================= */
   (function screenTransitions() {
