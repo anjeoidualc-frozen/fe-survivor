@@ -103,3 +103,12 @@ Causa: a camada de neve dos menus era inserida como PRIMEIRO filho da tela de su
 - A lista de heróis passou de 12 para 13 e rola dentro do painel, como já previsto no CSS (`overflow-y: auto`).
 - Valores de balanceamento (vida do Herodes, preço do Baltasar, intervalo do Presente) são estimativas: ajuste em `events.christmas2026.boss` e `heroPowerTuning.magi_gifts`.
 - Herodes só aparece em Belém. Para liberar Baltasar e o Gélido fora do evento não é preciso nada: ficam permanentes. Se quiser o herói só durante o evento, é um filtro na Loja.
+
+## Correção de desempenho: loja de Skins/Ícones (travava ~5 s)
+- **Causa:** ao abrir a loja, cada prévia de skin e cada ícone de skin reconstruía TODOS os quadros do herói (~23 leituras síncronas da GPU com `getImageData` por skin). O original já fazia 252 leituras na aba Skins; com as 14 skins novas subiu para 546, e com os PNGs reais dos heróis cada leitura custa bem mais que no meu teste.
+- **Correção (em `game.js`, sistema de skins):**
+  1. Cada quadro é lido da GPU **uma única vez** (cache `SKGRID`); todas as skins do mesmo herói reaproveitam a leitura.
+  2. As prévias constroem só o necessário: ícone = 1 quadro, prévia = quadros "parado". O build completo (todos os quadros) fica só para a skin **equipada**.
+  3. As prévias são preenchidas **aos poucos** (fila com ~8 ms por quadro), então a loja abre na hora.
+- **Medição (Chromium headless):** aba Skins de 546 leituras / 422 ms de bloqueio para **91 leituras / 69 ms** (melhor que o v0.69, com 252 / 152 ms). Seletor de ícones do perfil: 36 leituras, ~100 ms. Os avisos do console deixam de aparecer na prática, pois não há leituras repetidas do mesmo canvas.
+- **Sem mudança visual:** as prévias e ícones continuam idênticos; só aparecem em sequência rápida.

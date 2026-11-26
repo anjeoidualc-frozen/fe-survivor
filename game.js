@@ -15830,7 +15830,7 @@
       isHero = false,
       fc = null;
     if (info && info.skin) {
-      const b = skBuild(info.hero, info.skin);
+      const b = skBuildIcon(info.hero, info.skin);
       sp = b ? b.s[0] : null;
       isHero = true;
       if (sp && sp.c) fc = profFaceSkin(sp);
@@ -21626,10 +21626,15 @@
       : "classic";
   }
   /* ---- sprite ⇄ grade ---- */
+  const SKGRID = new WeakMap(); /* canvas do quadro → grade lida uma única vez (getImageData é caro: leitura síncrona da GPU) */
   function skFromSprite(sp) {
+    let g = SKGRID.get(sp.c);
+    if (g) return g;
     const w = sp.c.width,
       h = sp.c.height;
-    return { w, h, d: sp.c.getContext("2d").getImageData(0, 0, w, h).data };
+    g = { w, h, d: sp.c.getContext("2d").getImageData(0, 0, w, h).data };
+    SKGRID.set(sp.c, g);
+    return g;
   }
   function skToSprite(gr, src) {
     const c = mk(gr.w, gr.h, (g) => {
@@ -21706,6 +21711,66 @@
       return null;
     }
   }
+  /* Builds parciais para telas de loja/perfil: a prévia só precisa do "parado" e o ícone só do 1º quadro.
+     O build completo (todos os quadros, ~23 leituras da GPU) só acontece para a skin EQUIPADA. */
+  const SKLITE = {},
+    SKICON = {};
+  function skRecolor(h, id, sprites) {
+    const O = skCapture(h),
+      skin = skDef(h, id);
+    if (!O || !skin || id === "classic") return null;
+    const list = [];
+    for (const sp of sprites) if (sp && sp.c && list.indexOf(sp) < 0) list.push(sp);
+    const grids = new Map(),
+      min = { x: 0, y: 0 };
+    for (const sp of list) {
+      const g = skFromSprite(sp),
+        n = skNeed(g, skin);
+      grids.set(sp, g);
+      min.x = Math.max(min.x, n.x);
+      min.y = Math.max(min.y, n.y);
+    }
+    const memo = new Map();
+    return (sp) => {
+      if (!sp || !sp.c) return sp;
+      if (!memo.has(sp))
+        memo.set(sp, skToSprite(skApply(grids.get(sp), skin, min).g, sp));
+      return memo.get(sp);
+    };
+  }
+  function skBuildIcon(h, id) {
+    const key = h + ":" + id;
+    if (SKCACHE[key]) return SKCACHE[key];
+    if (SKICON[key]) return SKICON[key];
+    const O = skCapture(h);
+    if (!O) return null;
+    try {
+      const f = skRecolor(h, id, [O.s[0]]);
+      return f ? (SKICON[key] = { s: [f(O.s[0])] }) : null;
+    } catch (e) {
+      console.warn("[skins] ícone", key, e);
+      return null;
+    }
+  }
+  function skBuildLite(h, id) {
+    const key = h + ":" + id;
+    if (SKCACHE[key]) return SKCACHE[key];
+    if (SKLITE[key]) return SKLITE[key];
+    const O = skCapture(h);
+    if (!O) return null;
+    try {
+      const H = O.hfr,
+        idle = H && Array.isArray(H.idle) ? H.idle : null,
+        f = skRecolor(h, id, [O.s[0], O.s[1]].concat(idle || [], H && H.base0 ? [H.base0] : []));
+      if (!f) return null;
+      const out = { s: [f(O.s[0]), f(O.s[1])], hfr: null };
+      if (idle) out.hfr = { idle: idle.map(f), base0: f(H.base0), v2: H.v2 };
+      return (SKLITE[key] = out);
+    } catch (e) {
+      console.warn("[skins] prévia", key, e);
+      return null;
+    }
+  }
   /* coloca no jogo a skin equipada do herói (ou volta ao clássico) */
   function skApplyHero(h) {
     const O = skCapture(h);
@@ -21740,6 +21805,8 @@
     if (!SKORIG[h]) return;
     delete SKORIG[h];
     for (const k in SKCACHE) if (k.indexOf(h + ":") === 0) delete SKCACHE[k];
+    for (const k in SKLITE) if (k.indexOf(h + ":") === 0) delete SKLITE[k];
+    for (const k in SKICON) if (k.indexOf(h + ":") === 0) delete SKICON[k];
     skCapture(h);
     skApplyHero(h);
   }
@@ -21796,28 +21863,61 @@
   function skFrames(h, id) {
     const O = skCapture(h);
     if (!O) return [];
-    const b = id === "classic" ? O : skBuild(h, id) || O,
+    const b = id === "classic" ? O : skBuildLite(h, id) || O,
       s = b.s,
       H = b.hfr;
     if (H && H.idle && s[0] === H.base0)
       return H.v2 ? H.idle.slice() : [H.idle[0], H.idle[1] || H.idle[0]];
     return [s[0], s[1] || s[0]];
   }
+  const SKQ = [];
+  let skQT = 0;
+  function skPump() {
+    skQT = 0;
+    const t0 = performance.now();
+    while (SKQ.length && performance.now() - t0 < 8) {
+      try {
+        SKQ.shift()();
+      } catch (e) {}
+    }
+    if (SKQ.length) skQT = setTimeout(skPump, 0);
+  }
   function skPreview(h, id, maxH) {
-    const fr = skFrames(h, id).filter((x) => x && x.c),
-      c = document.createElement("canvas");
+    const c = document.createElement("canvas");
     c.className = "skin-pv";
-    if (!fr.length) return c;
-    const W = Math.max(...fr.map((x) => x.w)),
-      H = Math.max(...fr.map((x) => x.h)),
-      z = Math.max(1, Math.floor((maxH || 64) / H));
-    c.width = W;
-    c.height = H;
-    c.style.width = W * z + "px";
-    c.style.height = H * z + "px";
-    c._fr = fr;
     c.dataset.skpv = h + ":" + id;
-    skDraw(c, 0);
+    const fill = () => {
+      const fr = skFrames(h, id).filter((x) => x && x.c);
+      if (!fr.length) return;
+      const W = Math.max(...fr.map((x) => x.w)),
+        H = Math.max(...fr.map((x) => x.h)),
+        z = Math.max(1, Math.floor((maxH || 64) / H));
+      c.width = W;
+      c.height = H;
+      c.style.width = W * z + "px";
+      c.style.height = H * z + "px";
+      c._fr = fr;
+      skDraw(c, 0);
+    };
+    const key = h + ":" + id;
+    if (id === "classic" || SKCACHE[key] || SKLITE[key]) {
+      fill();
+      return c;
+    }
+    /* ainda não construída: reserva o espaço com o sprite clássico e preenche na fila */
+    const O = skCapture(h),
+      b = O && O.s && O.s[0];
+    if (b && b.h) {
+      const z = Math.max(1, Math.floor((maxH || 64) / b.h));
+      c.width = b.w;
+      c.height = b.h;
+      c.style.width = b.w * z + "px";
+      c.style.height = b.h * z + "px";
+    }
+    SKQ.push(() => {
+      if (c.isConnected) fill();
+    });
+    if (!skQT) skQT = setTimeout(skPump, 0);
     return c;
   }
   function skDraw(c, t) {
