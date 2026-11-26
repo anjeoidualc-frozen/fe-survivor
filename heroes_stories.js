@@ -67,5 +67,10 @@
       text: "Josué serviu a Moisés desde jovem e foi escolhido para levar Israel à terra prometida. O Senhor lhe disse que fosse forte e corajoso. Diante de Jericó, o povo marchou ao redor da cidade por sete dias, com sacerdotes tocando trombetas, e as muralhas caíram. Josué liderou a conquista de Canaã e, no fim da vida, desafiou Israel a escolher a quem serviria: ele e a sua casa serviriam ao Senhor.",
       ref: "Josué 1:6-9; 6; 24:15",
     },
+    baltasar: {
+      title: "O sábio que seguiu a estrela",
+      text: "Magos vindos do Oriente viram uma estrela no céu e atravessaram o deserto para adorar o rei que acabara de nascer. Perguntaram por ele em Jerusalém, e o rei Herodes, perturbado, tentou usá-los para encontrar o menino. Guiados pela estrela até Belém, os sábios se prostraram diante de Jesus e lhe ofereceram ouro, incenso e mirra. Avisados em sonho, voltaram para casa por outro caminho, sem revelar a Herodes onde o menino estava.",
+      ref: "Mateus 2:1-12",
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);

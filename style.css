@@ -9212,7 +9212,8 @@ button.pf-trk:not(.lk):not(.cur):hover {
   position: relative;
 }
 
-#mDaily.has-dot::after {
+#mDaily.has-dot::after,
+#mXmas.has-dot::after {
   content: "";
   position: absolute;
   top: -3px;
@@ -10517,3 +10518,50 @@ body::-webkit-scrollbar,
     /* padding-top: 34px; */
   }
 }
+
+/* ===== v0.70: Evento de Natal 2026 — A Estrela de Belém ===== */
+.xm-btn { position: relative; }
+.xm-btn[hidden] { display: none !important; }
+.xm-ico, .xm-star {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  vertical-align: -4px;
+  background: url("assets/ui/star.png") center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.xm-star { width: 34px; height: 34px; margin: 0 10px 0 0; background-image: url("assets/ui/star.png"); flex: none; }
+.xm-ev { text-align: left; display: grid; gap: 8px; max-width: 640px; margin: 0 auto; }
+.xm-head { display: flex; align-items: center; }
+.xm-head h3 { margin: 0; color: #ffd24a; font-size: 1.05rem; }
+.xm-head p { margin: 2px 0 0; opacity: 0.85; font-size: 0.78rem; }
+.xm-art { display: block; width: 100%; height: 92px; image-rendering: auto; border: 2px solid #5a4a7a; border-radius: 4px; object-fit: cover; }
+.xm-when { margin: 0; font-size: 0.78rem; opacity: 0.9; }
+.xm-desc { margin: 0; font-size: 0.78rem; opacity: 0.85; }
+.xm-play { justify-self: start; }
+.xm-q { display: grid; gap: 6px; }
+.xm-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 7px 9px; border: 1px solid #4a3d70; border-radius: 4px; background: rgba(20, 14, 44, 0.7); }
+.xm-row.done { border-color: #c8962c; background: rgba(60, 44, 10, 0.55); }
+.xm-rt { flex: 1; min-width: 0; }
+.xm-rt b { display: block; color: #ffe27a; font-size: 0.82rem; }
+.xm-rt span { display: block; font-size: 0.72rem; opacity: 0.85; }
+.xm-bar { height: 5px; margin-top: 5px; background: #1a1433; border-radius: 3px; overflow: hidden; }
+.xm-bar i { display: block; height: 100%; background: linear-gradient(#ffe27a, #c8962c); }
+.xm-rw { text-align: right; font-size: 0.72rem; color: #ffd24a; white-space: nowrap; }
+.xm-note { margin: 2px 0 0; font-size: 0.7rem; opacity: 0.75; }
+
+/* neve decorativa: só menus/subtelas (camada atrás do conteúdo, sem toque); nunca dentro da partida */
+#menu, .subscreen { isolation: isolate; }
+.xm-snow { display: none; position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+#game[data-xms="1"] .xm-snow { display: block; }
+.xm-snow i { position: absolute; top: -6px; width: var(--s); height: var(--s); background: #fff; opacity: 0.7; will-change: transform;
+  animation: xmfall var(--d) linear var(--w) infinite; }
+@keyframes xmfall {
+  0% { transform: translate3d(0, -6px, 0); opacity: 0; }
+  10% { opacity: 0.75; }
+  90% { opacity: 0.6; }
+  100% { transform: translate3d(var(--x), 105vh, 0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .xm-snow i { animation-duration: 40s; } }
+canvas.xm-art { image-rendering: pixelated; }

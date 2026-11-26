@@ -225,7 +225,7 @@
      Altere APP_VER abaixo para atualizar a versão na tela inicial e nas Configurações.
      (Ponto único de verdade — não fica no HTML.) */
   const FROZEN_PX = 8; /* tamanho do pickup Gelo do Céu na tela (px) */
-  const APP_VER = "0.69"; // Desempenho e estabilidade: sprites em 1 chamada, chão/sombras/chamas em cache, qualidade adaptativa, telemetria e áudio seguros (anterior: 0.68 Skins)
+  const APP_VER = "0.70"; // Evento de Natal 2026 (A Estrela de Belém). Anterior 0.69: Desempenho e estabilidade: sprites em 1 chamada, chão/sombras/chamas em cache, qualidade adaptativa, telemetria e áudio seguros (anterior: 0.68 Skins)
   /* ===== NOTÍCIAS / NOTAS DA VERSÃO =====
      Como atualizar em cada release:
        1) Suba APP_VER (ex.: '0.48').
@@ -275,6 +275,7 @@
       abadom: 1000,
       leviata: 1600,
       dragao: 2500,
+      herodes: 1200,
     }, // ícones de perfil: todos os demônios custam 'demon'; chefes do mais barato (Legião) ao mais caro (O Dragão)
   });
   try {
@@ -2565,7 +2566,10 @@
     SFX.play("kill");
     if (e.boss) {
       G.boss = null;
-      G.bossIdx++;
+      if (!e.xmBoss) G.bossIdx++; /* Herodes não avança o cronograma dos 5 chefes */
+      try {
+        xmBossKilled(); /* evento de Natal: missão dos chefes */
+      } catch (e) {}
       G.eshots.length = 0;
       G.flash = 0.5;
       G.shake = 0.6;
@@ -4082,8 +4086,9 @@
             ? 1.55
             : 1.35
           : 1;
-      p.x += ix * m.spd * sprint * dt;
-      p.y += iy * m.spd * sprint * dt;
+      const ice = G.iceT > 0 ? 0.62 : 1; /* gelo do evento de Natal reduz a velocidade */
+      p.x += ix * m.spd * sprint * ice * dt;
+      p.y += iy * m.spd * sprint * ice * dt;
       p.walk += dt;
       if (FXQ() && (G.P.boots || 0) + (G.P.eagle || 0) > 0 && rngFx() < dt * 14)
         G.parts.push({
@@ -5001,16 +5006,18 @@
       }
     });
   }
+  let XM_NOW = ""; /* evento de Natal: id do inimigo em Belém (variante sazonal em cache) */
   let FRZ_NOW = false; /* ligado por frzDraw() enquanto os inimigos estão congelados */
   function sprVar(s, flash, flip, rim) {
     const key =
-      (flash ? 1 : 0) + (flip ? 2 : 0) + (FRZ_NOW ? 4 : 0) + "|" + (rim || "");
+      (flash ? 1 : 0) + (flip ? 2 : 0) + (FRZ_NOW ? 4 : 0) + "|" + (rim || "") + (XM_NOW ? "|x" + XM_NOW : "");
     let m = SPRV.get(s.c);
     if (!m) SPRV.set(s.c, (m = {}));
     let v = m[key];
     if (v) return v;
     let base = flash ? s.f : s.c;
     if (FRZ_NOW) base = frozenCanvas(base);
+    if (XM_NOW) base = xmSeasonCanvas(base, XM_NOW);
     if (rim) {
       const rc = rimOf(s, rim);
       base = mk(rc.width, rc.height, (g) => {
@@ -5379,7 +5386,7 @@
       H$.coins.innerHTML = '<span class="uic i-coin"></span> ' + cv;
     }
     let o;
-    if (g.boss) o = "Derrote " + BOSSES[g.boss.idx].name + "!";
+    if (g.boss) o = "Derrote " + (g.boss.xmName || BOSSES[g.boss.idx].name) + "!";
     else if (g.inf || g.bossIdx < BOSS_T.length)
       o =
         "Sobreviva | " +
@@ -5402,7 +5409,7 @@
     }
     if (g.boss) {
       H$.bossbar.hidden = false;
-      setT(H$.bossname, "bn", BOSSES[g.boss.idx].name);
+      setT(H$.bossname, "bn", g.boss.xmName || BOSSES[g.boss.idx].name);
       H$.bossfill.style.width =
         clamp((g.boss.hp / g.boss.mhp) * 100, 0, 100).toFixed(1) + "%";
       setT(
@@ -5700,6 +5707,11 @@
     }
     persist();
     recordRun(won);
+    try {
+      xmRunEnd(won, ret); /* evento de Natal: missões */
+    } catch (e) {
+      console.warn("[natal]", e);
+    }
     try {
       profRecordRun(won, ret);
     } catch (e) {
@@ -6436,7 +6448,8 @@
   };
   const wN = (g) => (g.W ? Object.keys(g.W).length : 0),
     pN = (g) => (g.P ? Object.keys(g.P).length : 0),
-    wIdx = () => (RUN && RUN.world ? WORLDS.indexOf(RUN.world) : 0);
+    wIdx = () =>
+      RUN && RUN.world && !RUN.world.event ? WORLDS.indexOf(RUN.world) : 0;
   /* [id, nome, descrição, condição(g partida, s save), pontos no Google Play Games] */
   /* Conquistas: nome, descrição e recompensa ficam em registry.js → achievements. Aqui só as regras (funções). */
   /* Helpers dos Testemunhos (leem o save; Runas do Reino ficam em save.rt = {ramo:{slot:id}}, 4 slots por ramo) */
@@ -6637,6 +6650,8 @@
     return h;
   }
   function screenBgUrl(key) {
+    const xb = xmBgFor(key); /* evento de Natal: fundo sazonal (se o arquivo existir) */
+    if (xb) return xb;
     const base = typeof ASSET_DIR !== "undefined" ? ASSET_DIR : "assets/";
     const file =
       SCREEN_BG[key] ||
@@ -7095,14 +7110,14 @@
   /* ================= Configurações em seções (menu inicial e pausa) =================
      Links: preencha SOCIAL_LINKS e TERMS_URL. Link vazio = o botão avisa "em breve".
      Ícones das redes: assets/ui/instagram.png, youtube.png, tiktok.png e discord.png (opcionais). */
-  const SOCIAL_LINKS = { instagram: "https://www.instagram.com/fe_survivor_roguelike?lqvp=MTkyaDRmb2xkb2M0ag==", youtube: "https://youtube.com/@fesurvivorroguelikebiblico?si=Bnrd0pjYNIUICpS1", tiktok: "https://www.tiktok.com/@fe_survivor_roguelike?_r=1&_t=ZS-9BbxSISJKUM", discord: "" };
+  const SOCIAL_LINKS = { instagram: "", youtube: "", tiktok: "", discord: "" };
   const SOCIAL_LABEL = {
     instagram: "Instagram",
     youtube: "YouTube",
     tiktok: "TikTok",
     discord: "Discord",
   };
-  const TERMS_URL = "https://anjeoidualc-frozen.github.io/fe-survivor-docs/";
+  const TERMS_URL = "";
   const SET_TABS = [
     ["audio", "Áudio"],
     ["video", "Vídeo"],
@@ -8328,8 +8343,19 @@
       "."
     );
   }
+  /* ---- Evento sazonal: janela de datas (config em registry.js → events). Relógio local, UTC-3 como o dayKey(). ---- */
+  const EVENTS = FE_CONTENT.events || {};
+  function evActive(id) {
+    const c = EVENTS[id];
+    if (!c) return false;
+    const k = dayKey();
+    return k >= c.start && k <= c.end;
+  }
   const wOpen = (i) =>
-    !!WORLDS[i] && (!WORLDS[i].key || worldOwned(i) || worldByAch(i)),
+    !!WORLDS[i] &&
+    (WORLDS[i].event
+      ? evActive(WORLDS[i].event)
+      : !WORLDS[i].key || worldOwned(i) || worldByAch(i)),
     curW = () => WORLDS[wOpen(save.world) ? save.world : 0],
     _mr0 = Math.random;
   const mul = (a) => () => {
@@ -8377,7 +8403,7 @@
       k,
       seed,
       hero: hs[Math.floor(q() * hs.length)],
-      world: Math.floor(q() * WORLDS.length),
+      world: Math.floor(q() * WORLDS.filter((w) => !w.event).length),
     };
   }
   const _se = spawnEnemy;
@@ -8496,6 +8522,7 @@
   function renderWorlds(b) {
     b.innerHTML = "";
     WORLDS.forEach((w, i) => {
+      if (w.event && !wOpen(i)) return;
       const ok = wOpen(i),
         d = document.createElement("button");
       d.className = "rw";
@@ -11168,6 +11195,7 @@
         ? [0, 0]
         : [Math.cos(a.ang) * 300, Math.sin(a.ang) * 300];
     if (a.k === "spiral") return [vx * 0.3, vy * 0.3];
+    if (a.k === "xq") return [vx * 0.35, vy * 0.35];
     return [0, 0];
   }
   function cone(e, ang) {
@@ -12065,18 +12093,18 @@
           drawQuakeCirc(f, g);
         } else if (f.t < f.delay) {
           ctx.globalAlpha = 0.3 + 0.25 * Math.sin(f.t * 20);
-          ctx.fillStyle = "#ff6a2a";
+          ctx.fillStyle = f.ice ? "#7ab8f0" : "#ff6a2a";
           ctx.beginPath();
           ctx.arc(sx(f.x), sy(f.y), f.r, 0, 6.2832);
           ctx.fill();
           ctx.globalAlpha = 1;
-          ctx.strokeStyle = "#ffd27a";
+          ctx.strokeStyle = f.ice ? "#e8faff" : "#ffd27a";
           ctx.lineWidth = 1;
           ctx.stroke();
         } else if (f.dmg) {
           ctx.globalAlpha =
             Math.max(0, 1 - (f.t - f.delay) / (f.life - f.delay)) * 0.7;
-          ctx.fillStyle = "#ffd27a";
+          ctx.fillStyle = f.ice ? "#e8faff" : "#ffd27a";
           ctx.beginPath();
           ctx.arc(sx(f.x), sy(f.y), f.r, 0, 6.2832);
           ctx.fill();
@@ -13682,6 +13710,7 @@
     host.innerHTML =
       '<div class="hdg"><span class="uic i-globe"></span> Mundo</div><div id="prepW" class="prep-worlds"></div><small id="prepD" class="prep-description"></small><div id="prepBuy" class="prep-buy"></div>';
     WORLDS.forEach((w, i) => {
+      if (w.event && !wOpen(i)) return;
       const ok = wOpen(i),
         x = document.createElement("button");
       x.className = "mb";
@@ -15322,6 +15351,11 @@
   };
   const PROF_FOES = FE_CONTENT.profileEnemyIds.map((x) => x.slice());
   const PROF_BOSSES = FE_CONTENT.profileBossIds.map((x) => x.slice());
+  /* Herodes (chefe do evento de Natal, fora do cronograma dos 5 chefes) também tem ícone de perfil */
+  {
+    const hb = FE_CONTENT.events && FE_CONTENT.events.christmas2026 && FE_CONTENT.events.christmas2026.boss;
+    if (hb && !PROF_BOSSES.some((x) => x[0] === hb.id)) PROF_BOSSES.push([hb.id, hb.name]);
+  }
   const PROF_TITLES = [
     ["Peregrino", 0],
     ["Discípulo", 0.05],
@@ -17984,6 +18018,11 @@
       W = A.windup,
       T = A.attack,
       D = A.dash;
+    if (a && a.fr)
+      /* Herodes (evento de Natal): preparo e golpe usam os quadros de windup/attack */
+      return a.t < a.tel
+        ? W[a.t < a.tel * 0.55 ? 0 : 1]
+        : T[Math.min(T.length - 1, Math.floor(((a.t - a.tel) / a.dur) * T.length))];
     if (a) {
       if (a.k === "dash")
         return a.t < a.tel
@@ -19425,6 +19464,9 @@
     e.pose = null;
     let a = e.ai;
     switch (e.ab) {
+      case "frost_trail": /* Espírito Gélido: persegue deixando um rastro de gelo (evento de Natal) */
+        xmFrostTrail(e, g, dt);
+        return [vx, vy];
       case "poison_flask": {
         const ra = e.rangedAttack;
         if (!ra) return [vx, vy];
@@ -25185,6 +25227,15 @@
       lab = JT.label;
       val = h.tA / JT.period;
       hot = h.tA >= JT.hotAt;
+    } else if (behavior === "magi_gifts") {
+      h.tA += dt;
+      if (h.tA >= MG.period) {
+        h.tA = 0;
+        xmGift(g);
+      }
+      lab = MG.label + ": " + MG.names[(h.gift | 0) % 3];
+      val = h.tA / MG.period;
+      hot = h.tA >= MG.hotAt;
     }
     if (lab && state !== "menu") nxMeterSet(lab, val, hot);
     else nxMeterOff();
@@ -26685,7 +26736,9 @@
     NXTILES[0] = { tiles: S.tiles, tilesDay: S.tilesDay };
     NXTILES[1] = nxMakeTiles(NX_TERRAIN[1]);
     NXTILES[2] = nxMakeTiles(NX_TERRAIN[2]);
+    NXTILES[3] = nxMakeTiles(NX_TERRAIN[3]); /* Belém sob a Estrela (evento de Natal) */
     nxBuildDecor();
+    xmBuildDecor();
     nxBuildEnemies();
   }
   const _nxDG = drawGround;
@@ -26951,7 +27004,12 @@
   }
 
   /* ---------- clima e atmosfera por mundo ---------- */
-  const NX_FOGCOL = { 0: "105,120,165", 1: "214,170,100", 2: "120,70,170" };
+  const NX_FOGCOL = {
+    0: "105,120,165",
+    1: "214,170,100",
+    2: "120,70,170",
+    3: "130,150,205",
+  };
   let NXFOGWI = -1;
   function nxFogSync() {
     const wi = nxWi();
@@ -26995,16 +27053,21 @@
       ? "rgba(96,40,10,"
       : w === 2
         ? "rgba(22,4,44,"
-        : "rgba(8,10,46,";
+        : w === 3
+          ? "rgba(10,14,58,"
+          : "rgba(8,10,46,";
   };
-  const nxNightMul = () => (nxWi() === 1 ? 0.5 : nxWi() === 2 ? 0.6 : 1);
+  const nxNightMul = () =>
+    nxWi() === 1 ? 0.5 : nxWi() === 2 ? 0.6 : nxWi() === 3 ? 0.55 : 1;
   const nxFogBase = () => {
     const w = nxWi();
     return w === 1
       ? "rgba(60,32,8,"
       : w === 2
         ? "rgba(22,6,38,"
-        : "rgba(14,16,40,";
+        : w === 3
+          ? "rgba(16,20,56,"
+          : "rgba(14,16,40,";
   };
   const _nxWA = wxActive;
   wxActive = function () {
@@ -27068,6 +27131,28 @@
           st.next = 58 + rnd(0, 26);
         }
       }
+    } else if (wi === 3) {
+      /* Belém: nevasca periódica. Puramente visual (não mexe em movimento, inimigos, dano ou chefes). */
+      if (!st.on) {
+        st.next -= dt;
+        st.k = Math.max(0, st.k - dt * 0.7);
+        if (st.next <= 0 && g.t > 25 && !g.boss && !g.dawn) {
+          st.on = 1;
+          st.t = 0;
+          st.dur = 10;
+          st.dx = rng() < 0.5 ? 1 : -1;
+          banner("Nevasca", "A neve cobre o caminho");
+          toast("Nevasca!");
+        }
+      } else {
+        st.t += dt;
+        st.k = Math.max(0, Math.min(1, st.t / 1.6, (st.dur - st.t) / 2));
+        if (st.t >= st.dur) {
+          st.on = 0;
+          st.next = 60 + rnd(0, 30);
+        }
+      }
+      xmWorldTick(g, dt); /* poças de gelo, quadrantes e o chefe Herodes */
     } else if (wi === 2) {
       for (const e of g.enemies)
         if (e.t === "umbra") {
@@ -27131,6 +27216,46 @@
         ctx.fillStyle =
           "rgba(240,210,150," + (0.16 + hz(i, 6) * 0.3 + k * 0.25) + ")";
         ctx.fillRect(Math.round(x), Math.round(y), Math.round(len), 1);
+      }
+      ctx.restore();
+    } else if (wi === 3) {
+      /* neve contínua + nevasca: vetores fixos (nada é alocado por quadro) e sombra azulada para ler sobre a neve clara */
+      const k = st ? st.k : 0,
+        dxs = st && st.on ? st.dx : 1,
+        N = fx ? 44 + Math.round(70 * k) : 14 + Math.round(26 * k);
+      ctx.save();
+      if (k > 0.01) {
+        /* véu leve de nevasca: clareia as bordas sem cobrir o centro (telégrafos continuam legíveis) */
+        ctx.fillStyle = "rgba(205,220,250," + 0.1 * k + ")";
+        ctx.fillRect(0, 0, VW, VH);
+        const gr = ctx.createRadialGradient(VW / 2, VH / 2, VH * 0.32, VW / 2, VH / 2, VW * 0.62);
+        gr.addColorStop(0, "rgba(200,215,245,0)");
+        gr.addColorStop(1, "rgba(200,215,245," + 0.18 * k + ")");
+        ctx.fillStyle = gr;
+        ctx.fillRect(0, 0, VW, VH);
+      }
+      const SX = XM_SX,
+        SY = XM_SY,
+        SW = XM_SW;
+      for (let i = 0; i < N; i++) {
+        const sp = (7 + hz(i, 2) * 12) * (1 + k * 5) * dxs,
+          fall = (18 + hz(i, 7) * 22) * (1 + k * 1.2);
+        SX[i] = Math.round(
+          ((((hz(i, 1) * VW * 1.3 + T * sp + Math.sin(T * 0.8 + i) * 5 + camx * (0.3 + hz(i, 5) * 0.5)) %
+            (VW + 30)) +
+            VW +
+            30) %
+            (VW + 30)) -
+            15,
+        );
+        SY[i] = Math.round((((hz(i, 3) * VH + T * fall - camy * 0.25) % VH) + VH) % VH);
+        SW[i] = k > 0.3 ? 3 + (hz(i, 4) > 0.5 ? 1 : 0) : hz(i, 4) > 0.6 ? 3 : 2;
+      }
+      ctx.fillStyle = "rgba(38,52,112,0.3)";
+      for (let i = 0; i < N; i++) ctx.fillRect(SX[i] + 1, SY[i] + 1, SW[i], k > 0.3 ? 1 : 2);
+      for (let b = 0; b < 3; b++) {
+        ctx.fillStyle = "rgba(250,252,255," + (0.6 + b * 0.18 + k * 0.1) + ")";
+        for (let i = b; i < N; i += 3) ctx.fillRect(SX[i], SY[i], SW[i], k > 0.3 ? 1 : 2);
       }
       ctx.restore();
     } else if (wi === 2) {
@@ -27203,6 +27328,7 @@
         0: ["olive", "standStone", "haystack"],
         1: ["acacia", "ruinPillar", "tent"],
         2: ["blackTree", "crystal", "obelisk"],
+        3: ["xHouse", "xOlive", "xLantern"],
       }[i];
       pick.forEach((k, j) => {
         const im = S.decor[k];
@@ -30425,4 +30551,1228 @@
         });
     }).observe(gameEl, { childList: true });
   })();
+
+  /*XM-WORLD-BEGIN*/
+  /* ================= v0.70: EVENTO DE NATAL 2026 — A Estrela de Belém =================
+     Parte 1: mundo sazonal "Belém sob a Estrela" (índice 3 de WORLDS; dados em registry.js → worlds[3] e events.christmas2026).
+     Tudo é determinístico, preguiçoso (criado em nxInit) e em cache. Nenhuma neve cai durante a partida. */
+  const XM_SX = new Int16Array(128),
+    XM_SY = new Int16Array(128),
+    XM_SW = new Uint8Array(128); /* posições dos flocos de Belém, reutilizadas a cada quadro */
+  const XM_DK = "#0b0c26"; /* contorno escuro azul-noite */
+  const XM_WI = 3;
+
+  /* ---------- terreno: neve fina sobre colinas, caminho de terra ---------- */
+  const xmFrost = (c1, c2) => (g, r) => {
+    for (let i = 0; i < 3; i++) {
+      const x = 1 + Math.floor(r() * 13),
+        y = 1 + Math.floor(r() * 13);
+      nxPx(g, c1, x, y);
+      nxPx(g, c1, x + 1, y);
+      nxPx(g, c2, x, y + 1);
+    }
+  };
+  NX_TERRAIN[XM_WI] = {
+    night: {
+      g1: {
+        b: "#98a6d2",
+        f: ["#a6b3dc", "#8290c0", "#b6c2e6"],
+        x1: xmFrost("#e2eaff", "#6a78a8"),
+        x3: nxPebbles("#8c9ac8", "#5a6898"),
+      },
+      g2: {
+        b: "#8b99c8",
+        f: ["#98a6d2", "#7684b6", "#a8b5de"],
+        x1: nxPebbles("#a6b3dc", "#5a6898"),
+        x3: xmFrost("#d6e0f8", "#64729f"),
+      },
+      dirt: {
+        b: "#7a6670",
+        f: ["#88727c", "#5a4852", "#98808c"],
+        x1: nxPebbles("#a8949e", "#3d2f38"),
+      },
+    },
+    day: {
+      g1: {
+        b: "#d4deef",
+        f: ["#e4ecf8", "#bccbe4", "#f2f6fd"],
+        x1: xmFrost("#ffffff", "#9fb3d6"),
+        x3: nxPebbles("#a9b9d6", "#8a9cc0"),
+      },
+      g2: {
+        b: "#c3d0e8",
+        f: ["#d2ddf0", "#aebfdc", "#e2eaf7"],
+        x1: nxPebbles("#98aacc", "#7f90b5"),
+        x3: xmFrost("#f4f8ff", "#8fa3c9"),
+      },
+      dirt: {
+        b: "#a58d78",
+        f: ["#b49c86", "#8a7260", "#c4ac96"],
+        x1: nxPebbles("#d9cfc4", "#6d5848"),
+      },
+    },
+  };
+  DK.belem = XM_DK;
+
+  /* ---------- pequenos helpers de desenho ---------- */
+  const xmSnowCap = (g, x, y, w, c) => {
+    c = c || "#f4f8ff";
+    R(g, c, x, y, w, 1);
+    R(g, "#c9d6ee", x + 1, y + 1, Math.max(1, w - 2), 1);
+  };
+
+  /* ---------- sprites de cenário (criados 1 vez) ---------- */
+  function xmBuildDecor() {
+    const D = S.decor,
+      O = (w, h, fn) => nxOut(mk(w, h, fn), XM_DK);
+    D.xTuft = mk(8, 6, (g) => {
+      for (const [x, h, c] of [
+        [1, 3, "#8a8f9c"],
+        [2, 5, "#aab0c4"],
+        [4, 4, "#8a8f9c"],
+        [5, 5, "#c9d2e6"],
+        [6, 3, "#8a8f9c"],
+      ])
+        R(g, c, x, 6 - h, 1, h);
+      R(g, "#f4f8ff", 1, 5, 6, 1);
+    });
+    D.xRock = O(14, 11, (g) => {
+      nxBlob(g, 7, 6.5, 6, 4.2, "#7b86ab", "#a3aed0", "#4f5a82", 5);
+      R(g, "#f4f8ff", 3, 2, 8, 2);
+      R(g, "#c9d6ee", 4, 4, 5, 1);
+      R(g, "#f4f8ff", 9, 5, 2, 1);
+    });
+    D.xBush = O(14, 10, (g) => {
+      nxBlob(g, 7, 6, 6, 3.6, "#3d5a4c", "#58806a", "#27392f", 8);
+      R(g, "#f4f8ff", 3, 2, 3, 2);
+      R(g, "#f4f8ff", 8, 3, 3, 1);
+      R(g, "#c9d6ee", 4, 4, 2, 1);
+    });
+    D.xOlive = O(28, 30, (g) => {
+      R(g, "#4a3524", 12, 15, 4, 12);
+      R(g, "#6b4e36", 12, 15, 1, 12);
+      R(g, "#2a1d12", 10, 26, 8, 2);
+      R(g, "#4a3524", 9, 19, 3, 2);
+      R(g, "#4a3524", 16, 17, 3, 2);
+      nxBlob(g, 8, 11, 7, 5, "#5f7a62", "#86a38a", "#3b5240", 11);
+      nxBlob(g, 19, 10, 7, 5, "#5f7a62", "#86a38a", "#3b5240", 13);
+      nxBlob(g, 14, 6, 8, 5, "#6b8a6d", "#93b098", "#3b5240", 15);
+      xmSnowCap(g, 8, 3, 9);
+      xmSnowCap(g, 3, 8, 6);
+      xmSnowCap(g, 17, 6, 7);
+      R(g, "#f4f8ff", 13, 25, 4, 1);
+    });
+    D.xPalm = O(24, 34, (g) => {
+      for (let i = 0; i < 20; i++) {
+        R(g, i % 3 === 0 ? "#6b5238" : "#85684a", 11 + (i >> 4), 33 - i, 3, 1);
+      }
+      R(g, "#2a1d12", 9, 31, 7, 2);
+      const fr = [
+        [-9, -1],
+        [-7, -4],
+        [-3, -6],
+        [3, -6],
+        [7, -4],
+        [9, -1],
+      ];
+      for (const [dx, dy] of fr) {
+        nxLine(g, "#2f6a58", 12, 12, 12 + dx, 12 + dy + 3);
+        nxLine(g, "#3f8a70", 12, 11, 12 + dx, 11 + dy + 3);
+        R(g, "#f4f8ff", 12 + dx - 1, 12 + dy + 2, 2, 1);
+      }
+      R(g, "#f4f8ff", 10, 9, 5, 1);
+      R(g, "#8a5a2a", 11, 13, 2, 2);
+      R(g, "#8a5a2a", 14, 13, 2, 2);
+    });
+    D.xHay = O(14, 12, (g) => {
+      R(g, "#c9a24a", 1, 3, 12, 8);
+      R(g, "#e6c470", 1, 3, 12, 2);
+      R(g, "#a07c30", 1, 9, 12, 2);
+      for (let x = 2; x < 13; x += 3) R(g, "#8a6a28", x, 5, 1, 4);
+      R(g, "#7a5a22", 1, 7, 12, 1);
+      R(g, "#f4f8ff", 2, 2, 10, 2);
+      R(g, "#c9d6ee", 3, 4, 7, 1);
+    });
+    D.xFence = O(22, 12, (g) => {
+      for (const x of [2, 10, 18]) {
+        R(g, "#7a5530", x, 2, 2, 9);
+        R(g, "#a07a4a", x, 2, 1, 9);
+        R(g, "#f4f8ff", x, 1, 2, 1);
+      }
+      R(g, "#8a6238", 2, 4, 18, 2);
+      R(g, "#8a6238", 2, 8, 18, 2);
+      R(g, "#f4f8ff", 3, 3, 6, 1);
+      R(g, "#f4f8ff", 12, 7, 6, 1);
+    });
+    D.xLantern = O(8, 22, (g) => {
+      R(g, "#4a3524", 3, 6, 2, 15);
+      R(g, "#6b4e36", 3, 6, 1, 15);
+      R(g, "#2a1d12", 1, 20, 6, 2);
+      R(g, "#3a2a1c", 1, 1, 6, 1);
+      R(g, "#ffb347", 2, 2, 4, 4);
+      R(g, "#fff2a8", 3, 3, 2, 2);
+      R(g, "#3a2a1c", 2, 6, 4, 1);
+      R(g, "#f4f8ff", 1, 0, 6, 1);
+    });
+    D.xWall = O(24, 14, (g) => {
+      R(g, "#7a7592", 1, 5, 22, 8);
+      R(g, "#96919f", 1, 5, 22, 2);
+      for (const [x, y] of [
+        [4, 8],
+        [10, 10],
+        [16, 8],
+        [20, 10],
+      ])
+        R(g, "#59546f", x, y, 4, 1);
+      R(g, "#59546f", 8, 5, 1, 3);
+      R(g, "#59546f", 15, 10, 1, 3);
+      R(g, "#f4f8ff", 1, 3, 8, 2);
+      R(g, "#f4f8ff", 14, 4, 7, 1);
+      R(g, "#c9d6ee", 3, 5, 5, 1);
+    });
+    D.xWell = O(16, 16, (g) => {
+      R(g, "#7a7592", 2, 8, 12, 7);
+      R(g, "#96919f", 2, 8, 12, 2);
+      R(g, "#59546f", 2, 12, 12, 1);
+      R(g, "#1a2038", 4, 9, 8, 1);
+      R(g, "#6b4423", 2, 2, 1, 7);
+      R(g, "#6b4423", 13, 2, 1, 7);
+      R(g, "#8a5a2a", 2, 2, 12, 1);
+      R(g, "#f4f8ff", 1, 1, 14, 1);
+      R(g, "#f4f8ff", 2, 7, 4, 1);
+    });
+    D.xSheep = O(12, 10, (g) => {
+      nxBlob(g, 6, 5, 4.6, 3.3, "#eef0f8", "#ffffff", "#b8bfd6", 4);
+      R(g, "#2a2438", 9, 4, 3, 3);
+      R(g, "#4a4262", 10, 4, 1, 1);
+      R(g, "#2a2438", 3, 8, 1, 2);
+      R(g, "#2a2438", 7, 8, 1, 2);
+    });
+    D.xHouse = O(40, 36, (g) => {
+      R(g, "#8a85a0", 2, 10, 36, 24);
+      R(g, "#a5a0b8", 2, 10, 36, 3);
+      R(g, "#6a6584", 2, 31, 36, 3);
+      for (const [x, y, w] of [
+        [4, 15, 8],
+        [16, 17, 7],
+        [27, 15, 9],
+        [6, 22, 7],
+        [20, 24, 8],
+        [30, 22, 6],
+        [10, 28, 8],
+        [26, 29, 8],
+      ])
+        R(g, "#645f7c", x, y, w, 1);
+      R(g, "#645f7c", 14, 15, 1, 2);
+      R(g, "#645f7c", 25, 17, 1, 6);
+      R(g, "#d9d3c4", 1, 8, 38, 3); /* parapeito do terraço */
+      R(g, "#b5ae9c", 1, 10, 38, 1);
+      xmSnowCap(g, 0, 6, 40);
+      R(g, "#f4f8ff", 3, 5, 10, 2);
+      R(g, "#f4f8ff", 22, 5, 8, 2);
+      R(g, "#5a3a1c", 16, 21, 8, 13); /* porta */
+      R(g, "#7a5530", 17, 22, 3, 12);
+      R(g, "#3a2410", 16, 21, 8, 1);
+      R(g, "#ffd24a", 22, 28, 1, 1);
+      R(g, "#2a2438", 5, 17, 6, 6); /* janela acesa */
+      R(g, "#ffb347", 6, 18, 4, 4);
+      R(g, "#fff2a8", 7, 19, 2, 2);
+      R(g, "#2a2438", 29, 17, 6, 6);
+      R(g, "#ffb347", 30, 18, 4, 4);
+      R(g, "#fff2a8", 31, 19, 2, 2);
+    });
+    D.xStable = O(44, 34, (g) => {
+      R(g, "#5a3a1c", 3, 12, 3, 21);
+      R(g, "#5a3a1c", 38, 12, 3, 21);
+      R(g, "#7a5530", 3, 12, 1, 21);
+      R(g, "#33293f", 6, 14, 32, 19);
+      R(g, "#e0b85a", 7, 29, 30, 4);
+      R(g, "#f2d98a", 10, 30, 6, 1);
+      R(g, "#f2d98a", 24, 31, 8, 1);
+      for (let i = 0; i < 12; i++) {
+        const w = 44 - i * 2;
+        R(g, i % 2 ? "#a98242" : "#c19a52", i, 12 - i + 5, w - i, 1);
+      }
+      R(g, "#f4f8ff", 4, 8, 36, 3);
+      R(g, "#c9d6ee", 6, 11, 32, 1);
+      R(g, "#8a6a34", 1, 14, 42, 2);
+      R(g, "#c9a24a", 12, 24, 6, 5);
+      R(g, "#e6c470", 12, 24, 6, 1);
+    });
+    xmBuildCrib(D);
+  }
+
+  /* ---------- o Presépio (marco único) ---------- */
+  function xmBuildCrib(D) {
+    D.xCrib = nxOut(
+      mk(46, 42, (g) => {
+        /* neve e palha no chão */
+        R(g, "#dfe8f8", 1, 38, 44, 3);
+        R(g, "#c9d6ee", 3, 40, 40, 1);
+        /* parede de fundo em pedra */
+        R(g, "#4e4766", 7, 15, 32, 23);
+        for (const [x, y, w] of [
+          [8, 18, 8],
+          [20, 20, 9],
+          [31, 17, 7],
+          [10, 26, 7],
+          [24, 28, 8],
+          [33, 26, 5],
+        ])
+          R(g, "#3e3856", x, y, w, 1);
+        /* luz quente que vem de dentro */
+        R(g, "#7a5a4a", 9, 24, 28, 12);
+        R(g, "#a9794a", 12, 27, 22, 9);
+        R(g, "#d9a85a", 16, 30, 14, 6);
+        /* telhado de palha com neve */
+        for (let i = 0; i < 12; i++) {
+          R(g, i % 2 ? "#a98242" : "#c19a52", 3 + i, 15 - i + 1, 40 - i * 2, 1);
+        }
+        R(g, "#8a6a34", 2, 15, 42, 2);
+        R(g, "#f4f8ff", 3, 8, 40, 2);
+        R(g, "#f4f8ff", 9, 5, 28, 2);
+        R(g, "#f4f8ff", 16, 3, 14, 2);
+        R(g, "#c9d6ee", 5, 10, 36, 1);
+        /* postes */
+        R(g, "#5a3a1c", 5, 16, 3, 23);
+        R(g, "#5a3a1c", 38, 16, 3, 23);
+        R(g, "#7a5530", 5, 16, 1, 23);
+        R(g, "#7a5530", 38, 16, 1, 23);
+        R(g, "#f4f8ff", 5, 15, 3, 1);
+        R(g, "#f4f8ff", 38, 15, 3, 1);
+        /* palha no piso */
+        R(g, "#e0b85a", 8, 35, 30, 3);
+        R(g, "#f2d98a", 10, 36, 7, 1);
+        R(g, "#f2d98a", 28, 37, 7, 1);
+        R(g, "#c9a24a", 9, 37, 5, 1);
+        /* manjedoura + o menino */
+        R(g, "#7a4f25", 19, 31, 9, 5);
+        R(g, "#9a6a35", 19, 31, 9, 1);
+        R(g, "#5a3a1c", 20, 36, 1, 2);
+        R(g, "#5a3a1c", 26, 36, 1, 2);
+        R(g, "#f2d98a", 20, 30, 7, 2);
+        R(g, "#fff6e0", 21, 28, 5, 3);
+        R(g, "#e8b88b", 24, 28, 2, 2);
+        R(g, "#fff2a8", 22, 26, 3, 1); /* halo do menino */
+        /* Maria (ajoelhada, manto azul) */
+        R(g, "#1c4290", 11, 28, 7, 9);
+        R(g, "#2b64c4", 12, 28, 5, 8);
+        R(g, "#2b64c4", 12, 24, 5, 5);
+        R(g, "#e8b88b", 13, 25, 3, 3);
+        R(g, "#1c4290", 12, 23, 5, 1);
+        R(g, "#ffd24a", 12, 22, 5, 1); /* halo */
+        R(g, "#fff6e0", 14, 31, 3, 1);
+        /* José (de pé, cajado) */
+        R(g, "#5a3a1a", 30, 27, 6, 10);
+        R(g, "#8a5a2a", 31, 27, 4, 8);
+        R(g, "#e8b88b", 32, 23, 3, 3);
+        R(g, "#2a1a0c", 31, 22, 5, 2);
+        R(g, "#6b4423", 37, 21, 1, 17);
+        R(g, "#8f8aa8", 36, 21, 1, 1);
+        /* animais: burro à esquerda, boi à direita */
+        R(g, "#7c7c94", 1, 31, 7, 5);
+        R(g, "#9a9ab2", 1, 31, 7, 1);
+        R(g, "#7c7c94", 0, 27, 3, 4);
+        R(g, "#7c7c94", 0, 26, 1, 2);
+        R(g, "#7c7c94", 2, 26, 1, 2);
+        R(g, "#4e4e64", 2, 36, 1, 3);
+        R(g, "#4e4e64", 6, 36, 1, 3);
+        R(g, "#7a5a3a", 36, 32, 8, 5);
+        R(g, "#9a7a52", 36, 32, 8, 1);
+        R(g, "#7a5a3a", 42, 29, 3, 4);
+        R(g, "#f4f0e0", 42, 28, 1, 1);
+        R(g, "#f4f0e0", 44, 28, 1, 1);
+        R(g, "#4a3524", 37, 37, 1, 2);
+        R(g, "#4a3524", 42, 37, 1, 2);
+      }),
+      XM_DK,
+    );
+  }
+
+  /* ---------- luz, colisão e tabelas de decoração do mundo ---------- */
+  Object.assign(SOLID, {
+    xRock: 5,
+    xBush: 5,
+    xOlive: 6,
+    xPalm: 5,
+    xHouse: 12,
+    xStable: 10,
+    xWall: 8,
+    xWell: 6,
+    xHay: 5,
+  });
+  Object.assign(COLL, {
+    xRock: [6, 4],
+    xBush: [6, 4],
+    xOlive: [5, 4],
+    xPalm: [4, 4],
+    xHouse: [17, 8],
+    xStable: [16, 6],
+    xWall: [10, 4],
+    xWell: [6, 5],
+    xHay: [6, 4],
+  });
+  Object.assign(LIGHTD, {
+    xLantern: [36, "255,190,90"],
+    xCrib: [78, "255,205,120"],
+    xStable: [34, "255,190,90"],
+  });
+
+  NXW[XM_WI] = {
+    name: "Belém sob a Estrela",
+    den: [0.2, 0.46, 0.34],
+    zone: (cx, cy) =>
+      nxZn(cx, cy, 30, 12, 0.08, 0.66)
+        ? 1
+        : nxZn(cx, cy, 8, 66, 0.07, 0.62)
+          ? 2
+          : 0,
+    tabs: [
+      [
+        [0.18, "xTuft"],
+        [0.3, "xRock"],
+        [0.4, "xBush"],
+        [0.52, "xOlive"],
+        [0.6, "xPalm"],
+        [0.68, "xHay"],
+        [0.76, "xFence"],
+        [0.84, "xLantern"],
+        [0.9, "xWall"],
+        [0.96, "xSheep"],
+        [1, "xTuft"],
+      ],
+      [
+        [0.16, "xHouse"],
+        [0.26, "xStable"],
+        [0.4, "xWell"],
+        [0.52, "xLantern"],
+        [0.62, "xWall"],
+        [0.72, "xHay"],
+        [0.82, "xFence"],
+        [0.9, "xTuft"],
+        [1, "xRock"],
+      ],
+      [
+        [0.24, "xOlive"],
+        [0.4, "xPalm"],
+        [0.54, "xSheep"],
+        [0.62, "campfire"],
+        [0.72, "xBush"],
+        [0.82, "xRock"],
+        [0.9, "xLantern"],
+        [1, "xTuft"],
+      ],
+    ],
+  };
+
+  /* Presépio: um único marco em posição fixa (determinístico), perto do início mas fora do caminho do herói.
+     Células vizinhas ficam livres; algumas peças fixas (lanternas, feno, ovelhas) o acompanham. Sem colisão: nunca prende ninguém. */
+  const XM_CRIB = { x: 150, y: -78 };
+  const XM_CRIB_CX = Math.floor(XM_CRIB.x / DCS),
+    XM_CRIB_CY = Math.floor(XM_CRIB.y / DCS);
+  const XM_FIXED = (() => {
+    const m = new Map();
+    const put = (k, dx, dy) =>
+      m.set(
+        Math.floor((XM_CRIB.x + dx) / DCS) +
+          "," +
+          Math.floor((XM_CRIB.y + dy) / DCS),
+        { k, px: XM_CRIB.x + dx, py: XM_CRIB.y + dy },
+      );
+    m.set(XM_CRIB_CX + "," + XM_CRIB_CY, {
+      k: "xCrib",
+      px: XM_CRIB.x,
+      py: XM_CRIB.y,
+    });
+    put("xLantern", -34, 4);
+    put("xLantern", 36, 6);
+    put("xHay", 40, 22);
+    put("xSheep", -26, 24);
+    put("xSheep", 18, 30);
+    return m;
+  })();
+  const xmNearCrib = (cx, cy) =>
+    Math.abs(cx - XM_CRIB_CX) <= 3 && Math.abs(cy - XM_CRIB_CY) <= 3;
+  const _xmDecorAt = decorAt;
+  decorAt = function (cx, cy) {
+    if (nxWi() === XM_WI) {
+      const f = XM_FIXED.get(cx + "," + cy);
+      if (f) return f;
+      if (xmNearCrib(cx, cy)) return null;
+    }
+    return _xmDecorAt(cx, cy);
+  };
+
+  /* estrela de Belém e brilho do presépio (só desenho, sem alocação por quadro) */
+  const _xmDI = drawDI;
+  drawDI = function (o) {
+    _xmDI(o);
+    if (o.k !== "xCrib") return;
+    const T = o.T,
+      x = o.x,
+      y = o.y - o.im.height - 14,
+      pl = 0.75 + 0.25 * Math.sin(T * 2.2);
+    glow(o.px, o.py - o.im.height - 14, 26 * pl, "rgba(255,215,110,1)", 0.5);
+    ctx.fillStyle = "rgba(255,236,150," + (0.8 + 0.2 * pl) + ")";
+    ctx.fillRect(x - 1, y - 5, 2, 11);
+    ctx.fillRect(x - 5, y - 1, 11, 2);
+    ctx.fillStyle = "#fffbe0";
+    ctx.fillRect(x - 1, y - 1, 2, 2);
+    ctx.fillStyle = "rgba(255,210,90,.65)";
+    ctx.fillRect(x - 3, y - 3, 1, 1);
+    ctx.fillRect(x + 3, y - 3, 1, 1);
+    ctx.fillRect(x - 3, y + 3, 1, 1);
+    ctx.fillRect(x + 3, y + 3, 1, 1);
+  };
+
+  /* inimigos/chefes nunca nascem em cima do presépio: só a posição inicial muda, nada dos atributos */
+  const _xmSE = spawnEnemy;
+  spawnEnemy = function () {
+    const e = _xmSE.apply(null, arguments);
+    if (e && nxWi() === XM_WI && state !== "menu") {
+      const dx = e.x - XM_CRIB.x,
+        dy = e.y - (XM_CRIB.y - 14),
+        d = Math.hypot(dx, dy);
+      if (d < 46) {
+        const k = d > 0.5 ? 54 / d : 54;
+        e.x = XM_CRIB.x + (d > 0.5 ? dx * k : 54);
+        e.y = XM_CRIB.y - 14 + (d > 0.5 ? dy * k : 0);
+      }
+    }
+    return e;
+  };
+
+  /* ---------- iluminação própria do mundo (noite azul, luz da estrela vinda do alto) ---------- */
+  const _xmLS = nxLightSync;
+  nxLightSync = function () {
+    if (nxWi() === XM_WI) {
+      const dk = dawnK();
+      NXL.lx = 0.5;
+      NXL.ly = 0.86;
+      NXL.len = 0.62 + 0.3 * dk;
+      NXL.a = 0.46 + 0.06 * dk;
+      NXL.col = "8,12,46";
+      NXL.radial = false;
+      return;
+    }
+    _xmLS();
+  };
+  NX_FOGCOL[XM_WI] = "130,150,205";
+  /*XM-WORLD-END*/
+  /*XM-EVENT-BEGIN*/
+  /* ---------- Parte 2: save do evento, missões, tela, neve (só menus), fundos, música e variantes sazonais ---------- */
+  const XM_ID = "christmas2026",
+    XM_CFG = EVENTS[XM_ID];
+  var XM_BGS = {}; /* var: o screenBgUrl() pode rodar antes deste bloco */
+  const XM_ART = "christmas_bethlehem";
+  const xmOn = () => evActive(XM_ID);
+  /* miniatura do mundo (cartões de seleção): se existir a arte do evento, ela substitui o desenho por código, uma vez */
+  function xmThumbArt() {
+    modeArtResolve(XM_ART, (url) => {
+      const im = new Image();
+      im.onload = () => {
+        try {
+          const t = nxWorldThumb(xmIdx()),
+            g = t.getContext("2d"),
+            k = Math.max(t.width / im.width, t.height / im.height),
+            w = im.width * k,
+            h = im.height * k;
+          g.imageSmoothingEnabled = true;
+          g.drawImage(im, (t.width - w) / 2, (t.height - h) / 2, w, h);
+        } catch (e) {}
+      };
+      im.src = url;
+    });
+  }
+  const xmIdx = () => WORLDS.findIndex((w) => w.event === XM_ID);
+  const xmInBelem = () => !!(RUN && RUN.world && RUN.world.event === XM_ID);
+
+  /* objeto isolado no save (nunca troca SAVE_KEY, nunca apaga nada): { v, seen, q:{ q1:{p,claimed}, … } } */
+  function xmSave() {
+    let c = save[XM_ID];
+    if (!c || typeof c !== "object") c = save[XM_ID] = { v: XM_CFG.saveVersion };
+    if (!c.q || typeof c.q !== "object") c.q = {};
+    for (const q of XM_CFG.quests) {
+      let s = c.q[q.id];
+      if (!s || typeof s !== "object") s = c.q[q.id] = { p: 0, claimed: false };
+      s.p = Math.max(0, Math.min(q.goal, s.p | 0));
+      s.claimed = !!s.claimed;
+    }
+    return c;
+  }
+  /* soma progresso; ao completar, paga UMA vez (claimed é gravado junto com as moedas, no mesmo persist) */
+  function xmAdd(id, n) {
+    if (!xmOn()) return;
+    const q = XM_CFG.quests.find((x) => x.id === id),
+      s = xmSave().q[id];
+    if (!q || s.claimed) return;
+    s.p = Math.min(q.goal, s.p + (n || 1));
+    if (s.p >= q.goal) {
+      s.claimed = true;
+      save.coins += q.reward;
+      persist();
+      try {
+        toast("Missão cumprida: " + q.name + " (+" + q.reward + " ouro)");
+      } catch (e) {}
+    } else persist();
+  }
+  /* partida concluída (vitória ou derrota) no mundo de Belém; partida abandonada (ret) e Desafio do Dia não contam */
+  function xmRunEnd(won, ret) {
+    if (!xmInBelem() || ret || RUN.daily) return;
+    xmAdd("q1", 1);
+    if (won && !G.inf) xmAdd("q3", 1);
+  }
+  function xmBossKilled() {
+    if (xmInBelem() && !RUN.daily) xmAdd("q2", 1);
+  }
+  /* fim do evento: se o mundo salvo era o de Belém, volta ao Vale de Elá (skins e recompensas ficam) */
+  function xmSanitizeWorld() {
+    const w = WORLDS[save.world];
+    if (w && w.event && !wOpen(save.world)) {
+      save.world = 0;
+      persist();
+      try {
+        wLbl();
+      } catch (e) {}
+    }
+  }
+
+  /* ---------- botão e tela "Evento de Natal" ---------- */
+  $("#mDaily").insertAdjacentHTML(
+    "beforebegin",
+    '<button class="mb xm-btn" id="mXmas" type="button" hidden><span class="xm-ico"></span>Evento de Natal</button>',
+  );
+  const fmtD = (s) => s.split("-").reverse().join("/");
+  function xmLeft() {
+    const ms = Date.parse(XM_CFG.end + "T23:59:59-03:00") - Date.now(),
+      d = Math.floor(ms / 864e5),
+      h = Math.floor((ms % 864e5) / 36e5);
+    if (ms <= 0) return "Encerrado";
+    return d > 0
+      ? "Termina em " + d + (d === 1 ? " dia" : " dias") + " e " + h + " h"
+      : "Termina em " + h + " h";
+  }
+  let xmTimer = 0;
+  function renderXmas(b) {
+    b.innerHTML = "";
+    const st = xmSave();
+    st.seen = true;
+    persist();
+    const el = document.createElement("div");
+    el.className = "xm-ev";
+    el.innerHTML =
+      '<div class="xm-head"><span class="xm-star"></span><div><h3>' +
+      XM_CFG.name +
+      "</h3><p>" +
+      XM_CFG.subtitle +
+      '</p></div></div><canvas class="xm-art"></canvas>' +
+      '<p class="xm-when">' +
+      fmtD(XM_CFG.start) +
+      " a " +
+      fmtD(XM_CFG.end) +
+      ' · <b class="xm-left"></b></p><p class="xm-desc">' +
+      WORLDS[xmIdx()].d +
+      '</p><button type="button" class="mb xm-play" id="xmPlay">Jogar em Belém</button><div class="xm-q"></div>';
+    b.appendChild(el);
+    const cv = el.querySelector(".xm-art"),
+      g = cv.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    try {
+      const th = nxWorldThumb(xmIdx());
+      cv.width = th.width;
+      cv.height = th.height;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(th, 0, 0);
+    } catch (e) {}
+    /* assets/modes/christmas_bethlehem.png|jpg|jpeg|webp (mesmo padrão da arte dos modos): se existir, vira o banner */
+    modeArtResolve(XM_ART, (url) => {
+      if (el.querySelector("img.xm-art")) return;
+      const im = new Image();
+      im.className = "xm-art";
+      im.alt = "";
+      im.draggable = false;
+      im.src = url;
+      cv.replaceWith(im);
+    });
+    const left = el.querySelector(".xm-left"),
+      list = el.querySelector(".xm-q");
+    const paint = () => {
+      left.textContent = xmLeft();
+      list.innerHTML = "";
+      const S2 = xmSave();
+      let tot = 0;
+      for (const q of XM_CFG.quests) {
+        const s = S2.q[q.id],
+          row = document.createElement("div");
+        tot += q.reward;
+        row.className = "xm-row" + (s.claimed ? " done" : "");
+        row.innerHTML =
+          '<div class="xm-rt"><b>' +
+          q.name +
+          "</b><span>" +
+          q.desc +
+          '</span><div class="xm-bar"><i style="width:' +
+          Math.round((100 * s.p) / q.goal) +
+          '%"></i></div></div><div class="xm-rw">' +
+          (s.claimed ? "Concluída<br>+" + q.reward + " ouro resgatado" : s.p + "/" + q.goal + "<br>+" + q.reward + " ouro") +
+          "</div>";
+        list.appendChild(row);
+      }
+      const n = document.createElement("p");
+      n.className = "xm-note";
+      n.textContent =
+        "Total das missões: " +
+        tot +
+        " moedas de ouro. As skins natalinas (200 ouro cada) ficam na aba Aparência de cada herói e são suas para sempre.";
+      list.appendChild(n);
+    };
+    paint();
+    $("#xmPlay").onclick = () => {
+      if (!xmOn()) return;
+      save.world = xmIdx();
+      persist();
+      try {
+        wLbl();
+      } catch (e) {}
+      RUN.mode = RUN.modeNext || "std";
+      RUN.modeNext = null;
+      SCR.hidden = true;
+      openPrep();
+    };
+    clearInterval(xmTimer);
+    xmTimer = setInterval(() => {
+      if (SCR.hidden || $("#sT").textContent !== "Evento de Natal") {
+        clearInterval(xmTimer);
+        return;
+      }
+      paint();
+    }, 30000);
+  }
+  $("#mXmas").onclick = () => scr("Evento de Natal", renderXmas);
+
+  /* ---------- neve DOM: só em #menu e nas subtelas, só com state==="menu"; nunca na run/pausa/level-up/fim ---------- */
+  function xmSnowMake(parent) {
+    if (!parent || parent.querySelector(":scope > .xm-snow")) return;
+    const d = document.createElement("div");
+    d.className = "xm-snow";
+    d.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 16; i++) {
+      const f = document.createElement("i"),
+        r = (i * 0.6180339) % 1;
+      f.style.cssText =
+        "left:" +
+        Math.round(r * 100) +
+        "%;--s:" +
+        (2 + (i % 3)) +
+        "px;--d:" +
+        (9 + (i % 5) * 2) +
+        "s;--w:-" +
+        ((i * 1.7) % 9).toFixed(1) +
+        "s;--x:" +
+        (i % 2 ? 30 : -30) +
+        "px";
+      d.appendChild(f);
+    }
+    parent.appendChild(d); /* sempre por último: o jogo usa SCR.firstElementChild como o painel da tela */
+  }
+  let xmSnowOn = null;
+  function xmSnowSync() {
+    const on =
+      xmOn() && state === "menu" && !!save.set.fx && !document.hidden;
+    if (on === xmSnowOn) return;
+    xmSnowOn = on;
+    if (on) {
+      xmSnowMake($("#menu"));
+      xmSnowMake(SCR);
+    }
+    gameEl.dataset.xms = on ? "1" : "0";
+  }
+
+  /* ---------- fundos sazonais: aceita .jpg/.jpeg/.png/.webp em assets/loading/christmas_*; o que faltar usa o fundo normal ---------- */
+  const XM_BG = {
+    Menu: "christmas_menu",
+    "Preparar a jornada": "christmas_hero_select",
+    "Selecione o Mundo": "christmas_world_select",
+    Biblioteca: "christmas_library",
+    "Evento de Natal": "christmas_event",
+  };
+  function xmBgFor(key) {
+    if (!XM_BGS || !XM_BGS[key]) return null;
+    return xmOn() ? 'url("' + ASSET_DIR + "loading/" + XM_BGS[key] + '")' : null;
+  }
+  function xmBgProbe() {
+    for (const key in XM_BG) {
+      const exts = ["jpg", "jpeg", "png", "webp"];
+      let i = 0;
+      const next = () => {
+        if (i >= exts.length) return;
+        const f = XM_BG[key] + "." + exts[i++],
+          im = new Image();
+        im.onload = () => {
+          XM_BGS[key] = f;
+          if (key === "Menu") refreshMeta();
+        };
+        im.onerror = next;
+        im.src = ASSET_DIR + "loading/" + f;
+      };
+      next();
+    }
+  }
+
+  /* ---------- música sazonal: christmas_menu / christmas_run / christmas_boss (+ _2, _3), .ogg/.mp3/.wav; falta de arquivo = música normal ---------- */
+  const XM_MUS = {
+    christmasMenu: "christmas_menu",
+    christmasRun: "christmas_run",
+    christmasBoss: "christmas_boss",
+  };
+  const _xmMW = nxMusWant;
+  nxMusWant = function () {
+    const w = _xmMW();
+    try {
+      xmSync();
+      if (!xmOn()) return w;
+      let c = null;
+      if (w === "menu") c = "christmasMenu";
+      else if (xmInBelem() && state !== "menu")
+        c = w === "boss" ? "christmasBoss" : w === "run" || w === "vigil" ? "christmasRun" : null;
+      if (c && MUSA[c] && MUSA[c].length) return c;
+    } catch (e) {}
+    return w;
+  };
+
+  /* ---------- variantes visuais de inimigos e chefes (só em Belém, uma vez por sprite, em cache) ---------- */
+  const XM_STYLE = {
+    imp: "snow,ice",
+    shade: "frost",
+    bat: "snow",
+    wraith: "frost,snow",
+    stalker: "snow,drip",
+    brute: "snow,ice",
+    fangbat: "snow,drip",
+    bomber: "snow",
+    hexer: "ice,frost",
+    elite: "snow,ice,frost",
+    scorp: "snow,drip",
+    umbra: "frost,ice",
+    plague_rat: "snow",
+    legiao: "snow,ice",
+    belzebu: "ice,frost",
+    abadom: "frost,snow",
+    leviata: "drip,snow",
+    dragao: "snow,ice,frost",
+  };
+  const XM_BOSS = { legiao: 1, belzebu: 1, abadom: 1, leviata: 1, dragao: 1 };
+  function xmSeasonCanvas(src, id) {
+    const w = src.width,
+      h = src.height;
+    return mk(w, h, (g) => {
+      g.drawImage(src, 0, 0);
+      let d;
+      try {
+        d = g.getImageData(0, 0, w, h).data;
+      } catch (e) {
+        return; /* sem acesso aos pixels: fica o sprite original */
+      }
+      const A = (x, y) =>
+        x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 128;
+      const st = (XM_STYLE[id] || "snow").split(","),
+        boss = !!XM_BOSS[id];
+      let ih = 0;
+      for (const ch of id) ih = (ih * 31 + ch.charCodeAt(0)) >>> 0;
+      const H = (a, b) => ((a * 73856093) ^ (b * 19349663) ^ ih) >>> 0,
+        P = (x, y, c) => {
+          if (A(x, y)) {
+            g.fillStyle = c;
+            g.fillRect(x, y, 1, 1);
+          }
+        };
+      const top = new Int16Array(w).fill(-1),
+        bot = new Int16Array(w).fill(-1);
+      let minT = h,
+        maxB = 0;
+      for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y++)
+          if (A(x, y)) {
+            top[x] = y;
+            break;
+          }
+        for (let y = h - 1; y >= 0; y--)
+          if (A(x, y)) {
+            bot[x] = y;
+            break;
+          }
+        if (top[x] >= 0) {
+          minT = Math.min(minT, top[x]);
+          maxB = Math.max(maxB, bot[x]);
+        }
+      }
+      const H0 = Math.max(1, maxB - minT);
+      if (st.includes("snow"))
+        for (let x = 0; x < w; x++) {
+          if (top[x] < 0 || top[x] - minT > H0 * (boss ? 0.46 : 0.38)) continue;
+          if (H(x, 1) % 100 < (boss ? 80 : 55)) {
+            P(x, top[x], "#f4f8ff");
+            if (H(x, 2) % 100 < (boss ? 85 : 40)) P(x, top[x] + 1, "#d6e4fa");
+            if (boss && H(x, 4) % 100 < 45) P(x, top[x] + 2, "#f4f8ff");
+          }
+        }
+      if (st.includes("ice")) {
+        const n = boss ? 4 : 2;
+        for (let k = 0; k < n; k++) {
+          const x = Math.min(w - 1, Math.floor(((k + 0.5) * w) / n) + (H(k, 3) % 3) - 1);
+          if (top[x] < 0) continue;
+          P(x, top[x], "#e8faff");
+          P(x, top[x] + 1, "#9fd4ff");
+          P(x, top[x] + 2, "#6aa8e8");
+          P(x - 1, top[x] + 1, "#9fd4ff");
+          if (boss) {
+            P(x + 1, top[x] + 1, "#9fd4ff");
+            P(x, top[x] + 3, "#6aa8e8");
+          }
+        }
+      }
+      if (st.includes("drip")) {
+        const n = boss ? 4 : 2;
+        for (let k = 0; k < n; k++) {
+          const x = Math.min(w - 1, Math.floor(((k + 0.5) * w) / n));
+          if (bot[x] < 0) continue;
+          P(x, bot[x], "#cfe6ff");
+          P(x, bot[x] - 1, "#9fd4ff");
+        }
+      }
+      if (st.includes("frost"))
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++)
+            if (
+              A(x, y) &&
+              (!A(x - 1, y) || !A(x + 1, y) || !A(x, y - 1) || !A(x, y + 1)) &&
+              H(x, y) % 100 < (boss ? 34 : 22)
+            )
+              P(x, y, "#bfe0ff");
+    });
+  }
+  const _xmDE = drawEnemy;
+  drawEnemy = function (e, g, air) {
+    XM_NOW = xmInBelem() && state !== "menu" && xmOn() ? e.spr || "" : "";
+    try {
+      _xmDE(e, g, air);
+    } finally {
+      XM_NOW = "";
+    }
+  };
+
+  /* ---------- sincronização leve (pega carona no intervalo de música já existente: nenhum timer novo) ---------- */
+  function xmSync() {
+    const on = xmOn(),
+      b = $("#mXmas");
+    if (b) {
+      b.hidden = !on;
+      b.classList.toggle("has-dot", on && !xmSave().seen);
+    }
+    xmSnowSync();
+    if (!on) xmSanitizeWorld();
+  }
+  if (xmOn()) {
+    xmBgProbe();
+    xmThumbArt();
+    for (const cat in XM_MUS)
+      for (const sfx of ["", "_2", "_3"]) nxMusLoad(cat, XM_MUS[cat] + sfx, false);
+  }
+  xmSanitizeWorld();
+  xmSync();
+  /*XM-EVENT-END*/
+  /*XM-NEW-BEGIN*/
+  /* ---------- Parte 3: novidades do evento — Baltasar (herói), Espírito Gélido (inimigo) e Herodes (chefe) ---------- */
+  const XM_HBOSS = XM_CFG.boss,
+    MG = FE_CONTENT.heroPowerTuning.magi_gifts;
+
+  /* --- Gelo: poças do Espírito Gélido e quadrantes congelados do Herodes (ambos só existem em Belém) --- */
+  const xmIce = (g) => g.xIce || (g.xIce = []);
+  function xmIceAdd(g, x, y, r, life) {
+    const a = xmIce(g);
+    if (a.length >= 36) a.shift();
+    a.push({ x, y, r, life, max: life });
+  }
+  function xmFrostTrail(e, g, dt) {
+    e.itT = (e.itT || 0) - dt;
+    if (e.itT <= 0) {
+      e.itT = 0.42;
+      xmIceAdd(g, e.x, e.y + 3, 9, 5.5);
+    }
+  }
+  const xmQuad = (A, x, y) => (x >= A.x ? 1 : 0) + (y >= A.y ? 2 : 0);
+  function xmWorldTick(g, dt) {
+    const p = g.p,
+      a = xmIce(g);
+    let on = false;
+    for (let i = a.length - 1; i >= 0; i--) {
+      const q = a[i];
+      q.life -= dt;
+      if (q.life <= 0) {
+        a.splice(i, 1);
+        continue;
+      }
+      if (!on && Math.hypot(p.x - q.x, p.y - q.y) < q.r + 3) on = true;
+    }
+    /* Herodes: chefe do evento, fora do cronograma dos 5 chefes */
+    if (!g.xmBossDone && !g.boss && g.t >= XM_HBOSS.t && g.t <= XM_HBOSS.tMax)
+      xmSpawnBoss(g);
+    const B = g.boss;
+    if (B && B.xmBoss && B.act && B.act.k === "xq" && B.act.t >= B.act.tel && g.arena) {
+      if (xmQuad(g.arena, p.x, p.y) !== B.act.safe) {
+        on = true;
+        B.act.tk = (B.act.tk || 0) - dt;
+        if (B.act.tk <= 0) {
+          B.act.tk = 0.8;
+          hurtPlayer(Math.round(B.dmg * 0.3), "Geada do decreto");
+        }
+      }
+    }
+    if (on) g.iceT = 0.2;
+    else if (g.iceT > 0) g.iceT -= dt;
+  }
+  function xmDrawIce() {
+    const g = G;
+    if (!g || state === "menu" || !g.p) return;
+    const a = g.xIce,
+      B = g.boss;
+    const quad = B && B.xmBoss && B.act && B.act.k === "xq" && g.arena;
+    if (!(a && a.length) && !quad) return;
+    ctx.save();
+    if (quad) {
+      const A = g.arena,
+        ac = B.act,
+        live = ac.t >= ac.tel,
+        pulse = 0.5 + 0.5 * Math.sin(g.t * 10);
+      ctx.beginPath();
+      ctx.rect(sx(A.x - A.r), sy(A.y - A.r), A.r * 2, A.r * 2);
+      ctx.clip();
+      for (let q = 0; q < 4; q++) {
+        const x0 = sx(q & 1 ? A.x : A.x - A.r),
+          y0 = sy(q & 2 ? A.y : A.y - A.r);
+        if (q === ac.safe) {
+          ctx.fillStyle = "rgba(255,226,122," + (0.2 + 0.16 * pulse) + ")";
+          ctx.fillRect(x0, y0, A.r, A.r);
+          ctx.strokeStyle = "rgba(255,226,122,.95)";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x0 + 1, y0 + 1, A.r - 2, A.r - 2);
+        } else {
+          ctx.fillStyle = live
+            ? "rgba(120,185,255,0.46)"
+            : "rgba(120,185,255," + (0.14 + 0.14 * pulse) + ")";
+          ctx.fillRect(x0, y0, A.r, A.r);
+          if (live) {
+            ctx.fillStyle = "rgba(240,250,255,.55)";
+            for (let k = 0; k < 22; k++)
+              ctx.fillRect(
+                x0 + ((k * 37 + q * 11) % (A.r - 4)),
+                y0 + ((k * 53 + q * 29) % (A.r - 4)),
+                2,
+                1,
+              );
+          }
+        }
+      }
+    }
+    if (quad) {
+      /* cruz que separa os quadrantes: deixa claro onde fica o quadrante seguro */
+      const A = g.arena;
+      ctx.strokeStyle = "rgba(240,250,255,.75)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(sx(A.x), sy(A.y - A.r));
+      ctx.lineTo(sx(A.x), sy(A.y + A.r));
+      ctx.moveTo(sx(A.x - A.r), sy(A.y));
+      ctx.lineTo(sx(A.x + A.r), sy(A.y));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (a)
+      for (const q of a) {
+        const k = Math.min(1, q.life / 1.4),
+          x = sx(q.x),
+          y = sy(q.y);
+        ctx.fillStyle = "rgba(170,215,255," + (0.14 + 0.3 * k) + ")";
+        ctx.beginPath();
+        ctx.ellipse(x, y, q.r, q.r * 0.55, 0, 0, 6.2832);
+        ctx.fill();
+        ctx.fillStyle = "rgba(240,250,255," + 0.7 * k + ")";
+        ctx.fillRect(x - q.r * 0.4, y - 1, 2, 1);
+        ctx.fillRect(x + q.r * 0.3, y + 1, 2, 1);
+      }
+    ctx.restore();
+  }
+  const _xmDG = drawGround;
+  drawGround = function () {
+    _xmDG.apply(this, arguments);
+    xmDrawIce();
+  };
+  /* o Espírito Gélido deixa uma poça maior ao ser destruído */
+  const _xmKill = kill;
+  kill = function (e) {
+    const r = _xmKill(e);
+    if (e && e.spr === "gelido" && G && G.p) xmIceAdd(G, e.x, e.y + 2, 20, 6.5);
+    return r;
+  };
+  /* mais Espíritos Gélidos nas noites de Belém, e ainda mais durante a nevasca */
+  const _xmCT2 = chooseType;
+  chooseType = function () {
+    const g = G;
+    if (nxWi() === XM_WI && g.t >= 20 && rng() < (g.nxw && g.nxw.k > 0.3 ? 0.2 : 0.11))
+      return "gelido";
+    return _xmCT2();
+  };
+
+  /* --- Herodes, o Rei Usurpador --- */
+  function xmSpawnBoss(g) {
+    g.xmBossDone = 1;
+    const B = XM_HBOSS,
+      a = rng() * 6.2832,
+      d = 105;
+    let pw = 0;
+    for (const k in g.W) pw += g.W[k].lvl;
+    for (const k in g.P) pw += g.P[k];
+    const world = RUN.world,
+      worldHp = world && Number.isFinite(world.hp) ? world.hp : 1,
+      worldSpd = world && Number.isFinite(world.spd) ? world.spd : 1,
+      bhp = Math.round(
+        B.hp * (1 + Math.min(0.35, 0.02 * Math.max(0, pw - 3))) * worldHp,
+      );
+    const e = {
+      t: "boss",
+      x: g.p.x + Math.cos(a) * d,
+      y: g.p.y + Math.sin(a) * d,
+      hp: bhp,
+      mhp: bhp,
+      spd: B.spd * worldSpd,
+      dmg: B.dmg,
+      r: 6 * B.sc,
+      spr: B.id,
+      sc: B.sc,
+      mv: "chase",
+      col: B.col,
+      flash: 0,
+      kx: 0,
+      ky: 0,
+      slowT: 0,
+      shCd: 0,
+      ph: 0,
+      face: 1,
+      elite: false,
+      boss: true,
+      dead: false,
+      atk: 2.5,
+      idx: 2,
+      act: null,
+      mass: 10,
+      xmBoss: true,
+      xmName: B.name,
+      pi: 0,
+    };
+    if (S[B.id] && S[B.id].hd) e.sc = 1;
+    g.enemies.push(e);
+    g.boss = e;
+    g.arena = { x: g.p.x, y: g.p.y, r: ARENA(3) };
+    banner(B.name, B.sub);
+    SFX.play("boss");
+    g.shake = 0.6;
+  }
+  function xmBossAI(e, dt, dx, dy) {
+    const g = G,
+      ang = Math.atan2(dy, dx),
+      ph = e.hp < e.mhp * 0.5 ? 1 : 0,
+      cd = () => (ph ? 1.7 : 2.4);
+    if (e.act) {
+      const a = e.act;
+      a.t += dt;
+      if (a.t >= a.tel + a.dur) {
+        if (a.k === "xd") e.castT = g.t;
+        e.act = null;
+        e.atk = cd();
+      }
+    } else {
+      e.atk -= dt;
+      if (e.atk <= 0) {
+        const T = g.tel || (g.tel = []),
+          seq = ph ? ["decree", "quad", "cone", "summon", "decree"] : ["decree", "cone", "quad", "summon"],
+          k = seq[e.pi++ % seq.length];
+        if (k === "decree") {
+          /* Decreto: círculos de gelo marcados no chão (um sobre você) */
+          e.act = { k: "xd", fr: 1, t: 0, tel: 1.15, dur: 0.45 };
+          const n = ph ? 5 : 3;
+          for (let i = 0; i < n; i++) {
+            const aa = rng() * 6.2832,
+              r = i ? rnd(25, 80) : 0,
+              o = { x: g.p.x + Math.cos(aa) * r, y: g.p.y + Math.sin(aa) * r };
+            if (g.arena) clampArena(o, 8);
+            T.push({ k: "circ", x: o.x, y: o.y, r: 22, t: 0, delay: 1.15, life: 1.5, dmg: e.dmg, done: false, ice: true, who: "Decreto de Herodes" });
+          }
+        } else if (k === "cone") {
+          e.castT = g.t;
+          cone(e, ang);
+          e.atk = cd();
+        } else if (k === "quad") {
+          /* Geada do Decreto: 3 quadrantes congelam; o quadrante dourado é seguro */
+          const A = g.arena || { x: e.x, y: e.y, r: 100 },
+            pq = xmQuad(A, g.p.x, g.p.y);
+          let safe;
+          do safe = Math.floor(rng() * 4);
+          while (safe === pq);
+          e.act = { k: "xq", fr: 1, t: 0, tel: 1.7, dur: 4.2, safe, tk: 0 };
+          toast("Corra para a luz dourada!");
+        } else {
+          e.castT = g.t;
+          const n = scaledEventCount(ph ? 4 : 3);
+          for (let i = 0; i < n; i++) spawnEnemy("gelido", rng() * 6.2832, 110);
+          toast("Os espíritos do inverno são chamados!");
+          e.atk = cd();
+        }
+      }
+    }
+    if (g.arena) clampArena(e, e.r);
+  }
+  const _xmBA = bossAI;
+  bossAI = function (e, dt, dx, dy) {
+    if (e.xmBoss) return xmBossAI(e, dt, dx, dy);
+    return _xmBA(e, dt, dx, dy);
+  };
+
+  /* --- Baltasar: Presentes do Oriente (Ouro → Incenso → Mirra, a cada 12 s) --- */
+  function xmGift(g) {
+    const p = g.p,
+      h = g.hm,
+      i = (h.gift | 0) % 3;
+    h.gift = (h.gift | 0) + 1;
+    toast(h.first.gift ? MG.names[i] + "!" : MG.firstToast);
+    h.first.gift = 1;
+    if (i === 0) {
+      SFX.play("coin");
+      for (const k of g.pk) if (k.type[0] === "f" || k.type === "coin") k.mag = true;
+      for (let n = 0; n < MG.coins; n++) drop(p.x + rnd(-24, 24), p.y + rnd(-24, 24), "coin");
+      g.flash = 0.12;
+    } else if (i === 1) {
+      SFX.play("level");
+      healP(Math.round(g.mods.maxhp * MG.healPct));
+      g.fx.push({
+        wid: "hero_baltasar",
+        k: "ring",
+        x: p.x,
+        y: p.y,
+        r: 3,
+        maxr: MG.radius,
+        dmg: (MG.dmgBase + MG.dmgPerLevel * g.lvl) * g.mods.dmg,
+        knock: MG.knock,
+        style: "horn",
+        hit: new Set(),
+        t: 0,
+        life: MG.ringLife,
+        follow: true,
+      });
+    } else {
+      SFX.play("shield");
+      p.sh = Math.max(p.sh || 0, MG.shield);
+    }
+  }
+  /*XM-NEW-END*/
 })();
