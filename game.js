@@ -31356,7 +31356,7 @@
     const d = document.createElement("div");
     d.className = "xm-snow";
     d.setAttribute("aria-hidden", "true");
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 56; i++) {
       const f = document.createElement("i"),
         r = (i * 0.6180339) % 1;
       f.style.cssText =

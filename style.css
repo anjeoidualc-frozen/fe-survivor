@@ -888,7 +888,7 @@ span b {
 
 .icon-stack-btn .icon-stack-label {
   font-family: var(--f-title);
-  font-size: 7px;
+  font-size: 8px;
   line-height: 1.1;
   color: var(--parch, #efe6c8);
   text-shadow:
@@ -897,6 +897,8 @@ span b {
     -1px 0 0 #000;
   letter-spacing: 0.03em;
   white-space: nowrap;
+  text-transform: uppercase;
+  font-weight: 800;
 }
 
 .icon-stack-btn.is-unread .icon-stack-face::after {
@@ -1860,6 +1862,7 @@ span b {
 
 .uic {
   display: inline-block;
+  margin-right: 4px;
   width: 18px;
   height: 18px;
   vertical-align: -4px;
@@ -2111,17 +2114,17 @@ span b {
     position: fixed;
     top: 0;
     left: 0;
-    margin: 20px 20px;
+    margin: 10px;
   }
 
   #prepGo {
     position: fixed;
     top: 0;
     right: 0;
-    margin: 20px 20px;
+    margin: 10px;
     font-weight: 700;
     font-size: 10px;
-    border-radius: 4px;
+    border-radius: 2px;
   }
 }
 
@@ -3913,7 +3916,7 @@ button:focus-visible {
 
   #playBtn {
     min-width: 120px;
-    font-size: 10px;
+    font-size: 12px;
     padding: 0 12px;
     font-weight: 800;
     line-height: 3;
@@ -3989,7 +3992,9 @@ button:focus-visible {
 
   .hdg {
     margin: 14px 0 0;
-    font-size: 9px;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 800;
   }
 
   #prepH .rw {
@@ -4316,7 +4321,7 @@ button:focus-visible {
 
   #rrBtn {
     margin-top: 6px;
-    min-height: 38px;
+    min-height: 32px;
     padding-top: 8px;
     padding-bottom: 7px;
   }
@@ -5050,6 +5055,9 @@ button:focus-visible {
     background 0.15s,
     box-shadow 0.06s;
   cursor: pointer;
+  text-transform: uppercase;
+  line-height: 3;
+  font-weight: 800;
 }
 
 .mb:hover {
@@ -5298,7 +5306,8 @@ button:focus-visible {
   background: #0d0a24;
   border: 2px solid #05030c;
   font-family: var(--f-title);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 800;
   color: var(--gold);
   text-shadow: 2px 2px 0 #000;
   text-transform: uppercase;
@@ -5337,6 +5346,7 @@ button:focus-visible {
   text-transform: uppercase;
   font-size: 12px;
   font-weight: 800;
+  border-radius: 2px;
 }
 
 .mc-st {
@@ -5729,6 +5739,7 @@ button:focus-visible {
 @media (max-height: 520px) {
   #sT {
     font-size: 16px;
+    font-weight: 800;
     margin-bottom: 0 auto;
   }
 
@@ -5736,7 +5747,7 @@ button:focus-visible {
     position: fixed;
     top: 0;
     left: 0;
-    margin: 20px 20px;
+    margin: 10px;
   }
 
   #prepH .hero-details {
@@ -9003,6 +9014,7 @@ button.pf-trk:not(.lk):not(.cur):hover {
     text-align: center;
   }
 }
+
 /*===== Testemunhos: ícone hexagonal (estrutura em index.html #achRowTpl, lógica em game.js > renderAch) =====
    O ícone é um hexágono em SVG com glifo desenhado por código; se existir assets/icons/ach/<id>.png a imagem
    substitui o glifo (recortada no hexágono interno). Bloqueado = cinza (filtro aplicado ao conjunto). */
@@ -9707,8 +9719,9 @@ body::-webkit-scrollbar,
 .skin-cta {
   width: 100%;
   min-height: 32px;
-  font-size: 6px;
+  font-size: 8px;
   padding: 0 12px;
+  line-height: 3;
 }
 
 .skin-close {
@@ -10017,25 +10030,21 @@ body::-webkit-scrollbar,
 
 /* fundo: vinheta com a cor do resultado (derrota, vitória, interrompida) */
 #end {
-  background: radial-gradient(
-    ellipse at 50% 40%,
-    rgba(64, 14, 36, 0.55),
-    rgba(5, 3, 12, 0.94) 74%
-  );
+  background: radial-gradient(ellipse at 50% 40%,
+      rgba(64, 14, 36, 0.55),
+      rgba(5, 3, 12, 0.94) 74%);
 }
+
 #end.end-win {
-  background: radial-gradient(
-    ellipse at 50% 40%,
-    rgba(84, 62, 8, 0.55),
-    rgba(5, 3, 12, 0.94) 74%
-  );
+  background: radial-gradient(ellipse at 50% 40%,
+      rgba(84, 62, 8, 0.55),
+      rgba(5, 3, 12, 0.94) 74%);
 }
+
 #end.end-ret {
-  background: radial-gradient(
-    ellipse at 50% 40%,
-    rgba(40, 32, 100, 0.5),
-    rgba(5, 3, 12, 0.94) 74%
-  );
+  background: radial-gradient(ellipse at 50% 40%,
+      rgba(40, 32, 100, 0.5),
+      rgba(5, 3, 12, 0.94) 74%);
 }
 
 #end .ov-in {
@@ -10074,28 +10083,28 @@ body::-webkit-scrollbar,
     0 3px 0 var(--gold-d),
     0 5px 0 #000;
 }
+
 #end h2::after {
   content: "";
   display: block;
   height: 8px;
   margin: 8px auto 0;
   width: min(72%, 280px);
-  background: linear-gradient(
-      90deg,
+  background: linear-gradient(90deg,
       transparent,
       var(--gold-d) 22%,
       var(--gold) 50%,
       var(--gold-d) 78%,
-      transparent
-    )
-    center / 100% 2px no-repeat;
+      transparent) center / 100% 2px no-repeat;
 }
+
 #end.end-lose h2 {
   color: #ff7a8a;
   text-shadow:
     0 3px 0 #7a1f33,
     0 5px 0 #000;
 }
+
 #end.end-ret h2 {
   color: #c9b6ff;
   text-shadow:
@@ -10110,6 +10119,7 @@ body::-webkit-scrollbar,
   line-height: 1.4;
   color: var(--parch);
 }
+
 #end .verse b {
   color: var(--gold);
 }
@@ -10121,9 +10131,11 @@ body::-webkit-scrollbar,
   line-height: 1.45;
   color: var(--mute);
 }
+
 #end #endNote b {
   color: var(--parch);
 }
+
 #end .end-tip {
   display: block;
   margin-top: 6px;
@@ -10141,7 +10153,8 @@ body::-webkit-scrollbar,
   gap: 6px;
   margin: 0;
 }
-#end .sumgrid > div {
+
+#end .sumgrid>div {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -10152,32 +10165,39 @@ body::-webkit-scrollbar,
   border: 2px solid var(--line);
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.07);
 }
+
 #end .sumgrid .uic {
   flex: none;
   width: clamp(16px, 3.4vh, 24px);
   height: clamp(16px, 3.4vh, 24px);
   image-rendering: pixelated;
 }
+
 #end .sumgrid .st-tx {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
+
 #end .sumgrid b {
   margin: 0;
   font-size: clamp(11px, 2.5vh, 16px);
   line-height: 1.1;
 }
+
 #end .sumgrid small {
   font-size: clamp(8px, 1.6vh, 10px);
   color: var(--mute);
 }
+
 #end #sumCoins {
   border-color: var(--gold-d);
 }
+
 #end #sumCoins b {
   color: #ffe08a;
 }
+
 #end .newrec {
   display: inline-block;
   margin-top: 2px;
@@ -10195,10 +10215,12 @@ body::-webkit-scrollbar,
   margin: 0;
   justify-content: stretch;
 }
+
 #end .end-grp {
   display: grid;
   gap: 3px;
 }
+
 #end .end-lbl {
   font-family: var(--f-title);
   font-size: 7px;
@@ -10206,16 +10228,19 @@ body::-webkit-scrollbar,
   text-align: left;
   color: var(--mute);
 }
+
 #end .end-slots {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-start;
 }
+
 #end .build .slot {
   width: var(--sl);
   height: var(--sl);
 }
+
 #end .build .slot img {
   width: calc(var(--sl) - 10px);
   height: calc(var(--sl) - 10px);
@@ -10230,10 +10255,12 @@ body::-webkit-scrollbar,
   justify-content: center;
   gap: 8px;
 }
+
 #end #endHero {
   position: relative;
   margin: 0 auto;
 }
+
 #end #endHero::before {
   /* sombra no chão */
   content: "";
@@ -10245,17 +10272,17 @@ body::-webkit-scrollbar,
   transform: translateX(-50%);
   background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
 }
+
 #end #endHero::after {
   /* brilho atrás do herói */
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 50% 60%,
-    rgba(242, 193, 78, 0.16),
-    transparent 65%
-  );
+  background: radial-gradient(circle at 50% 60%,
+      rgba(242, 193, 78, 0.16),
+      transparent 65%);
 }
+
 #end #endHero canvas {
   position: relative;
   z-index: 1;
@@ -10277,15 +10304,18 @@ body::-webkit-scrollbar,
   line-height: 1.25;
   text-align: center;
 }
+
 #end .ab-tx {
   display: grid;
   gap: 2px;
   text-align: left;
 }
+
 #end .ab-tx b {
   font-weight: 400;
   font-size: inherit;
 }
+
 #end .ab-tx small {
   font-family: var(--f-body);
   font-size: 0.78em;
@@ -10301,6 +10331,7 @@ body::-webkit-scrollbar,
   border-bottom-color: #2f7a3a;
   animation: revPulse 1.6s ease-in-out infinite;
 }
+
 @keyframes revPulse {
   50% {
     box-shadow:
@@ -10316,6 +10347,7 @@ body::-webkit-scrollbar,
   border: 2px solid var(--gold-d);
   border-bottom-width: 4px;
 }
+
 #end #dblBtn.is-limit {
   color: var(--mute);
   border-style: dashed;
@@ -10329,11 +10361,13 @@ body::-webkit-scrollbar,
   gap: 8px;
   margin: 0;
 }
+
 #end #againBtn {
   flex: 1.7 1 0;
   min-height: 50px;
   font-size: clamp(10px, 2.3vh, 13px);
 }
+
 #end #endMenuBtn {
   flex: 1 1 0;
 }
@@ -10342,16 +10376,20 @@ body::-webkit-scrollbar,
 #end:not([hidden]) .end-l {
   animation: endIn 0.35s ease-out both;
 }
+
 #end:not([hidden]) .end-r {
   animation: endIn 0.35s 0.1s ease-out both;
 }
+
 @keyframes endIn {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
+
   #end:not([hidden]) .end-l,
   #end:not([hidden]) .end-r,
   #end #revBtn {
@@ -10419,8 +10457,10 @@ body::-webkit-scrollbar,
 
 .set-nav,
 .set-body {
-  max-height: calc(var(--gh, 100vh) - 96px); /* mesma altura do #sB */
-  overflow-y: auto;                          /* auto, não scroll */
+  max-height: calc(var(--gh, 100vh) - 96px);
+  /* mesma altura do #sB */
+  overflow-y: auto;
+  /* auto, não scroll */
   min-height: 0;
 }
 
@@ -10430,8 +10470,8 @@ body::-webkit-scrollbar,
   overscroll-behavior: contain;
 }
 
-.set-body > .rw:first-child,
-.set-body > .hdg:first-child {
+.set-body>.rw:first-child,
+.set-body>.hdg:first-child {
   margin-top: 0;
 }
 
@@ -10520,9 +10560,16 @@ body::-webkit-scrollbar,
 }
 
 /* ===== v0.70: Evento de Natal 2026 — A Estrela de Belém ===== */
-.xm-btn { position: relative; }
-.xm-btn[hidden] { display: none !important; }
-.xm-ico, .xm-star {
+.xm-btn {
+  position: relative;
+}
+
+.xm-btn[hidden] {
+  display: none !important;
+}
+
+.xm-ico,
+.xm-star {
   display: inline-block;
   width: 18px;
   height: 18px;
@@ -10531,37 +10578,187 @@ body::-webkit-scrollbar,
   background: url("assets/ui/star.png") center / contain no-repeat;
   image-rendering: pixelated;
 }
-.xm-star { width: 34px; height: 34px; margin: 0 10px 0 0; background-image: url("assets/ui/star.png"); flex: none; }
-.xm-ev { text-align: left; display: grid; gap: 8px; max-width: 640px; margin: 0 auto; }
-.xm-head { display: flex; align-items: center; }
-.xm-head h3 { margin: 0; color: #ffd24a; font-size: 1.05rem; }
-.xm-head p { margin: 2px 0 0; opacity: 0.85; font-size: 0.78rem; }
-.xm-art { display: block; width: 100%; height: 92px; image-rendering: auto; border: 2px solid #5a4a7a; border-radius: 4px; object-fit: cover; }
-.xm-when { margin: 0; font-size: 0.78rem; opacity: 0.9; }
-.xm-desc { margin: 0; font-size: 0.78rem; opacity: 0.85; }
-.xm-play { justify-self: start; }
-.xm-q { display: grid; gap: 6px; }
-.xm-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 7px 9px; border: 1px solid #4a3d70; border-radius: 4px; background: rgba(20, 14, 44, 0.7); }
-.xm-row.done { border-color: #c8962c; background: rgba(60, 44, 10, 0.55); }
-.xm-rt { flex: 1; min-width: 0; }
-.xm-rt b { display: block; color: #ffe27a; font-size: 0.82rem; }
-.xm-rt span { display: block; font-size: 0.72rem; opacity: 0.85; }
-.xm-bar { height: 5px; margin-top: 5px; background: #1a1433; border-radius: 3px; overflow: hidden; }
-.xm-bar i { display: block; height: 100%; background: linear-gradient(#ffe27a, #c8962c); }
-.xm-rw { text-align: right; font-size: 0.72rem; color: #ffd24a; white-space: nowrap; }
-.xm-note { margin: 2px 0 0; font-size: 0.7rem; opacity: 0.75; }
+
+.xm-star {
+  width: 34px;
+  height: 34px;
+  margin: 0 10px 0 0;
+  background-image: url("assets/ui/star.png");
+  flex: none;
+}
+
+.xm-ev {
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.xm-head {
+  display: flex;
+  align-items: center;
+}
+
+.xm-head h3 {
+  margin: 0;
+  color: #ffd24a;
+  font-size: 1.05rem;
+}
+
+.xm-head p {
+  margin: 2px 0 0;
+  opacity: 0.85;
+  font-size: 0.78rem;
+}
+
+.xm-art {
+  display: block;
+  width: 100%;
+  height: 92px;
+  image-rendering: auto;
+  border: 2px solid #5a4a7a;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.xm-when {
+  margin: 0;
+  font-size: 0.78rem;
+  opacity: 0.9;
+}
+
+.xm-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.xm-play {
+  justify-self: start;
+}
+
+.xm-q {
+  display: grid;
+  gap: 6px;
+}
+
+.xm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 9px;
+  border: 1px solid #4a3d70;
+  border-radius: 4px;
+  background: rgba(20, 14, 44, 0.7);
+}
+
+.xm-row.done {
+  border-color: #c8962c;
+  background: rgba(60, 44, 10, 0.55);
+}
+
+.xm-rt {
+  flex: 1;
+  min-width: 0;
+}
+
+.xm-rt b {
+  display: block;
+  color: #ffe27a;
+  font-size: 0.82rem;
+}
+
+.xm-rt span {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+.xm-bar {
+  height: 5px;
+  margin-top: 5px;
+  background: #1a1433;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.xm-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(#ffe27a, #c8962c);
+}
+
+.xm-rw {
+  text-align: right;
+  font-size: 0.72rem;
+  color: #ffd24a;
+  white-space: nowrap;
+}
+
+.xm-note {
+  margin: 2px 0 0;
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
 
 /* neve decorativa: só menus/subtelas (camada atrás do conteúdo, sem toque); nunca dentro da partida */
-#menu, .subscreen { isolation: isolate; }
-.xm-snow { display: none; position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-#game[data-xms="1"] .xm-snow { display: block; }
-.xm-snow i { position: absolute; top: -6px; width: var(--s); height: var(--s); background: #fff; opacity: 0.7; will-change: transform;
-  animation: xmfall var(--d) linear var(--w) infinite; }
-@keyframes xmfall {
-  0% { transform: translate3d(0, -6px, 0); opacity: 0; }
-  10% { opacity: 0.75; }
-  90% { opacity: 0.6; }
-  100% { transform: translate3d(var(--x), 105vh, 0); opacity: 0; }
+#menu,
+.subscreen {
+  isolation: isolate;
 }
-@media (prefers-reduced-motion: reduce) { .xm-snow i { animation-duration: 40s; } }
-canvas.xm-art { image-rendering: pixelated; }
+
+.xm-snow {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#game[data-xms="1"] .xm-snow {
+  display: block;
+}
+
+.xm-snow i {
+  position: absolute;
+  top: -6px;
+  width: var(--s);
+  height: var(--s);
+  background: #fff;
+  opacity: 0.7;
+  will-change: transform;
+  animation: xmfall var(--d) linear var(--w) infinite;
+}
+
+@keyframes xmfall {
+  0% {
+    transform: translate3d(0, -6px, 0);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.75;
+  }
+
+  90% {
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translate3d(var(--x), 105vh, 0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xm-snow i {
+    animation-duration: 40s;
+  }
+}
+
+canvas.xm-art {
+  image-rendering: pixelated;
+}
